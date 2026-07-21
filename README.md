@@ -230,7 +230,6 @@ The skill accepts these parameters in the natural-language invocation:
         `-- 2026-07-18-hermes-iLearning-autoadvance.md           # implementation plan
 ```
 
-The runtime deliverables -- `SKILL.md` and `SETUP.md` -- live in `~/.hermes/skills/ilearning-autoadvance/`, outside this repo. Hermes auto-discovers skills there.
 
 ## Design and implementation
 
@@ -259,3 +258,9 @@ The runtime deliverables -- `SKILL.md` and `SETUP.md` -- live in `~/.hermes/skil
 ## License
 
 This repo's contents (skill prose, design docs, config patch) inherit the project's default. Hermes Agent itself is MIT-licensed by Nous Research.
+
+---
+
+## Other skills in this repo
+
+- [`slack-todo-bot/`](slack-todo-bot/README.md) -- Hermes Agent bot that scans Slack notifications hourly, extracts action items to a Markdown TODO file, and posts a 9 AM "today" digest to your private Slack DM. Uses Socket Mode (no public URL needed).
