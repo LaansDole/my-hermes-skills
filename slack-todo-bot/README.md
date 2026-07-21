@@ -264,6 +264,29 @@ If you see `missing_scope: groups:read` on the channel directory, that is non-fa
 
 The bot will not auto-join. For the hourly scan to read a channel's history, the bot must be a member. DMs (the home channel) need no invite.
 
+## After setup
+
+Once the gateway is connected and `~/.hermes/.env` is in place, finish activation with these three steps:
+
+1. **Invite the bot to `#general`** (so the hourly scan can read it):
+
+   ```
+   # In Slack, inside #general:
+   /invite @hermes_bot
+   ```
+
+   Repeat for any other channel you want the hourly scan to cover. The bot will not auto-join. DMs (the home channel) need no invite. See step 11 above for details.
+
+2. **Add the two cron jobs** via the `hermes cron add` commands in the [Add the cron jobs](#add-the-cron-jobs) section below -- the hourly Slack scan + TODO extraction job, and the 9 AM `today` digest job. Both use `--deliver slack` so output lands in your private DM.
+
+3. **Confirm both are active**:
+
+   ```bash
+   hermes cron list
+   ```
+
+   You should see both jobs `[active]` with `next_run` times. See [Verify](#verify) for the full check sequence.
+
 ## Add the cron jobs
 
 Two jobs, both `--deliver slack` (routes to `SLACK_HOME_CHANNEL`, i.e. your private DM).
