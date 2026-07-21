@@ -1,47 +1,32 @@
-# hermes-covidence-screening
+# auto-learn-for-me
 
-A [Hermes Agent](https://hermes-agent.nousresearch.com/) skill that autonomously screens references at the **title & abstract** stage of a [Covidence](https://www.covidence.org/) systematic review in your own Chrome session via the Chrome DevTools Protocol (CDP).
+A Hermes Agent skill pack that autonomously watches and advances HCL iLearning Success web courses in your own Chrome session. The agent resumes paused videos, answers in-video quizzes, and navigates to the next module -- fully unattended.
 
-The agent votes **Yes / Maybe / No** per reference against your PICO criteria (defined in `CRITERIA.md`), writes a one-line rationale for **Maybe** votes into the per-reference notes dialog, and runs unattended after an **approve-first-N** onboarding phase.
-
-Built on Hermes Agent (Nous Research, MIT). The agent attaches to your already-logged-in Chrome via CDP, so no Covidence SSO/2FA automation or credentials-in-the-agent is needed.
+Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, MIT). The agent attaches to your already-logged-in Chrome via the Chrome DevTools Protocol (CDP), so no HCL SSO/2FA automation or credentials-in-the-agent is needed.
 
 ## How it works
 
 ```
-[Your Chrome, logged into Covidence (app.covidence.org)]
+[Your Chrome, logged into HCL iLearning]
        |  CDP via --remote-debugging-port=9222
        |  Hermes attaches with /browser connect
        v
-[Hermes Agent]  <-- skills/covidence-screening/SKILL.md
-       |         <-- skills/covidence-screening/CRITERIA.md  (PICO + inclusion/exclusion)
-       |         <-- skills/covidence-screening/STATE.md    (daily-cap counter)
+[Hermes Agent]  <-- ~/.hermes/skills/ilearning-autoadvance/SKILL.md
        |
        |  vision-capable model (via Nous Portal)
        v
-[Screen loop: observe -> read reference -> classify vs criteria -> vote -> next block]
+[Watch loop: observe -> classify state -> act -> sleep -> repeat]
 ```
 
-Each tick: observe the accessibility tree + URL, classify the page state (`REVIEW_SUMMARY` / `TA_SCREENING` / `UNKNOWN`), walk the T&A list top-to-bottom, run the decision step on the first unvoted reference, cast the vote (with notes for Maybe), and continue. A vision pass is used only as a fallback when the a11y tree is ambiguous (icon-only buttons, shadow-DOM notes dialog).
-
-## Parameters
-
-| Parameter | Type | Default | Description |
-|---|---|---|---|
-| `max_refs` | int | 200 | Hard cap on references to vote on before stopping. |
-| `max_time` | int | 90 | Hard cap on session wall-clock in minutes. Whichever of `max_refs` / `max_time` fires first stops the session. |
-| `daily_cap` | int | 500 | Hard cap on total references voted across sessions in a single UTC day. `0` disables. Persisted in `STATE.md`. |
-| `approve_first_n` | int | 5 | Number of votes at the start of the session for which the agent pauses and waits for user confirmation. After N approvals, the agent flips to unattended mode. |
-| `dry_run` | bool | false | When true, observe and describe the vote you would cast (with Maybe rationale) WITHOUT clicking. |
-| `tick_seconds` | int | 5 | Idle polling interval. After an action, poll again immediately. |
+The skill runs a polling loop. Each tick it observes the page (accessibility tree + `<video>` element state), classifies the player into one of `VIDEO_PLAYING`, `VIDEO_PAUSED`, `QUIZ_POPUP`, `VIDEO_ENDED`, or `UNKNOWN`, dispatches the matching action, and sleeps. See the [design spec](docs/superpowers/specs/2026-07-18-hermes-iLearning-autoadvance-design.md) for the full state machine.
 
 ## Prerequisites
 
 - **macOS** (tested target; Linux/Windows should work since Hermes is cross-platform, but the Chrome launch command in this README is macOS-specific)
 - [Hermes Agent](https://hermes-agent.nousresearch.com/) v0.18+
-- A [Nous Portal](https://portal.nousresearch.com) subscription (gives the agent a vision-capable model via the Tool Gateway)
+- A [Nous Portal](https://portal.nousresearch.com) subscription (gives the agent a vision-capable model via the Tool Gateway -- no separate API keys)
 - Google Chrome (Chromium-family; Brave/Edge also work)
-- A Covidence account with a systematic review assigned to you
+- An HCL iLearning Success account with at least one course assigned to you
 
 ## One-time setup
 
@@ -51,23 +36,30 @@ Each tick: observe the accessibility tree + URL, classify the page state (`REVIE
 curl -fsSL https://hermes-agent.nousresearch.com/install.sh | bash
 ```
 
-Open a new shell so `hermes` is on `$PATH`. Verify:
+Open a new shell (or `source ~/.zshrc`) so `hermes` is on `$PATH`. Verify:
 
 ```bash
 hermes --version   # must be >= 0.18.0
 ```
 
-### 2. Install the skill
+### 2. Install the skill pack
+
+Hermes auto-discovers skills in `~/.hermes/skills/`. Create the directory and the logs directory:
 
 ```bash
-hermes skills install LaansDole/hermes-covidence-screening
+mkdir -p ~/.hermes/skills/ilearning-autoadvance
+mkdir -p ~/.hermes/logs
 ```
 
-This copies the skill to `~/.hermes/skills/covidence-screening/`. Verify:
+The skill files (`SKILL.md` and `SETUP.md`) are part of this repo's deliverables but live outside the repo at runtime. If they aren't already in place (check with `ls ~/.hermes/skills/ilearning-autoadvance/`), create them per [Task 2](docs/superpowers/plans/2026-07-18-hermes-iLearning-autoadvance.md) and [Task 4](docs/superpowers/plans/2026-07-18-hermes-iLearning-autoadvance.md) of the implementation plan.
+
+Verify Hermes sees the skill:
 
 ```bash
-hermes skills list | grep covidence
+hermes skills list
 ```
+
+`ilearning-autoadvance` should appear in the list.
 
 ### 3. Log in to Nous Portal
 
@@ -75,13 +67,17 @@ hermes skills list | grep covidence
 hermes setup --portal
 ```
 
+A browser flow opens for Nous Portal login. After completing it, the terminal confirms the subscription is active and the Tool Gateway tools are enabled.
+
 ### 4. Enable the browser toolset in local CDP mode
 
 ```bash
 hermes setup tools
 ```
 
-In the interactive menu, select **Browser Automation** -> **Local Chromium-family CDP**. Do NOT pick Browserbase / Browser Use / Firecrawl / Camofox -- those are cloud providers and out of scope for this project.
+In the interactive menu, select **Browser Automation** -> **Local Chromium-family CDP**.
+
+Do NOT pick Browserbase / Browser Use / Firecrawl / Camofox -- those are cloud providers and out of scope for this project.
 
 Verify:
 
@@ -91,19 +87,45 @@ hermes tools list
 
 `browser` should appear in the enabled toolsets column.
 
-### 5. Edit `CRITERIA.md`
+### 5. Patch `~/.hermes/config.yaml` for unattended operation
 
-Fill in your PICO + inclusion/exclusion bullets:
+Back up the existing config first:
 
 ```bash
-$EDITOR ~/.hermes/skills/covidence-screening/CRITERIA.md
+cp ~/.hermes/config.yaml ~/.hermes/config.yaml.bak.$(date +%Y%m%d-%H%M%S)
 ```
 
-If it still contains the template placeholder text, the skill will refuse to run.
+Then merge the patch snippet from this repo into `~/.hermes/config.yaml`:
 
-### 6. Set the review to single-reviewer mode
+```bash
+$EDITOR ~/Projects/auto-learn-for-me/.hermes-config/config-patch.yaml   # read what it sets
+$EDITOR ~/.hermes/config.yaml                                            # paste the approvals + browser blocks in
+```
 
-In Covidence: **Settings** -> **Switch to single reviewer**. In dual mode the agent's vote alone will not advance references; do not run in dual mode.
+The patch sets:
+
+```yaml
+approvals:
+  mode: scoped
+  auto_approve:
+    - browser.click
+    - browser.type
+    - browser.fill
+    - browser.evaluate
+    - browser.screenshot
+    - browser.observe
+
+browser:
+  cloud_provider: local    # local CDP only -- no cloud provider
+```
+
+If your Hermes version rejects `mode: scoped`, fall back to `mode: auto` (acceptable here -- the design spec explicitly accepts unattended operation).
+
+Validate:
+
+```bash
+hermes config show    # or `hermes config validate` on newer versions
+```
 
 ## Per-session launch
 
@@ -117,15 +139,19 @@ Quit Chrome fully first (Cmd-Q) -- the flag only takes effect on a fresh launch:
   --user-data-dir="$HOME/Library/Application Support/Google/Chrome" &
 ```
 
+Using your normal `--user-data-dir` preserves your existing HCL iLearning login.
+
 Verify the debug port is listening:
 
 ```bash
 curl -s http://127.0.0.1:9222/json/version | head -1
 ```
 
-### 2. Log in and open the review
+Expected: JSON containing `"webSocketDebuggerUrl"`. If empty, Chrome didn't start with the flag -- make sure no other Chrome process is running first.
 
-In Chrome: navigate to `app.covidence.org`, log in via institutional SSO/2FA, open the target review, and click into the **Title and Abstract Screening** page (the scrollable list of references, not the Review Summary dashboard).
+### 2. Log in and open a course
+
+In Chrome: navigate to HCL iLearning Success, log in via SSO/2FA, open a course, and click into the first lesson so the video element is visible.
 
 ### 3. Start Hermes and attach
 
@@ -139,60 +165,103 @@ In the Hermes prompt:
 /browser connect
 ```
 
+Hermes confirms attachment and lists open tabs. Your HCL iLearning tab should be in the list.
+
 ### 4. Invoke the skill
 
 ```
-run the covidence-screening skill on my current review, max_refs=200, max_time=90, dry_run=false
+Run the ilearning-autoadvance skill on my current tab, max_modules=10.
 ```
 
-Per-tick logs land at `~/.hermes/logs/covidence-screening-<session-id>.jsonl`. A summary (refs screened, Yes/Maybe/No counts, Maybe rationales, stuck points, daily-cap remaining) prints at the end.
+The watch loop begins. Per-tick logs land at `~/.hermes/logs/ilearning-autoadvance-<session-id>.jsonl`. A summary (modules completed, quizzes attempted, stuck points) prints at the end.
 
 ## First-run safety pattern
 
-Before the first unattended run, do these validation passes:
+Before the first unattended run, do these two validation passes:
 
-1. **Dry run** on the Demo review: `max_refs=10, dry_run=true`. Watch the described decisions; tune `CRITERIA.md` if the reasoning misfires.
-2. **Single-ref live run**: `max_refs=1`. Confirm one vote lands and the block updates.
-3. **Approve-first-N live run**: `max_refs=10, approve_first_n=5`. Confirm the onboarding loop pauses for confirmation, then flips to unattended after 5 approvals.
+**Dry run** -- the agent observes and describes each action it *would* take, without clicking:
 
-If clean, do the full unattended run.
+```
+Run the ilearning-autoadvance skill on my current tab, max_modules=1, dry_run=true.
+```
 
-## Safety guardrails (built into the skill)
+Watch the descriptions. If it misclassifies state (e.g. calls a paused video "ended"), edit `~/.hermes/skills/ilearning-autoadvance/SKILL.md` (State Classification section) and re-run. The skill is prose -- tuning is the work, not code.
 
-- Never types into password fields (Hermes hard-blocks this anyway).
-- Never clicks elements named logout / sign out / sign-out / signout / log off.
-- Strict allowlist of T&A screening list + Review Summary page; never clicks into Full Text, Data Extraction, Risk of Bias, or Settings.
-- Never clicks the top-toolbar buttons (`Sort`, `Filter`, `Show criteria`, `More options`).
-- Stops the loop if the page navigates outside the `covidence.org` domain.
-- Read-only on everything except vote buttons and the per-reference notes dialog; never modifies review criteria, team members, or settings.
-- Bounded session via `max_refs` / `max_time` / `daily_cap`.
-- Idempotency guards: never votes twice on the same `Ref ID`; infinite-loop guard stops if the last 3 `Ref ID`s are identical after actions.
-- Re-vote guard: never re-opens an already-voted reference.
-- Hermes's built-in destructive-action blocklists (recursive force-delete, piped-shell installers, fork bombs, lock-screen combos) remain active and are NOT overridden by this skill.
+**Single-module live run with approvals on** -- temporarily set `approvals.mode: manual` in `~/.hermes/config.yaml` and restart Hermes:
 
-## Explicit non-goals
+```
+Run the ilearning-autoadvance skill on my current tab, max_modules=1.
+```
 
-- Covidence institutional SSO login automation -- you stay logged in via your real Chrome.
-- Full-text screening, data extraction, risk-of-bias assessment.
-- Dual-reviewer mode (the review must be set to single-screener before running).
-- External lookups (PubMed, DOI, publisher PDFs) -- Covidence metadata only.
-- Anti-detection / stealth -- if Covidence detects automation, that's a policy problem for you, not a design problem.
-- Multi-review parallelism -- one review at a time.
+Approve each click yourself. Confirm: video resumes, quiz answered, next-module clicked. If clean, flip approvals back to `scoped`/`auto` and do the full unattended run.
+
+## Parameters
+
+The skill accepts these parameters in the natural-language invocation:
+
+| Parameter | Type | Default | Description |
+|---|---|---|---|
+| `max_modules` | int | 50 | Hard cap on modules to advance before stopping. |
+| `dry_run` | bool | false | When true, observe and describe actions without clicking. |
+| `tick_seconds` | int | 5 | Idle polling interval. After an action, poll again immediately. |
+
+## Logs and troubleshooting
+
+- **Per-tick logs:** `~/.hermes/logs/ilearning-autoadvance-<session-id>.jsonl`
+  ```json
+  {"ts":"2026-07-18T12:34:56Z","module":"<lesson title>","state":"VIDEO_PAUSED","action":"click @e14","video_pos":"123.4/456.7","ok":true}
+  ```
+- **Stuck on `UNKNOWN` for more than 2 ticks:** check the screenshot the agent logged -- HCL iLearning may have pushed a modal not covered by the classification rules. Edit `SKILL.md` to add the new state and re-run.
+- **CDP connection dropped:** Chrome closed or crashed. Restart Chrome with the flag (per-session launch step 1) and re-run the skill.
+- **Session/login expired:** the page navigated to SSO login or the `<video>` element disappeared for > 30 s. Log back into HCL iLearning in Chrome and re-run the skill. No auto-relogin by design.
+- **Quiz submit stays disabled:** the agent re-scans for unanswered questions and answers them. If still stuck, kill the session and inspect the page -- HCL may have added a required field the skill doesn't recognize.
 
 ## Repository layout
 
 ```
 .
-`-- skills/
-    `-- covidence-screening/
-        |-- SKILL.md        # screen-loop instructions, state machine, action policy, safety rules
-        |-- CRITERIA.md     # PICO + inclusion/exclusion template (user fills in)
-        |-- STATE.md        # daily-cap counter (auto-created/updated at runtime)
-        `-- SETUP.md        # per-session launch steps
+|-- README.md                                    # this file
+|-- .hermes-config/
+|   `-- config-patch.yaml                        # merge into ~/.hermes/config.yaml after install
+`-- docs/superpowers/
+    |-- specs/
+    |   `-- 2026-07-18-hermes-iLearning-autoadvance-design.md   # design spec
+    `-- plans/
+        `-- 2026-07-18-hermes-iLearning-autoadvance.md           # implementation plan
 ```
+
+
+## Design and implementation
+
+- **Design spec:** `docs/superpowers/specs/2026-07-18-hermes-iLearning-autoadvance-design.md` -- architecture, watch-loop state machine, error handling, risks.
+- **Implementation plan:** `docs/superpowers/plans/2026-07-18-hermes-iLearning-autoadvance.md` -- 7-task build plan with exact commands and content.
+
+## Safety and non-goals
+
+**Safety guardrails (built into the skill):**
+
+- Never types into password fields (Hermes hard-blocks this anyway).
+- Never clicks elements named logout / sign out / sign-out / signout / log off.
+- Stops the loop if the page navigates outside the HCL iLearning domain.
+- Hermes's built-in destructive-action blocklists (`sudo rm -rf`, `curl | bash`, fork bombs, lock-screen combos) remain active.
+- Bounded session via `max_modules` (default 50, configurable).
+- Idempotency guards: never clicks "submit" twice on the same quiz; never clicks "Next" if the URL hasn't changed since the last "Next" click.
+- Infinite-loop guard: stops if the last 3 URLs are identical after actions.
+
+**Explicit non-goals:**
+
+- HCL SSO login automation -- you stay logged in via your real Chrome.
+- Anti-detection / stealth -- if HCL detects automation, that's a policy problem for you, not a design problem. No stealth added.
+- Multi-course parallelism -- one course at a time.
+- Tracking learning progress across sessions -- HCL itself tracks completion; this skill does not duplicate that.
 
 ## License
 
-This skill is MIT-licensed. Hermes Agent itself is MIT-licensed by Nous Research.
+This repo's contents (skill prose, design docs, config patch) inherit the project's default. Hermes Agent itself is MIT-licensed by Nous Research.
 
-Covidence is a registered trademark of its respective owner; this project is not affiliated with or endorsed by Covidence.
+---
+
+## Other skills in this repo
+
+- [`slack-todo-bot/`](slack-todo-bot/README.md) -- Hermes Agent bot that scans Slack notifications hourly, extracts action items to a Markdown TODO file, and posts a 9 AM "today" digest to your private Slack DM. Uses Socket Mode (no public URL needed).
+- [`skills/covidence-screening/`](skills/covidence-screening/SKILL.md) -- Hermes Agent skill that autonomously screens Covidence systematic-review references at the title & abstract stage, voting Yes/Maybe/No against your PICO criteria. Uses CDP to attach to your logged-in Chrome.

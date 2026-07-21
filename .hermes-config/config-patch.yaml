@@ -1,0 +1,26 @@
+# Hermes config patch for ilearning-autoadvance
+#
+# This file is NOT used directly by Hermes. After installing Hermes
+# (see SETUP.md step 1-3), merge the keys below into ~/.hermes/config.yaml.
+#
+# Easiest merge: open ~/.hermes/config.yaml in an editor and paste the
+# `approvals:` and `browser:` blocks below, preserving any existing keys.
+# If Hermes complains about `mode: scoped` on your version, fall back to
+# `mode: auto` (acceptable here -- the user explicitly accepted unattended
+# operation per the design spec).
+
+approvals:
+  mode: scoped
+  auto_approve:
+    - browser.click
+    - browser.type
+    - browser.fill
+    - browser.evaluate
+    - browser.screenshot
+    - browser.observe
+
+browser:
+  # cloud_provider is intentionally UNSET -- we use local CDP only.
+  # If a cloud provider was previously set, comment it out:
+  # cloud_provider: browserbase   # disabled -- using local CDP
+  cloud_provider: local
