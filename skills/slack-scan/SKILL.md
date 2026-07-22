@@ -1,15 +1,12 @@
 ---
 name: slack-scan
-description: On-demand Slack summary -- ask Hermes any time for a recap of today's activity, either across every channel/DM it's a member of, or one named channel. No cron job required. Uses the Slack Web API directly through the terminal tool -- Hermes has no built-in `slack_*` tool, unlike Discord.
-trigger:
-  - summarize slack
-  - summarize today's notifications
-  - what did I miss today
-  - today's slack summary
-  - scan slack
-  - what's in #
-  - what happened in
-  - check channel for todos
+description: Summarize today's Slack activity on demand -- one channel or every channel/DM the bot is in.
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [slack, summary, notifications, todo]
+    category: messaging
+    requires_toolsets: [terminal]
 ---
 
 # Slack notification summary (on demand)
