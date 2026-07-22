@@ -1,21 +1,23 @@
 # slack-todo-bot
 
-A Hermes Agent skill that turns Slack notifications into a private daily TODO digest. The bot runs two cron jobs on your laptop: one that scans Slack hourly and extracts action items into a Markdown task file, and one that posts a "today" priority digest to your private Slack DM at 9 AM. No public channel posts, no inbound ports, no cloud -- just Socket Mode + local files.
+A Hermes Agent skill that turns Slack, Jira, and GitHub notifications into a private daily TODO digest. The bot runs four cron jobs on your laptop: hourly scans of Slack, Jira, and GitHub that extract action items into a Markdown task file, plus a 9 AM digest that posts your prioritized "today" plan to your private Slack DM. No public channel posts, no inbound ports, no cloud -- just Socket Mode + local files.
 
 Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, MIT). Uses the built-in Slack gateway (Socket Mode / WebSocket), so it works behind your firewall with no public URL.
 
 ## How it works
 
 ```
-[Slack workspace]
-       |  Socket Mode (WebSocket, outbound only)
-       v
+[Slack workspace]        [Jira Cloud]              [GitHub]
+       |  Socket Mode           |  REST API                |  REST API
+       v  (WebSocket)           v                           v
 [Hermes gateway]  <-- launchd service on your Mac, holds 1 persistent WSS
        |
        |-- per-chat AIAgent sessions (interactive DMs)
        |-- cron scheduler (ticks every 60s)
        |       |
-       |       |-- hourly: slack-digest.py  -->  pulls new msgs via Web API
+       |       |-- hourly: slack-digest.py   -->  pulls new Slack msgs
+       |       |-- hourly: jira-digest.py    -->  pulls new Jira activity
+       |       |-- hourly: github-digest.py  -->  pulls new GitHub activity
        |       |                                      |
        |       |                                      v
        |       |                          agent summarizes + extracts actions
@@ -53,6 +55,7 @@ Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, 
 - A Slack workspace where you can create apps (or admin permission to install one)
 - [uv](https://docs.astral.sh/uv/) (for installing the `today` CLI)
 - Python 3.11+ (ships with Hermes; used for the two cron scripts)
+- (Optional) A Jira Cloud site with an API token, and/or a GitHub personal access token -- only needed if you enable the Jira/GitHub digests in step 8.
 
 ## One-time setup
 
@@ -174,6 +177,8 @@ chmod 600 ~/.hermes/.env
 
 If your `~/.hermes/.env` is the default template (with a large commented `# SLACK INTEGRATION` block), find it and replace the commented `# SLACK_BOT_TOKEN=...` lines with the real values above (uncommented).
 
+Optional Jira/GitHub vars (`JIRA_BASE_URL`, `JIRA_EMAIL`, `JIRA_API_TOKEN`, `GITHUB_TOKEN`, ...) are documented in [`.env.example`](.env.example) and covered in step 8 below -- skip them for now if you only want the Slack + `today` digests.
+
 ### 6. Install the `today` CLI
 
 ```bash
@@ -184,22 +189,51 @@ today --version
 
 This is what the 9 AM digest cron job runs to read your task files.
 
-### 7. Copy the two scripts into place
+### 7. Copy the scripts into place
 
 ```bash
 mkdir -p ~/.hermes/scripts
-cp slack-todo-bot/scripts/slack-digest.py ~/.hermes/scripts/
+cp slack-todo-bot/scripts/slack-digest.py  ~/.hermes/scripts/
 cp slack-todo-bot/scripts/today-digest.py  ~/.hermes/scripts/
-chmod +x ~/.hermes/scripts/slack-digest.py ~/.hermes/scripts/today-digest.py
+cp slack-todo-bot/scripts/jira-digest.py   ~/.hermes/scripts/
+cp slack-todo-bot/scripts/github-digest.py ~/.hermes/scripts/
+chmod +x ~/.hermes/scripts/{slack,today,jira,github}-digest.py
 ```
 
 Verify they compile:
 
 ```bash
-python3 -m py_compile ~/.hermes/scripts/slack-digest.py ~/.hermes/scripts/today-digest.py && echo OK
+python3 -m py_compile ~/.hermes/scripts/{slack,today,jira,github}-digest.py && echo OK
 ```
 
-### 8. Seed the task file
+### 8. Get Jira and GitHub API credentials (optional)
+
+Skip this step entirely if you only want the Slack + `today` digests -- `jira-digest.py` and `github-digest.py` degrade to `NO_CHANGE` when unconfigured, so leaving them out breaks nothing.
+
+**Jira** (priority integration):
+
+1. Go to https://id.atlassian.com/manage-profile/security/api-tokens -> **Create API token** -> name it `hermes-cron` -> copy the token.
+2. Note your Jira Cloud site URL (e.g. `https://yourcompany.atlassian.net`) and the email you log into Jira with.
+
+**GitHub:**
+
+1. Go to https://github.com/settings/tokens -> **Generate new token (classic)** -> scope: `repo` (or `public_repo` if you only care about public repos) -> generate -> copy the token.
+2. Fine-grained tokens work too: grant `Issues: Read-only` and `Pull requests: Read-only` on the repos you want covered.
+
+Add both sets of credentials to `~/.hermes/.env` per [`.env.example`](.env.example):
+
+```bash
+JIRA_BASE_URL=https://yourcompany.atlassian.net
+JIRA_EMAIL=you@yourcompany.com
+JIRA_API_TOKEN=...
+GITHUB_TOKEN=ghp_...
+```
+
+```bash
+chmod 600 ~/.hermes/.env
+```
+
+### 9. Seed the task file
 
 ```bash
 mkdir -p ~/tasks
@@ -216,7 +250,7 @@ EOF
 
 The `[d:t]` tag tells the `today` CLI "due today". See [todo-today-cli on PyPI](https://pypi.org/project/todo-today-cli/) for the full tag syntax (`[d:YYYY-MM-DD]`, `[s]` for started, etc.).
 
-### 9. Make sure the gateway service can find `today` on PATH
+### 10. Make sure the gateway service can find `today` on PATH
 
 The launchd service does NOT inherit your shell PATH by default. If `~/.local/bin` (where `uv tool install` puts `today`) is not on the service PATH, `today-digest.py` will report "not installed". Either:
 
@@ -230,7 +264,7 @@ The launchd service does NOT inherit your shell PATH by default. If `~/.local/bi
 
 - Or symlink `today` into `/usr/local/bin` (if you have write access).
 
-### 10. Install and start the gateway
+### 11. Install and start the gateway
 
 ```bash
 hermes gateway install        # install as macOS launchd user service (one-time)
@@ -255,7 +289,7 @@ If you see `missing_scope: connections:write`, go back to step 3.1 -- the app-le
 
 If you see `missing_scope: groups:read` on the channel directory, that is non-fatal (Socket Mode still works) but means Hermes can't auto-discover private channels. To fix, add `groups:read` to the bot scopes and reinstall the app.
 
-### 11. Invite the bot to any channels you want it to scan
+### 12. Invite the bot to any channels you want it to scan
 
 ```
 # In Slack, inside each channel:
@@ -266,30 +300,30 @@ The bot will not auto-join. For the hourly scan to read a channel's history, the
 
 ## After setup
 
-Once the gateway is connected and `~/.hermes/.env` is in place, finish activation with these three steps:
+Once the gateway is connected and `~/.hermes/.env` is in place, finish activation with these four steps:
 
-1. **Invite the bot to `#general`** (so the hourly scan can read it):
+1. **Invite the bot to `#general`** (so the hourly Slack scan can read it):
 
    ```
    # In Slack, inside #general:
    /invite @hermes_bot
    ```
 
-   Repeat for any other channel you want the hourly scan to cover. The bot will not auto-join. DMs (the home channel) need no invite. See step 11 above for details.
+   Repeat for any other channel you want the Slack scan to cover. The bot will not auto-join. DMs (the home channel) need no invite. See step 12 above for details.
 
-2. **Add the two cron jobs** via the `hermes cron add` commands in the [Add the cron jobs](#add-the-cron-jobs) section below -- the hourly Slack scan + TODO extraction job, and the 9 AM `today` digest job. Both use `--deliver slack` so output lands in your private DM.
+2. **Add the cron jobs** via the `hermes cron add` commands in the [Add the cron jobs](#add-the-cron-jobs) section below -- the hourly Slack scan, the hourly Jira scan, the hourly GitHub scan, and the 9 AM `today` digest. Skip the Jira/GitHub jobs if you didn't set up their credentials in step 8. All jobs use `--deliver slack` so output lands in your private DM.
 
-3. **Confirm both are active**:
+3. **Confirm they're active**:
 
    ```bash
    hermes cron list
    ```
 
-   You should see both jobs `[active]` with `next_run` times. See [Verify](#verify) for the full check sequence.
+   You should see every job you added `[active]` with a `next_run` time. See [Verify](#verify) for the full check sequence.
 
 ## Add the cron jobs
 
-Two jobs, both `--deliver slack` (routes to `SLACK_HOME_CHANNEL`, i.e. your private DM).
+Four jobs (or two, if you skipped Jira/GitHub), all `--deliver slack` (routes to `SLACK_HOME_CHANNEL`, i.e. your private DM).
 
 ### Job 1 -- hourly Slack scan + TODO extraction
 
@@ -325,12 +359,62 @@ hermes cron add "0 9 * * *" \
   --deliver slack
 ```
 
+### Job 3 -- hourly Jira scan + TODO extraction
+
+```bash
+hermes cron add "every 1h" \
+  "You receive script output describing Jira issues assigned to me with new activity since the last run.
+
+Do TWO things:
+
+1. POST A SUMMARY to Slack: flag anything urgent or blocking at the top (by priority/status), then list the rest.
+
+2. EXTRACT ACTION ITEMS to /Users/<you>/tasks/inbox.md. For any issue that isn't already Done, append a Markdown checkbox with [d:t], tagged with its Jira key so re-runs don't duplicate it. Prepend a new section:
+
+## From Jira - <YYYY-MM-DD HH:MM>
+- [ ] [PROJ-123] <concise summary> [d:t]
+
+Rules: create file if missing; prepend new section if exists; do not duplicate an item whose Jira key already appears anywhere in the file; one line per item under 80 chars.
+
+If the script output says NO_CHANGE, respond with only [SILENT] and do not modify any file.
+Otherwise end your Slack reply with one line: 'Added N TODO(s) to today's list.'" \
+  --script ~/.hermes/scripts/jira-digest.py \
+  --name "Jira scan + TODO extract" \
+  --deliver slack
+```
+
+### Job 4 -- hourly GitHub scan + TODO extraction
+
+```bash
+hermes cron add "every 1h" \
+  "You receive script output describing GitHub issues/PRs assigned to me or awaiting my review, with new activity since the last run.
+
+Do TWO things:
+
+1. POST A SUMMARY to Slack: flag PRs awaiting my review at the top, then assigned issues/PRs.
+
+2. EXTRACT ACTION ITEMS to /Users/<you>/tasks/inbox.md. For any item needing action from me, append a Markdown checkbox with [d:t], tagged with its repo#number so re-runs don't duplicate it. Prepend a new section:
+
+## From GitHub - <YYYY-MM-DD HH:MM>
+- [ ] [owner/repo#123] <concise action item> [d:t]
+
+Rules: create file if missing; prepend new section if exists; do not duplicate an item whose repo#number already appears anywhere in the file; one line per item under 80 chars.
+
+If the script output says NO_CHANGE, respond with only [SILENT] and do not modify any file.
+Otherwise end your Slack reply with one line: 'Added N TODO(s) to today's list.'" \
+  --script ~/.hermes/scripts/github-digest.py \
+  --name "GitHub scan + TODO extract" \
+  --deliver slack
+```
+
 ## Verify
 
 ```bash
-hermes cron list                              # both jobs [active] with next_run times
+hermes cron list                              # every job you added is [active] with next_run times
 hermes cron run <slack-job-id>                # fires on next tick (~60s)
-cat ~/tasks/inbox.md                          # new section appended
+hermes cron run <jira-job-id>                 # if Jira credentials are set
+hermes cron run <github-job-id>               # if GitHub credentials are set
+cat ~/tasks/inbox.md                          # new section(s) appended
 hermes cron run <today-job-id>                # 9 AM digest fires immediately for testing
 hermes logs | grep -i cron | tail -20
 ```
@@ -341,8 +425,8 @@ Open your DM with the bot in Slack. You should see the hourly summary and the 9 
 
 - **DM the bot** any time: "add TODO: buy milk" -> it appends to `~/tasks/inbox.md` using file tools in the live session.
 - **@mention in a channel** the bot's been invited to: "@hermes_bot what's my day look like?" -> it can run `today --dir ~/tasks` itself and answer.
-- **Hourly**: new Slack messages -> agent reads, posts summary to your DM, prepends action items to `inbox.md`.
-- **9 AM**: `today` reads everything due (auto-extracted + anything you added) -> priority plan posted to your DM.
+- **Hourly**: new Slack messages, Jira activity, and GitHub activity -> agent reads each, posts a summary to your DM, prepends action items to `inbox.md`.
+- **9 AM**: `today` reads everything due (auto-extracted from all three sources + anything you added) -> priority plan posted to your DM.
 - **Edit tasks directly**: open `~/tasks/inbox.md` in your editor; `today` reads it as-is next run.
 
 ## How "private" works at each layer
@@ -371,8 +455,11 @@ slack:
 ```
 slack-todo-bot/
 |-- README.md                      # this file
+|-- .env.example                   # annotated env var reference (Slack + Jira + GitHub)
 `-- scripts/
     |-- slack-digest.py            # hourly: pull new Slack msgs via Web API
+    |-- jira-digest.py             # hourly: pull new Jira activity via REST API (optional)
+    |-- github-digest.py           # hourly: pull new GitHub activity via REST API (optional)
     `-- today-digest.py            # 9 AM: run `today` CLI over ~/tasks/*.md
 ```
 
@@ -383,22 +470,25 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
 - **`missing_scope: connections:write` on `apps.connections.open`** -- the app-level `xapp-` token lacks the `connections:write` scope. Settings -> Basic Information -> App-Level Tokens -> generate a new one WITH the scope. Update `~/.hermes/.env` `SLACK_APP_TOKEN`, `hermes gateway restart`.
 - **`missing_scope: groups:read` on `users.conversations`** -- non-fatal. Socket Mode still works, but Hermes can't list private channels. Add `groups:read` to bot scopes, reinstall app, restart gateway.
 - **Bot doesn't respond in `#general`** -- you haven't invited it. `/invite @hermes_bot` in the channel.
-- **Cron job silently does nothing** -- check `hermes cron list` shows the job `[active]` with a next_run time. Check `hermes logs | grep -i cron`. If `today-digest.py` reports "not installed", the launchd service PATH doesn't include `~/.local/bin` (see step 9).
-- **`NO_CHANGE` every run** -- for `slack-digest.py`, this means no new messages since the last run in the watched channels. Check `SLACK_WATCH_CHANNELS` is set to channel IDs the bot is a member of. For `today-digest.py`, it means `today` produced no output (no tasks due today).
-- **Secrets leaked in chat** -- if you pasted Slack secrets in a logged conversation, rotate all of them: reinstall the app (rotates `xoxb-`), regenerate signing secret + client secret, delete and regenerate the `xapp-` token. Update `~/.hermes/.env` lines 345-346, `hermes gateway restart`.
+- **Cron job silently does nothing** -- check `hermes cron list` shows the job `[active]` with a next_run time. Check `hermes logs | grep -i cron`. If `today-digest.py` reports "not installed", the launchd service PATH doesn't include `~/.local/bin` (see step 10).
+- **`NO_CHANGE` every run** -- for `slack-digest.py`, this means no new messages since the last run in the watched channels; check `SLACK_WATCH_CHANNELS` is set to channel IDs the bot is a member of. For `today-digest.py`, it means `today` produced no output (no tasks due today). For `jira-digest.py`/`github-digest.py`, either there's no new activity, or the credentials aren't set yet -- both scripts print a one-line hint instead of bare `NO_CHANGE` when unconfigured.
+- **`jira-digest.py` prints a 401/403 API error** -- the API token is wrong, expired, or the email doesn't match the token's owner. Regenerate at https://id.atlassian.com/manage-profile/security/api-tokens.
+- **`github-digest.py` prints a 401 "Bad credentials"** -- the token is invalid or expired. Regenerate at https://github.com/settings/tokens. A 403 usually means the token lacks `Issues`/`Pull requests` read access on a repo it's trying to list.
+- **Secrets leaked in chat** -- if you pasted Slack/Jira/GitHub secrets in a logged conversation, rotate all of them: reinstall the Slack app (rotates `xoxb-`), regenerate the Slack signing secret + client secret, delete and regenerate the `xapp-` token, and regenerate the Jira API token / GitHub PAT. Update `~/.hermes/.env`, `hermes gateway restart`.
 
 ## Security notes
 
-- The two scripts are stdlib-only (no third-party packages). They read `SLACK_BOT_TOKEN` from the environment and never log it.
+- All four scripts are stdlib-only (no third-party packages). They read their tokens from the environment and never log them.
 - `~/.hermes/.env` must be `chmod 600`. Hermes refuses to load it otherwise.
-- State files (`.slack-state.json`) are written with `0o600` permissions.
+- State files (`.slack-state.json`, `.jira-state.json`, `.github-state.json`) are written with `0o600` permissions.
 - Hermes has built-in secret redaction: tool output, logs, and chat responses are scrubbed before delivery (visible in gateway logs as "Secret redaction: ENABLED").
 - The bot is deny-by-default: without `SLACK_ALLOWED_USERS`, nobody can talk to it.
+- Jira/GitHub credentials are read-only in scope (API token / PAT with read scopes) -- neither script writes back to Jira or GitHub.
 - Never commit `~/.hermes/.env` to git. This repo contains only the scripts and docs -- no secrets.
 
 ## Design and implementation
 
-- **Architecture**: Hybrid two-job -- hourly Slack scan extracts action items to `~/tasks/inbox.md` with `[d:t]` + posts summary; 9 AM `today` digest posts priority plan. Chosen over a single combined job (different cadences) or two read-only jobs (extraction needs file write).
+- **Architecture**: Hybrid multi-source -- hourly Slack/Jira/GitHub scans each extract action items to `~/tasks/inbox.md` with `[d:t]` + post a per-source summary; 9 AM `today` digest posts the combined priority plan. Jira/GitHub are additive and optional (graceful `NO_CHANGE` when unconfigured) so the original two-job Slack setup keeps working unmodified.
 - **No separate "Slack skill" needed**: Slack is a built-in Hermes gateway; cron uses a script to pull history (since cron agent can't call Slack interactively).
 - **`agent_view` not `assistant_view`**: `assistant_view` is deprecated; `agent_view` is required for `app_context_changed` and the modern DM surface. Irreversible once enabled.
 - **Generate manifest via `hermes slack manifest --agent-view --write`** rather than hand-maintaining, to stay in sync after `hermes update`. The manifest above is the hand-authored equivalent.
