@@ -264,5 +264,5 @@ This repo's contents (skill prose, design docs, config patch) inherit the projec
 ## Other skills in this repo
 
 - [`slack-todo-bot/`](slack-todo-bot/README.md) -- Hermes Agent bot that scans Slack notifications hourly, extracts action items to a Markdown TODO file, and posts a 9 AM "today" digest to your private Slack DM. Uses Socket Mode (no public URL needed).
-- [`skills/slack-scan/`](skills/slack-scan/SKILL.md) -- On-demand companion to `slack-todo-bot`: ask Hermes directly in any chat to scan a channel and report today's action items immediately, instead of waiting for the hourly cron. Calls the Slack Web API via `curl` + `SLACK_BOT_TOKEN` (Hermes has no built-in Slack-reading tool).
+- [`skills/slack-scan/`](skills/slack-scan/SKILL.md) -- On-demand companion to `slack-todo-bot`: ask Hermes directly in any chat to summarize today's Slack activity -- every channel/DM it's in, or one named channel -- with no cron job required. Calls the Slack Web API via `curl` + `SLACK_BOT_TOKEN` (Hermes has no built-in Slack-reading tool).
 - [`skills/covidence-screening/`](skills/covidence-screening/SKILL.md) -- Hermes Agent skill that autonomously screens Covidence systematic-review references at the title & abstract stage, voting Yes/Maybe/No against your PICO criteria. Uses CDP to attach to your logged-in Chrome.

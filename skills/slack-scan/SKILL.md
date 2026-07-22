@@ -1,81 +1,122 @@
 ---
 name: slack-scan
-description: On-demand Slack channel scan that pulls today's messages from a channel and extracts action items/TODOs, without waiting for the hourly cron job. Works in any interactive chat (DM or channel) the moment the user asks. Uses the Slack Web API directly through the terminal tool -- Hermes has no built-in `slack_*` tool, unlike Discord.
+description: On-demand Slack summary -- ask Hermes any time for a recap of today's activity, either across every channel/DM it's a member of, or one named channel. No cron job required. Uses the Slack Web API directly through the terminal tool -- Hermes has no built-in `slack_*` tool, unlike Discord.
 trigger:
+  - summarize slack
+  - summarize today's notifications
+  - what did I miss today
+  - today's slack summary
   - scan slack
-  - check channel for todos
   - what's in #
-  - today's todos from
-  - look into channel
   - what happened in
+  - check channel for todos
 ---
 
-# Slack channel scan -> today's TODOs
+# Slack notification summary (on demand)
 
 ## When to use this
 
-The hourly `slack-digest.py` cron job (see `slack-todo-bot/README.md` in this repo) only covers
-channels listed in `SLACK_WATCH_CHANNELS` and only reports messages since its last run. Use this
-skill instead when the user asks **right now, in chat**, about a channel -- named or not yet
-watched -- and wants today's action items immediately. No cron round-trip, no state file.
+There is **no cron job for this** by design -- the user asked to hold off on scheduling. This
+skill runs entirely inside the current chat, the moment it's asked for, and produces nothing
+persistent (no state file, no write to `~/tasks/inbox.md`) unless the user explicitly asks for
+that. Two shapes of request:
+
+- **"Summarize today" / "what did I miss?"** (no channel named) -- recap every channel and DM the
+  bot is currently a member of.
+- **"What's in #channel today?"** (channel named) -- recap just that one.
 
 ## Prerequisites
 
-- The bot is a member of the target channel (`/invite @hermes_bot` in it). Without membership,
-  `conversations.history` returns `not_in_channel` for public channels bots aren't in, or
-  `missing_scope`/`channel_not_found` for private ones.
-- `SLACK_BOT_TOKEN` is set in `~/.hermes/.env` and readable to the terminal tool's environment.
-- Bot scopes `channels:history` (public) and/or `groups:history` (private) are granted -- already
-  part of the standard manifest (see `slack-todo-bot/README.md` step 2).
+- The bot must be a member of any channel it's asked to cover (`/invite @hermes_bot` in it).
+  Public channels the bot never joined, and private channels it wasn't invited to, are invisible
+  to it -- there is no workaround.
+- `SLACK_BOT_TOKEN` is set in `~/.hermes/.env`, readable to the terminal tool's environment.
+- Bot scopes `channels:history` / `groups:history` / `im:history` / `mpim:history` are granted
+  (already part of the standard manifest -- see `slack-todo-bot/README.md` step 2).
 
 There is no `slack_history` or similar agent-callable tool. Every step below goes through the
-`terminal` tool calling Slack's Web API directly with `curl` + `SLACK_BOT_TOKEN`.
+`terminal` tool calling Slack's Web API directly with `curl`/`python3` + `SLACK_BOT_TOKEN`.
 
 ## Steps
 
-1. **Resolve the channel ID.** If the user gave `#channel-name`, resolve it (paginate if needed):
+### 1. Determine scope
 
-   ```bash
-   curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-     "https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200" \
-     | python3 -c "import json,sys; d=json.load(sys.stdin); print([c['id'] for c in d['channels'] if c['name']=='channel-name'])"
-   ```
+- Channel named in the request -> resolve just that one ID (see "Resolve a channel name" below).
+- No channel named -> enumerate every conversation the bot is a member of:
 
-   If the user already gave a channel ID (`C0123...`), skip straight to step 2.
+  ```bash
+  curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+    "https://slack.com/api/conversations.list?types=public_channel,private_channel,mpim,im&limit=200&exclude_archived=true"
+  ```
 
-2. **Compute "today" as a Unix timestamp.** Use the user's local timezone if known from context,
-   otherwise the machine's local time. `oldest` = midnight today:
+  Paginate on `response_metadata.next_cursor`. Keep only entries where `is_member` is `true`
+  (private channels and IMs/MPIMs the bot can see are always ones it's already in; public
+  channels need the explicit `is_member` check since the list includes ones it never joined).
 
-   ```bash
-   python3 -c "from datetime import datetime; print(datetime.now().replace(hour=0,minute=0,second=0,microsecond=0).timestamp())"
-   ```
+### 2. Compute "today" as a Unix timestamp
 
-3. **Fetch history since that timestamp**, paginating on `response_metadata.next_cursor`:
+Midnight today, in the user's local timezone if known from context, else the machine's local time:
 
-   ```bash
-   curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
-     "https://slack.com/api/conversations.history?channel=CHANNEL_ID&oldest=OLDEST_TS&limit=200"
-   ```
+```bash
+python3 -c "from datetime import datetime; print(datetime.now().replace(hour=0,minute=0,second=0,microsecond=0).timestamp())"
+```
 
-4. **Filter**: drop messages where `subtype == "bot_message"` (avoids echoing digests/other bots).
-   Keep `user`, `ts`, `text` for the rest.
+### 3. Fetch each channel's history since that timestamp
 
-5. **Extract action items** from the remaining text via reasoning, not regex -- look for:
-   - explicit asks directed at someone ("@user can you...", "someone needs to...")
-   - deadline language ("by EOD", "today", "ASAP", "before standup")
-   - open questions blocking someone's work
-   - anything phrased as a decision/task that has no visible follow-up message resolving it
+```bash
+curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  "https://slack.com/api/conversations.history?channel=CHANNEL_ID&oldest=OLDEST_TS&limit=200"
+```
 
-6. **Respond immediately** in the current chat with a short prioritized list (urgent first). Do
-   **not** silently write to `~/tasks/inbox.md` -- this is a pull, not the cron's push. Only append
-   to the task file if the user explicitly asks ("add these to my list"), tagging entries the same
-   way the cron job does (`[d:t]`, dedup by a stable marker like the Slack message `ts`).
+Paginate on `response_metadata.next_cursor`. **Rate limit**: `conversations.history` is Tier 3
+(~50 req/min per workspace). If scope is "every channel" and the bot is in more than a handful,
+write a short throwaway Python script via the terminal tool that loops over channel IDs with a
+`time.sleep(1.2)` between calls and retries once on HTTP 429 honoring the `Retry-After` header --
+don't fire a burst of sequential `curl` calls with no delay.
+
+Drop any channel that returns zero messages after filtering (step 4) -- don't mention it in the
+final summary.
+
+### 4. Filter
+
+Drop messages where `subtype == "bot_message"` (avoids echoing digests/other bots' output). Keep
+`user`, `ts`, `text` for the rest.
+
+### 5. Summarize -- this is a general recap, not just a TODO list
+
+For each channel with activity today, reason over its messages and produce 2-5 bullets covering
+whatever's actually there:
+
+- decisions made or announcements posted
+- direct mentions of the requesting user, or messages addressed to them
+- open questions / blockers with no visible resolution
+- explicit asks or deadline language ("by EOD", "ASAP", "before standup") -- call these out as
+  action items within the recap, but don't force every channel into a TODO-shaped bullet list if
+  the activity was just discussion or FYI-style updates.
+
+### 6. Reply
+
+One message, grouped by channel (`#channel-name` or DM name as a heading), most-active or
+most-urgent channel first. If scope was "everything" and nothing had activity today, say so
+plainly. Don't write anything to disk -- this is a pull; only append to `~/tasks/inbox.md` if the
+user explicitly says "add these to my list" (tag with `[d:t]`, dedup by the Slack message `ts`).
+
+## Resolve a channel name
+
+```bash
+curl -s -H "Authorization: Bearer $SLACK_BOT_TOKEN" \
+  "https://slack.com/api/conversations.list?types=public_channel,private_channel&limit=200" \
+  | python3 -c "import json,sys; d=json.load(sys.stdin); print([c['id'] for c in d['channels'] if c['name']=='channel-name'])"
+```
+
+Paginate if the workspace has more than 200 channels.
 
 ## Errors
 
 | Response | Meaning | Action |
 | --- | --- | --- |
-| `not_in_channel` | Bot isn't a member | Tell the user to `/invite @hermes_bot` in that channel, stop. |
-| `missing_scope` | `channels:history`/`groups:history` not granted | Point to `slack-todo-bot/README.md` step 2, stop. |
+| `not_in_channel` | Bot isn't a member | Tell the user to `/invite @hermes_bot` in that channel, skip it (don't fail the whole summary). |
+| `missing_scope` | A history scope isn't granted | Point to `slack-todo-bot/README.md` step 2, stop. |
 | `channel_not_found` | Bad ID or private channel bot can't see | Ask the user to confirm the channel name/ID. |
-| Empty `messages` | No activity today | Say so plainly -- don't fabricate items. |
+| `ratelimited` (HTTP 429) | Too many `conversations.history` calls | Sleep for the `Retry-After` header value, retry once, then skip that channel and note it in the reply. |
+| Empty `messages` everywhere | No activity today | Say so plainly -- don't fabricate items. |
