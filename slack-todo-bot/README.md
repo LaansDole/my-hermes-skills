@@ -428,6 +428,7 @@ Open your DM with the bot in Slack. You should see the hourly summary and the 9 
 - **Hourly**: new Slack messages, Jira activity, and GitHub activity -> agent reads each, posts a summary to your DM, prepends action items to `inbox.md`.
 - **9 AM**: `today` reads everything due (auto-extracted from all three sources + anything you added) -> priority plan posted to your DM.
 - **Edit tasks directly**: open `~/tasks/inbox.md` in your editor; `today` reads it as-is next run.
+- **Scan any channel right now**: "@hermes_bot scan #eng-team for today's TODOs" -> the [`slack-scan`](../skills/slack-scan/SKILL.md) skill fetches that channel's history since midnight and reports action items in the reply, without waiting for the hourly job or requiring the channel to be in `SLACK_WATCH_CHANNELS`.
 
 ## How "private" works at each layer
 
