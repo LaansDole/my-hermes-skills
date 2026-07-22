@@ -1,6 +1,6 @@
 # slack-todo-bot
 
-A Hermes Agent skill that turns Slack, Jira, and GitHub notifications into a private daily TODO digest. The bot runs four cron jobs on your laptop: hourly scans of Slack, Jira, and GitHub that extract action items into a Markdown task file, plus a 9 AM digest that posts your prioritized "today" plan to your private Slack DM. No public channel posts, no inbound ports, no cloud -- just Socket Mode + local files.
+A Hermes Agent skill that makes your Slack bot summarize today's activity on demand -- ask it "summarize today's Slack" or "what's in #channel today?" and it recaps every channel/DM it's in, right now, no scheduling required. Optional cron automation (hourly Slack/Jira/GitHub scans + a 9 AM "today" digest) can be layered on top for unattended delivery, but isn't required to get value. No public channel posts, no inbound ports, no cloud -- just Socket Mode + local files.
 
 Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, MIT). Uses the built-in Slack gateway (Socket Mode / WebSocket), so it works behind your firewall with no public URL.
 
@@ -8,12 +8,19 @@ Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, 
 
 ```
 [Slack workspace]        [Jira Cloud]              [GitHub]
-       |  Socket Mode           |  REST API                |  REST API
+       |  Socket Mode           |  REST API (optional)     |  REST API (optional)
        v  (WebSocket)           v                           v
 [Hermes gateway]  <-- launchd service on your Mac, holds 1 persistent WSS
        |
-       |-- per-chat AIAgent sessions (interactive DMs)
-       |-- cron scheduler (ticks every 60s)
+       |-- per-chat AIAgent sessions (interactive DMs / channels)
+       |       |
+       |       `-- on demand: skills/slack-scan  -->  "summarize today" / "what's in #x?"
+       |                          |
+       |                          v
+       |            fetches today's history via Slack Web API, replies in chat
+       |            (nothing persisted unless you ask it to save)
+       |
+       |-- cron scheduler (ticks every 60s, optional -- see "Add the cron jobs")
        |       |
        |       |-- hourly: slack-digest.py   -->  pulls new Slack msgs
        |       |-- hourly: jira-digest.py    -->  pulls new Jira activity
@@ -300,26 +307,23 @@ The bot will not auto-join. For the hourly scan to read a channel's history, the
 
 ## After setup
 
-Once the gateway is connected and `~/.hermes/.env` is in place, finish activation with these four steps:
+Once the gateway is connected and `~/.hermes/.env` is in place, the minimum to get value is:
 
-1. **Invite the bot to `#general`** (so the hourly Slack scan can read it):
+1. **Invite the bot to `#general`** (and any other channel you want it to be able to summarize):
 
    ```
    # In Slack, inside #general:
    /invite @hermes_bot
    ```
 
-   Repeat for any other channel you want the Slack scan to cover. The bot will not auto-join. DMs (the home channel) need no invite. See step 12 above for details.
+   The bot will not auto-join. DMs (the home channel) need no invite. See step 12 above for details.
 
-2. **Add the cron jobs** via the `hermes cron add` commands in the [Add the cron jobs](#add-the-cron-jobs) section below -- the hourly Slack scan, the hourly Jira scan, the hourly GitHub scan, and the 9 AM `today` digest. Skip the Jira/GitHub jobs if you didn't set up their credentials in step 8. All jobs use `--deliver slack` so output lands in your private DM.
+2. **DM it**: "summarize today's Slack" or "what's in #general today?" -- see
+   [`skills/slack-scan`](../skills/slack-scan/SKILL.md). That's it; no cron required.
 
-3. **Confirm they're active**:
-
-   ```bash
-   hermes cron list
-   ```
-
-   You should see every job you added `[active]` with a `next_run` time. See [Verify](#verify) for the full check sequence.
+The cron jobs below (hourly Slack/Jira/GitHub scan + 9 AM digest) are optional automation on top
+of that -- set them up whenever you want scheduled, unattended delivery instead of asking on
+demand. Skip straight to [Verify](#verify) if you're not setting up cron yet.
 
 ## Add the cron jobs
 
@@ -423,12 +427,21 @@ Open your DM with the bot in Slack. You should see the hourly summary and the 9 
 
 ## Day-to-day usage
 
+**Cron jobs (Job 1/2/3/4 below) are optional and not required to get value from the bot.** If you
+haven't set any up yet, the bot is still useful right now:
+
+- **Ask for today's summary any time**: "@hermes_bot summarize today's Slack" or "what did I miss
+  today?" -> the [`slack-scan`](../skills/slack-scan/SKILL.md) skill recaps every channel/DM the
+  bot is in since midnight, in the reply, immediately. Name a channel ("what's in #eng-team
+  today?") to scope it to just that one. No cron, no `SLACK_WATCH_CHANNELS`, nothing persisted.
 - **DM the bot** any time: "add TODO: buy milk" -> it appends to `~/tasks/inbox.md` using file tools in the live session.
 - **@mention in a channel** the bot's been invited to: "@hermes_bot what's my day look like?" -> it can run `today --dir ~/tasks` itself and answer.
+
+If you do turn the cron jobs on later:
+
 - **Hourly**: new Slack messages, Jira activity, and GitHub activity -> agent reads each, posts a summary to your DM, prepends action items to `inbox.md`.
 - **9 AM**: `today` reads everything due (auto-extracted from all three sources + anything you added) -> priority plan posted to your DM.
 - **Edit tasks directly**: open `~/tasks/inbox.md` in your editor; `today` reads it as-is next run.
-- **Scan any channel right now**: "@hermes_bot scan #eng-team for today's TODOs" -> the [`slack-scan`](../skills/slack-scan/SKILL.md) skill fetches that channel's history since midnight and reports action items in the reply, without waiting for the hourly job or requiring the channel to be in `SLACK_WATCH_CHANNELS`.
 
 ## How "private" works at each layer
 
