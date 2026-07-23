@@ -80,63 +80,30 @@ hermes --version   # must be >= 0.18.0
 
 ### 2. Create the Slack app
 
-Go to https://api.slack.com/apps and click **Create New App** -> **From an app manifest**. Use this manifest (replace `<your-workspace>` is implicit -- manifest is workspace-agnostic):
+Don't hand-write the manifest. Generate it -- it's the only way to get all of Hermes's slash
+commands (`/model`, `/new`, `/help`, ...), the `commands` OAuth scope, and `interactivity`
+registered correctly. A hand-typed manifest is easy to get subtly wrong (this repo's earlier
+revisions shipped one missing the entire `slash_commands` block -- the symptom was "I can ping the
+bot but no slash command does anything").
 
-```yaml
-_metadata:
-  major_version: 1
-  minor_version: 0
-display_information:
-  name: Hermes Bot
-  description: Personal TODO assistant -- scans Slack and posts daily digests
-  icon_url: https://hermes-agent.nousresearch.com/logo.png
-features:
-  agent_view: {}
-  app_home:
-    messages_tab_enabled: true
-oauth_config:
-  scopes:
-    bot:
-      - chat:write
-      - app_mentions:read
-      - channels:history
-      - channels:read
-      - groups:history
-      - groups:read
-      - im:history
-      - im:read
-      - im:write
-      - mpim:history
-      - mpim:read
-      - files:read
-      - files:write
-      - users:read
-      - assistant:write
-settings:
-  event_subscriptions:
-    bot_events:
-      - app_mention
-      - app_home_opened
-      - app_context_changed
-      - message.im
-      - message.channels
-      - message.groups
-      - message.mpim
-  socket_mode_enabled: true
-  always_view_workspace: true
+```bash
+hermes slack manifest --agent-view --write
+# -> writes ~/.hermes/slack-manifest.json
 ```
 
-Key points (earlier iterations got these wrong -- Slack rejects mis-placed fields):
+Then:
 
-- `event_subscriptions` lives under `settings:` (NOT under `features:`).
-- `scopes` lives under `oauth_config:` (NOT under `features:`).
-- `_metadata.major_version: 1` is required for YAML manifests.
-- `features.agent_view: {}` enables the modern Agent messaging surface and the `app_context_changed` event. It is **irreversible** once enabled. (Use `agent_view`, not the deprecated `assistant_view`.)
-- `features.app_home.messages_tab_enabled: true` is required or DMs are blocked.
-- `assistant:write` scope is required for the working-state status line in the Agent view.
-- `socket_mode_enabled: true` is the whole point -- no HTTP URL needed.
+1. Go to https://api.slack.com/apps -> **Create New App** -> **From an app manifest**.
+2. Pick your workspace, switch to the **JSON** tab, paste the contents of
+   `~/.hermes/slack-manifest.json`, **Next** -> **Create**.
+3. `--agent-view` enables the modern Agent messaging surface (`app_context_changed`, the
+   Messages-tab DM experience). It is **irreversible** once enabled -- there's no `--assistant-view`
+   fallback for new apps.
+4. Click **Install to Workspace** -> **Allow**.
 
-Click **Create** -> **Install to Workspace** -> **Allow**.
+If you ever change Hermes version or want to add scopes later, regenerate with the same command
+and paste the new JSON into **Features -> App Manifest -> Edit** -- don't hand-edit the manifest
+in Slack's UI, it drifts out of sync with what Hermes's command registry actually expects.
 
 ### 3. Generate the two tokens
 
@@ -529,6 +496,17 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
   machine's RAM. Fix it in that same Slack chat with `/model` and pick a smaller model confirmed
   loadable (e.g. via `curl http://127.0.0.1:1234/v1/models`) -- editing `~/.hermes/config.yaml`
   only changes the default for brand-new sessions, not the stuck thread.
+- **No slash command does anything -- only pinging/DMing the bot works** -- the app's manifest is
+  missing `features.slash_commands`, the `commands` OAuth scope, and/or `settings.interactivity`.
+  This happens if the app was created from a hand-typed manifest instead of the generated one.
+  Fix: `hermes slack manifest --agent-view --write`, paste `~/.hermes/slack-manifest.json` into
+  **Features -> App Manifest** in Slack, **Save**, reinstall when prompted (the `commands` scope
+  is new), then `hermes gateway restart`. Test with `/help`.
+- **`/slack-scan` (or any other installed skill) doesn't work as a slash command** -- this is
+  expected, not a bug. Slack requires every slash command to be statically declared in the app
+  manifest ahead of time; the generated manifest only registers Hermes's fixed built-in command
+  set (`/model`, `/new`, `/help`, ...), not per-skill commands. Invoke skills by natural language
+  instead: "summarize today's Slack", not `/slack-scan summarize today`.
 
 ## Security notes
 
@@ -548,7 +526,7 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
   "summarize today" ability is implemented as a `SKILL.md` loaded via Hermes's skills system --
   it must be installed under `~/.hermes/skills/` (step 13) to be discoverable at all.
 - **`agent_view` not `assistant_view`**: `assistant_view` is deprecated; `agent_view` is required for `app_context_changed` and the modern DM surface. Irreversible once enabled.
-- **Generate manifest via `hermes slack manifest --agent-view --write`** rather than hand-maintaining, to stay in sync after `hermes update`. The manifest above is the hand-authored equivalent.
+- **Generate the manifest, never hand-author it**: `hermes slack manifest --agent-view --write` (step 2) is the only path used in this repo now -- an earlier hand-typed manifest shipped without `slash_commands`/`commands` scope/`interactivity`, silently breaking every slash command while DMs kept working. Regenerating after any `hermes update` keeps the command list in sync automatically.
 
 ## License
 
