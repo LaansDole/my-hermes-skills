@@ -34,4 +34,9 @@
 
 ## First-run safety
 
-Always do the first run as `dry_run=true` on the Covidence Demo review (or a test review), then a single-reference live run (`max_refs=1`), then an approve-first-N run (`max_refs=10, approve_first_n=5`) before going fully unattended. See the design spec Section 6 (Testing Strategy).
+Always do the first run as `dry_run=true` on the Covidence Demo review (or a test review), then a single-reference live run (`max_refs=1`), then an approve-first-N run (`max_refs=10, approve_first_n=5`) before going fully unattended.
+
+## Quick reference
+
+- **Stop conditions**: `max_refs` or `max_time` hit; daily cap (in `STATE.md`) hit; queue empty; approve-first-N `stop` response; CDP drop / login expired / 3 consecutive identical ref IDs. Full detail in `SKILL.md` under "Loop Control".
+- **Audit trail**: every tick appends a JSON line to `~/.hermes/logs/covidence-screening-<session-id>.jsonl`; Maybe rationales also land in the per-reference notes field in Covidence (visible in the UI); an end-of-session summary prints to the Hermes terminal. Full detail in `SKILL.md` under "Logging".
