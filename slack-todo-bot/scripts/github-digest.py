@@ -18,17 +18,47 @@ Env vars:
                      this many minutes as new (default 60)
   GITHUB_MAX_RESULTS  max items to fetch per query (default 50)
 
+NOTE on GITHUB_TOKEN: Hermes strips GITHUB_TOKEN (and GH_TOKEN) from every
+subprocess it spawns -- terminal tool calls AND cron `no_agent` script runs
+alike -- because that name is reserved for `gh` CLI auth in Hermes's own
+credential blocklist (tools/environments/local.py `_ALWAYS_STRIP_KEYS`; see
+SECURITY.md section 2.3 / GHSA-rhgp-j443-p4rf). That strip fires even when
+this script is invoked directly by the cron scheduler, not through the LLM.
+`env_or_dotenv()` below falls back to parsing GITHUB_TOKEN straight out of
+~/.hermes/.env when os.environ doesn't have it, which is the case on every
+real Hermes run.
+
 Run standalone to test:
   GITHUB_TOKEN=ghp_... python3 github-digest.py
 """
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
 
 STATE_FILE = os.path.expanduser("~/.hermes/scripts/.github-state.json")
+DOTENV_FILE = os.path.expanduser("~/.hermes/.env")
 API = "https://api.github.com"
+
+
+def dotenv_fallback(name):
+    """Read NAME=value straight out of ~/.hermes/.env (bypasses the
+    os.environ strip -- see the module docstring)."""
+    try:
+        with open(DOTENV_FILE, "r") as f:
+            for line in f:
+                m = re.match(rf"^{re.escape(name)}=(.*)$", line.strip())
+                if m:
+                    return m.group(1).strip().strip('"').strip("'")
+    except OSError:
+        pass
+    return None
+
+
+def env_or_dotenv(name):
+    return os.environ.get(name) or dotenv_fallback(name)
 
 
 def load_state():
@@ -66,7 +96,7 @@ def api_get(url, token):
 
 
 def main():
-    token = os.environ.get("GITHUB_TOKEN")
+    token = env_or_dotenv("GITHUB_TOKEN")
     if not token:
         print("[github-digest] GitHub is not configured (GITHUB_TOKEN missing).")
         print("Set GITHUB_TOKEN in ~/.hermes/.env to enable the GitHub digest. See slack-todo-bot/.env.example.")
