@@ -1,11 +1,11 @@
 ---
 name: covidence-screening
 description: Autonomously screen references at the title & abstract stage of a Covidence systematic review in the user's Chrome session via CDP. Votes Yes/Maybe/No per the user's PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.
-trigger:
-  - covidence
-  - screen references
-  - title and abstract
-  - T&A screening
+version: 1.0.0
+metadata:
+  hermes:
+    tags: [covidence, systematic-review, screening, browser-automation]
+    requires_toolsets: [browser]
 ---
 
 # Covidence Title & Abstract Screening
