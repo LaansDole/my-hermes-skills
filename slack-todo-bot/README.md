@@ -305,6 +305,26 @@ If you see `missing_scope: groups:read` on the channel directory, that is non-fa
 
 The bot will not auto-join. For the hourly scan to read a channel's history, the bot must be a member. DMs (the home channel) need no invite.
 
+### 13. Install the on-demand summary skill (`slack-scan`)
+
+Hermes only auto-discovers skills under `~/.hermes/skills/` -- `SKILL.md` files that live inside
+this git repo are **not** picked up automatically, no matter how much the bot's system prompt
+references them. Copy the skill across and restart the gateway so it's actually loaded:
+
+```bash
+mkdir -p ~/.hermes/skills/slack-scan
+cp ../skills/slack-scan/SKILL.md ~/.hermes/skills/slack-scan/SKILL.md
+hermes skills list | grep slack-scan     # expect: local | enabled
+hermes gateway restart
+```
+
+If you edit `skills/slack-scan/SKILL.md` in this repo later, re-run the `cp` and
+`hermes gateway restart` -- the repo copy and the live copy under `~/.hermes/skills/` do not sync
+automatically; they're two separate files.
+
+Skip this step only if you're setting up the cron jobs exclusively and don't want the on-demand
+"summarize today" ability -- cron jobs use plain scripts, not this skill.
+
 ## After setup
 
 Once the gateway is connected and `~/.hermes/.env` is in place, the minimum to get value is:
@@ -318,7 +338,11 @@ Once the gateway is connected and `~/.hermes/.env` is in place, the minimum to g
 
    The bot will not auto-join. DMs (the home channel) need no invite. See step 12 above for details.
 
-2. **DM it**: "summarize today's Slack" or "what's in #general today?" -- see
+2. **Install the `slack-scan` skill** -- step 13 above. Without it the bot will tell you it "doesn't
+   have access to Slack's API" instead of summarizing anything (see [Troubleshooting](#troubleshooting)
+   if this happens after you thought you'd already done this).
+
+3. **DM it**: "summarize today's Slack" or "what's in #general today?" -- see
    [`skills/slack-scan`](../skills/slack-scan/SKILL.md). That's it; no cron required.
 
 The cron jobs below (hourly Slack/Jira/GitHub scan + 9 AM digest) are optional automation on top
@@ -477,6 +501,10 @@ slack-todo-bot/
     `-- today-digest.py            # 9 AM: run `today` CLI over ~/tasks/*.md
 ```
 
+Plus, one directory up: `../skills/slack-scan/SKILL.md` -- the on-demand summary skill. It must be
+copied to `~/.hermes/skills/slack-scan/` (step 13); files under this repo path are never
+auto-discovered by Hermes.
+
 The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron `--script` points there.
 
 ## Troubleshooting
@@ -489,6 +517,18 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
 - **`jira-digest.py` prints a 401/403 API error** -- the API token is wrong, expired, or the email doesn't match the token's owner. Regenerate at https://id.atlassian.com/manage-profile/security/api-tokens.
 - **`github-digest.py` prints a 401 "Bad credentials"** -- the token is invalid or expired. Regenerate at https://github.com/settings/tokens. A 403 usually means the token lacks `Issues`/`Pull requests` read access on a repo it's trying to list.
 - **Secrets leaked in chat** -- if you pasted Slack/Jira/GitHub secrets in a logged conversation, rotate all of them: reinstall the Slack app (rotates `xoxb-`), regenerate the Slack signing secret + client secret, delete and regenerate the `xapp-` token, and regenerate the Jira API token / GitHub PAT. Update `~/.hermes/.env`, `hermes gateway restart`.
+- **Bot says "I don't have access to Slack's API to search channel history..."** -- the
+  `slack-scan` skill isn't installed at `~/.hermes/skills/slack-scan/`. Repo files are never
+  auto-discovered. Run step 13, confirm with `hermes skills list | grep slack-scan` (expect
+  `local | enabled`), then `hermes gateway restart`.
+- **Bot returns a vague `:warning: The model provider failed after retries` in Slack** -- Hermes
+  deliberately keeps raw provider errors out of chat. Check `~/.hermes/logs/gateway.error.log` for
+  the actual error. Model selection (`/model`) is scoped **per chat/session**, not global -- a
+  Slack thread can be stuck pointing at a model your local backend (e.g. LM Studio) refuses to
+  load, commonly reported as "insufficient system resources" for models too large for your
+  machine's RAM. Fix it in that same Slack chat with `/model` and pick a smaller model confirmed
+  loadable (e.g. via `curl http://127.0.0.1:1234/v1/models`) -- editing `~/.hermes/config.yaml`
+  only changes the default for brand-new sessions, not the stuck thread.
 
 ## Security notes
 
@@ -503,7 +543,10 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
 ## Design and implementation
 
 - **Architecture**: Hybrid multi-source -- hourly Slack/Jira/GitHub scans each extract action items to `~/tasks/inbox.md` with `[d:t]` + post a per-source summary; 9 AM `today` digest posts the combined priority plan. Jira/GitHub are additive and optional (graceful `NO_CHANGE` when unconfigured) so the original two-job Slack setup keeps working unmodified.
-- **No separate "Slack skill" needed**: Slack is a built-in Hermes gateway; cron uses a script to pull history (since cron agent can't call Slack interactively).
+- **`skills/slack-scan` is a real Hermes skill, not just a script**: unlike the cron jobs (which
+  use plain Python scripts because the cron agent can't call Slack interactively), the on-demand
+  "summarize today" ability is implemented as a `SKILL.md` loaded via Hermes's skills system --
+  it must be installed under `~/.hermes/skills/` (step 13) to be discoverable at all.
 - **`agent_view` not `assistant_view`**: `assistant_view` is deprecated; `agent_view` is required for `app_context_changed` and the modern DM surface. Irreversible once enabled.
 - **Generate manifest via `hermes slack manifest --agent-view --write`** rather than hand-maintaining, to stay in sync after `hermes update`. The manifest above is the hand-authored equivalent.
 
