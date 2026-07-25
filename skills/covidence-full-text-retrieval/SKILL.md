@@ -228,3 +228,77 @@ When both hold, stop the loop, log "queue empty", print summary. If the tab coun
 ### `UNKNOWN`
 
 Increment `unknown_streak`. Screenshot + vision to classify. If genuinely a transient page transition (Covidence loading), wait one tick and re-observe. If a modal/error overlay is blocking, or the user has navigated to a different tab (`Resolve conflicts`, `Awaiting other reviewer`, `Excluded references`) or a different Covidence section, log and STOP -- do not click through modals or navigate the tab back yourself.
+
+## Loop Control
+
+Track these counters across the session:
+- `refs_processed` (int, starts 0): references resolved (uploaded, note-written, or note-skipped) this session.
+- `current_ref_id` (string or null): the reference currently being processed.
+- `processed_ref_ids` (set): ref IDs resolved this session (idempotency guard).
+- `uploaded_ref_ids` (set): ref IDs whose full text was successfully uploaded.
+- `not_found_ref_ids` (set): ref IDs with a note logged for manual follow-up.
+- `upload_failed_ref_ids` (set): ref IDs where a PDF was found and downloaded but the Covidence upload did not confirm.
+- `skipped_ref_ids` (set): ref IDs skipped during onboarding (so they aren't re-targeted next tick).
+- `last_3_ref_ids` (list of last 3 `current_ref_id` values, infinite-loop guard).
+- `actions_approved_this_session` (int, starts 0): approvals received in onboarding.
+- `auto_mode` (bool, starts false): whether onboarding is complete.
+- `session_start_ts` (ISO timestamp): for `max_time` enforcement.
+- `unknown_streak` (int, starts 0): consecutive UNKNOWN classifications; screenshot threshold for the UNKNOWN handling rule.
+- `notebook_ready` (bool, starts false): whether Layer 4's notebook find-or-create has run this session (Layer 4 only).
+- `notebooklm_disabled_this_session` (bool, starts false): set true if Tab B ever hits a Google sign-in page; disables Layer 4 for the rest of the session without stopping the whole run (Layer 4 only).
+
+Stop the loop when any of:
+- `refs_processed >= max_refs`.
+- `now - session_start_ts >= max_time * 60` seconds.
+- Daily cap: read `STATE.md`; if today's counter >= `daily_cap` (and `daily_cap != 0`), stop with "daily cap reached (N/N)".
+- Queue empty (per the queue-empty rule above).
+- `last_3_ref_ids` are all identical AND the last action was an upload or note attempt (infinite-loop guard).
+- Unrecoverable error: CDP connection dropped, page navigates outside `covidence.org` (Tab A) or an unrecoverable state on Tab B that isn't the sign-in redirect covered by `notebooklm_disabled_this_session`, primary action button missing for > 30 s, `curl`/API failure after 3 backoffs.
+- Approve-first-N: user responded `stop`.
+
+## Safety Rules
+
+Hard rules the agent MUST follow:
+- Never click `Include` or `Exclude` on any reference -- the full-text include/exclude decision is entirely manual, by explicit user instruction. This skill only retrieves and uploads full text, or notes that it could not.
+- Never type into any field of `type="password"` (Hermes hard-blocks this anyway).
+- Never click any element whose accessible name contains: logout, sign out, sign-out, signout, log off.
+- Never click `Move to screening`, `Duplicate`, `Bulk upload missing full texts`, `Sort`, `Filter`, `Show criteria`, `More options`, `Tag`, or the `All` select-all checkbox.
+- Never navigate to the `Resolve conflicts`, `Awaiting other reviewer`, or `Excluded references` tabs, nor into Data Extraction, Risk of Bias, or Settings -- strict allowlist of the Full text review -> Screen references tab. If Tab A navigates elsewhere inside `covidence.org`, stop and log.
+- If Tab A navigates outside the `covidence.org` domain (check via `tab.evaluate(() => location.hostname)`), stop the loop immediately and log.
+- Never fetch or construct a `candidate_url` on a domain containing `sci-hub`, `libgen`, `annas-archive`, or `z-lib` -- this applies to every discovery layer, including Layer 4, even though none of the four legitimate sources used here can produce one, but the check stays as a hard backstop.
+- Never modify the review's inclusion/exclusion criteria, team members, or settings -- the agent is read-only on everything except the `Upload full text` file input and the per-reference notes dialog.
+- **Layer 4 / NotebookLM only**: strict allowlist on Tab B of the Discover-sources flow, the Add-source action, and opening a source's "view original" link, all confined to the one notebook resolved for `notebooklm_topic`. Never delete, rename, or share that notebook. Never touch any OTHER notebook in the account. Never remove a source once added, even one that didn't validate as a PDF. If Tab B ever navigates outside `notebooklm.google.com` (other than the deliberate, immediately-closed Tab C for reading a source's original URL), disable Layer 4 for the rest of the session (log, set `notebooklm_disabled_this_session = true`) and continue with Layers 1-3 only -- do not stop the whole run over a Layer 4-only problem.
+- Hermes's built-in destructive-action blocklists (recursive force-delete, piped-shell installers, fork bombs, lock-screen combos) remain active and are NOT overridden by this skill.
+
+## Logging
+
+Every tick, write a JSON line to `~/.hermes/logs/covidence-full-text-retrieval-<session-id>.jsonl` (create the logs dir if missing). The `<session-id>` is the ISO timestamp at session start.
+
+```json
+{"ts":"2026-07-25T12:34:56Z","ref_id":"82","ref_header":"#82 - Agarwal 2026","title":"<short title>","state":"FULL_TEXT_REVIEW","discovery":"found","source":"notebooklm","candidate_url":"https://.../paper.pdf","action":"upload","ok":true,"notebook_sources_added":1}
+```
+
+Fields: `ts` (ISO), `ref_id`, `ref_header` (the `#82 - ...` line), `title` (truncated), `state` (FULL_TEXT_REVIEW/UNKNOWN), `discovery` (found/not_found), `source` (unpaywall/semantic_scholar/arxiv/notebooklm/none), `candidate_url` (empty string if `not_found`), `action` (upload/note/skip/dry-run describe), `ok` (bool), `notebook_sources_added` (int, default 0 -- only nonzero when Layer 4 ran and added at least one source to the notebook for this reference, regardless of whether one validated as a PDF).
+
+At loop end, print a summary to the terminal: refs processed, uploaded/not-found/upload-failed counts, the not-found reference list (for manual follow-up), time elapsed, any stuck points, daily-cap remaining, the local path to `download_dir`, and (if `notebooklm_topic` was set) the notebook's title, how many references triggered Layer 4, and the total `notebook_sources_added` across the session.
+
+## Error Recovery
+
+| Failure | Detection | Recovery |
+|---|---|---|
+| CDP connection dropped | `tab.observe()` returns connection error | Stop, log, surface to user. Cannot auto-recover (user must restart Chrome). |
+| Session/login expired (Covidence) | Page navigates to institutional SSO login URL, or no reference blocks render for > 30 s | Stop loop, log URL, surface to user. No auto-relogin. |
+| Unpaywall/Semantic Scholar rate limit or timeout | `curl` returns non-2xx, empty body, or times out | Fall through to the next discovery layer immediately (do not retry the same layer) rather than failing the whole session. Only stop if ALL layers fail for 3 consecutive references in a row -- log and surface to user (likely a network-wide outage). |
+| Download produced a truncated/error file | Downloaded file <= 1024 bytes despite a `application/pdf` Content-Type header | Treat as `NOT_FOUND` for this reference; log the discrepancy; continue with the Not-Found note action. |
+| Upload did not confirm | Target block still reads `Upload full text` 3 ticks after `tab.uploadFile` | Screenshot+vision once to check for a stuck modal/toast. If still unresolved, log, add to `upload_failed_ref_ids`, do NOT retry the click. Continue scanning down. |
+| Notes dialog write failed | `Note` link `@eN` not found, dialog didn't open, or `tab.fill` returns error | Screenshot+vision to locate the Note link / dialog. If still not found after 1 retry, log "notes dialog unavailable, skipped note" and move on without writing it -- do NOT vote or upload as a substitute. |
+| Queue-empty detection false negative | Tab count shows unresolved refs remain but scrolling yields no unresolved blocks after 2 attempts | Screenshot + vision to classify. If genuinely empty, stop with summary. If a modal/error overlay is blocking, log and STOP rather than clicking through it. |
+| Page JS error / blank render | Screenshot returns empty canvas or error overlay | Wait 2 ticks; if persists, log and STOP. |
+| Infinite loop (same `current_ref_id` targeted 3x without landing) | `last_3_ref_ids` identical after action attempts | Stop, log, surface to user. |
+| Daily cap hit | `STATE.md` counter >= `daily_cap` (and `daily_cap != 0`) | Stop, log "daily cap reached (N/N)", surface to user. |
+| Approve-first-N: user says `skip` | User response during onboarding | Leave reference unresolved, add to `skipped_ref_ids`, continue scanning down. Do NOT auto-act. Onboarding counter does NOT advance. |
+| Approve-first-N: user says `stop` | User response during onboarding | End session immediately. Log summary including which references were skipped. |
+| NotebookLM tab (Tab B) not authenticated | Tab B navigates to a Google sign-in URL | Log once, set `notebooklm_disabled_this_session = true`, continue with Layers 1-3 only for the rest of the session. Do not stop the whole run. |
+| Discover sources produces no cards / times out | No recommendation cards render within 20s of submitting the query | Treat as a Layer 4 miss for this reference (no candidates to evaluate); do not retry the same query. |
+| "View original" doesn't open a new tab / URL unreadable | `tab.evaluate` on the expected Tab C errors or times out | Skip this candidate, try the next one (up to `notebooklm_max_candidates`); if all fail, Layer 4 miss for this reference. |
+| Notebook-list scan finds two notebooks matching `notebooklm_topic` | More than one exact-title match on the NotebookLM home page | Log a warning, use the first match, do not create a third. Surface this in the end-of-session summary so the user can clean up manually. |
