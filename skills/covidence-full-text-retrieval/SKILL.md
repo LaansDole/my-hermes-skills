@@ -169,9 +169,9 @@ Runs only when Layers 1-3 (per the Full-Text Discovery Step above) produced no c
    d. That URL is `candidate_url`, `source=notebooklm`. Validate it per the Full-Text Discovery Step's step 6 (`curl -sIL` Content-Type check, run over `terminal`, not either browser tab). Valid PDF -> discovery result is `FOUND`, stop trying further candidates for this reference, go to step 6 below. Invalid -> continue to the next candidate in this loop (the invalid source stays added to the notebook regardless -- it's still a relevant byproduct source for later human reading).
    e. If `notebooklm_max_candidates` candidates have all been tried (added-but-invalid, or skipped on title-match) with no valid PDF: Layer 4 is a miss for this reference. Go to step 7.
 6. **Layer 4 hit**: switch back to Tab A. Discovery result is `FOUND` with this `candidate_url`, `source=notebooklm`. Resume the Full-Text Discovery Step's step 6 conclusion / Action Policy's `FOUND` branch exactly as Layers 1-3 would.
-7. **Layer 4 miss**: switch back to Tab A. Discovery result is `NOT_FOUND`, `source=notebooklm` if any candidates were evaluated (even if none added), else `source=none`. Log `notebook_sources_added` (may be 0). Resume the Full-Text Discovery Step's step 5 conclusion / Action Policy's `NOT_FOUND` branch exactly as a Layers-1-3-only miss would, except the composed note additionally credits however many sources landed in the notebook (see Task 4's Action Policy step 7, which already has this wording).
+7. **Layer 4 miss**: switch back to Tab A. Discovery result is `NOT_FOUND`, `source=notebooklm` if any candidates were evaluated (even if none added), else `source=none`. Log `notebook_sources_added` (may be 0). Resume the Full-Text Discovery Step's step 5 conclusion / Action Policy's `NOT_FOUND` branch exactly as a Layers-1-3-only miss would, except the composed note additionally credits however many sources landed in the notebook (the Action Policy's Not-Found branch below already composes this note text).
 
-5. **No candidate from Layers 1-3**: if `notebooklm_topic` is set, run **Layer 4 -- NotebookLM Discover** (see the dedicated section below) before concluding. If `notebooklm_topic` is not set, or Layer 4 also produces nothing, discovery result is `NOT_FOUND` (`source=none`, or `source=notebooklm` if Layer 4 ran but missed). Go to the Action Policy's Not-Found branch.
+5. **No candidate from Layers 1-3**: if `notebooklm_topic` is set, run **Layer 4 -- NotebookLM Discover** (see the dedicated section above) before concluding. If `notebooklm_topic` is not set, or Layer 4 also produces nothing, discovery result is `NOT_FOUND` (`source=none`, or `source=notebooklm` if Layer 4 ran but missed). Go to the Action Policy's Not-Found branch.
 
 6. **Validate** whichever `candidate_url` was produced (Layer 1, 2, 3, or 4) actually serves a PDF, not an HTML landing/paywall page:
    ```bash
@@ -214,7 +214,7 @@ The Screen references list is a scrollable list of reference blocks, many visibl
    - In `dry_run`: print the note text instead of opening the dialog.
    - Otherwise: click the target block's `Note` link via its `@eN` ref. Find the textarea inside the opened dialog via `tab.observe()`, type the note with `tab.fill`, then click the dialog's save/submit button. If the dialog or textarea is not exposed in the tree, fall back to screenshot+vision to locate it. If still not found after 1 retry, log "notes dialog unavailable, skipped note" and move on without a note -- do NOT click `Upload full text` or either vote button as a substitute action.
    - Add `current_ref_id` to `not_found_ref_ids`.
-8. In all cases (uploaded, upload-failed, note written, or note-skipped): add `current_ref_id` to `processed_ref_ids`, increment `refs_processed` and the daily counter in `STATE.md`.
+8. In all cases (uploaded, upload-failed, note written, or note-skipped): add `current_ref_id` to `processed_ref_ids`, increment `refs_processed`. Also update `STATE.md`: read its `date` field; if it is not today's UTC date, reset `processed_today` to 0 and set `date` to today's UTC date before incrementing; then increment `processed_today` by 1 and write both fields back to `STATE.md`.
 9. Poll the next tick immediately (no sleep) so the page has time to register the action before re-reading.
 
 ### `FULL_TEXT_REVIEW` -- queue empty
@@ -250,7 +250,7 @@ Track these counters across the session:
 Stop the loop when any of:
 - `refs_processed >= max_refs`.
 - `now - session_start_ts >= max_time * 60` seconds.
-- Daily cap: read `STATE.md`; if today's counter >= `daily_cap` (and `daily_cap != 0`), stop with "daily cap reached (N/N)".
+- Daily cap: read `STATE.md`. If its `date` field is not today's UTC date, treat `processed_today` as 0 for this comparison (the on-disk counter has not been reset yet -- see Action Policy step 8 for the reset-and-increment mechanics). If today's counter >= `daily_cap` (and `daily_cap != 0`), stop with "daily cap reached (N/N)".
 - Queue empty (per the queue-empty rule above).
 - `last_3_ref_ids` are all identical AND the last action was an upload or note attempt (infinite-loop guard).
 - Unrecoverable error: CDP connection dropped, page navigates outside `covidence.org` (Tab A) or an unrecoverable state on Tab B that isn't the sign-in redirect covered by `notebooklm_disabled_this_session`, primary action button missing for > 30 s, `curl`/API failure after 3 backoffs.
