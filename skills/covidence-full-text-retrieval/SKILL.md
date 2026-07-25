@@ -136,6 +136,41 @@ print(oa.get('url') or '')
 4. **Layer 3 -- arXiv direct** (only if `arxiv_id` is non-empty and Layers 1-2 produced nothing):
    `candidate_url="https://arxiv.org/pdf/${arxiv_id}"`, `source=arxiv`.
 
+### Tab Management (Layer 4 only)
+
+Only relevant when `notebooklm_topic` is set. The skill coordinates two tabs on the same CDP-attached Chrome:
+- **Tab A (Covidence)** -- the tab used by every other section of this skill. Default target for every action unless a step explicitly says otherwise.
+- **Tab B (NotebookLM)** -- opened once, lazily, the first time Layer 4 actually fires this session (the first reference where Layers 1-3 all miss). Stays open and is reused for every subsequent Layer 4 attempt in the session.
+
+Every Layer 4 step below explicitly names which tab it acts on. Never issue a click/fill intended for one tab while the other is active -- address the tab explicitly via Hermes' tab list from `/browser connect`, never implicitly by "whichever tab was last used."
+
+### NotebookLM Notebook Reuse (Layer 4 only)
+
+The first time Tab B is opened in a session:
+1. Navigate Tab B to the NotebookLM home page (the notebook list) at `notebooklm.google.com`.
+2. If Tab B lands on a Google sign-in page instead: log "NotebookLM not authenticated, Layer 4 disabled for this session" once, set an in-memory `notebooklm_disabled_this_session = true`, and skip Layer 4 for every reference for the rest of the session (Layers 1-3 still run normally).
+3. Otherwise, scan the notebook list for a notebook whose title exactly matches `notebooklm_topic`. Found -> open it, set `notebook_ready = true`. Not found -> create a new notebook and set its title to `notebooklm_topic` exactly, then set `notebook_ready = true`.
+4. If step 3 finds MORE than one notebook with an exact title match: log a warning naming both, use the first match, do NOT create a third. Surface this in the end-of-session summary so the user can clean up manually.
+
+This lookup runs once per session (cached as `notebook_ready` in memory) and is repeated fresh next session -- nothing about the notebook's identity is written to `STATE.md` or any other file.
+
+### Layer 4 -- NotebookLM Discover (only if `notebooklm_topic` is set and `notebooklm_disabled_this_session` is not true)
+
+Runs only when Layers 1-3 (per the Full-Text Discovery Step above) produced no candidate for the current reference.
+
+1. Ensure `notebook_ready` (run NotebookLM Notebook Reuse above if this is the first Layer 4 call this session). If that sets `notebooklm_disabled_this_session = true`, stop here -- this reference's Layer 4 is a miss, proceed to the Full-Text Discovery Step's step 5 conclusion with `source=none`.
+2. On Tab B, open **Discover sources** (the button next to "Add source" in the Sources panel of the resolved notebook).
+3. Type a search query into the "Describe something you'd like to learn about" box: the reference's exact `title`, plus the first author's surname for disambiguation (e.g. `MAMA-Memeia! Multi-Aspect Multi-Agent Collaboration for Depressive Symptoms Identification in Memes Agarwal`). Submit.
+4. Wait for the recommendation cards to render (each has a title and an AI-generated summary), up to 20s. No cards render -> Layer 4 miss for this reference (`notebook_sources_added=0`), do not retry the same query -- go to step 7.
+5. Read up to `notebooklm_max_candidates` cards, best-ranked first. For each, in order:
+   a. **Title-match check**: normalize both the candidate's title and the target reference's `title` (lowercase, strip punctuation, collapse whitespace) and require high token overlap. Not a confident match -> do not add it, move to the next candidate.
+   b. Confident match -> click the card's **Add** action to import it as a source into the notebook. Increment a per-reference `notebook_sources_added` counter.
+   c. On Tab B, open the newly added source's "view original" affordance (external-link icon, same pattern as Covidence's own DOI links). This opens the source's real URL in a new tab, Tab C (ephemeral). Read `location.href` from Tab C via `tab.evaluate(() => location.href)`. Close Tab C. Switch back to Tab B.
+   d. That URL is `candidate_url`, `source=notebooklm`. Validate it per the Full-Text Discovery Step's step 6 (`curl -sIL` Content-Type check, run over `terminal`, not either browser tab). Valid PDF -> discovery result is `FOUND`, stop trying further candidates for this reference, go to step 6 below. Invalid -> continue to the next candidate in this loop (the invalid source stays added to the notebook regardless -- it's still a relevant byproduct source for later human reading).
+   e. If `notebooklm_max_candidates` candidates have all been tried (added-but-invalid, or skipped on title-match) with no valid PDF: Layer 4 is a miss for this reference. Go to step 7.
+6. **Layer 4 hit**: switch back to Tab A. Discovery result is `FOUND` with this `candidate_url`, `source=notebooklm`. Resume the Full-Text Discovery Step's step 6 conclusion / Action Policy's `FOUND` branch exactly as Layers 1-3 would.
+7. **Layer 4 miss**: switch back to Tab A. Discovery result is `NOT_FOUND`, `source=notebooklm` if any candidates were evaluated (even if none added), else `source=none`. Log `notebook_sources_added` (may be 0). Resume the Full-Text Discovery Step's step 5 conclusion / Action Policy's `NOT_FOUND` branch exactly as a Layers-1-3-only miss would, except the composed note additionally credits however many sources landed in the notebook (see Task 4's Action Policy step 7, which already has this wording).
+
 5. **No candidate from Layers 1-3**: if `notebooklm_topic` is set, run **Layer 4 -- NotebookLM Discover** (see the dedicated section below) before concluding. If `notebooklm_topic` is not set, or Layer 4 also produces nothing, discovery result is `NOT_FOUND` (`source=none`, or `source=notebooklm` if Layer 4 ran but missed). Go to the Action Policy's Not-Found branch.
 
 6. **Validate** whichever `candidate_url` was produced (Layer 1, 2, 3, or 4) actually serves a PDF, not an HTML landing/paywall page:
