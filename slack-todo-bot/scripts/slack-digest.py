@@ -61,16 +61,6 @@ def dotenv_fallback(name):
 
 def env_or_dotenv(name):
     return os.environ.get(name) or dotenv_fallback(name)
-import json
-import os
-import sys
-import time
-import urllib.error
-import urllib.parse
-import urllib.request
-
-STATE_FILE = os.path.expanduser("~/.hermes/scripts/.slack-state.json")
-API = "https://slack.com/api"
 
 
 def die(msg, code=1):
