@@ -33,3 +33,55 @@ metadata:
 - Unlike `covidence-screening`, this skill does NOT require single-reviewer mode -- it never casts an Include/Exclude vote, so the reviewer-mode setting is irrelevant here.
 - No PICO criteria file is needed -- this skill makes no inclusion/exclusion judgment. Full-text review decisions remain entirely manual.
 - **If `notebooklm_topic` is set**: the user is already logged into `notebooklm.google.com` in the SAME Chrome instance (the one Hermes is attached to via CDP). No separate NotebookLM credential setup, no cookie export. If the NotebookLM tab redirects to a Google sign-in page when Layer 4 first tries to use it, the skill disables Layer 4 for the rest of the session (logs once, falls back to Layers 1-3 only) rather than blocking the whole run.
+
+## Screen Loop
+
+Repeat until a stop condition (see Loop Control) fires:
+
+1. **Observe** -- call `tab.observe()` to get the accessibility tree of the current tab. Also call `tab.evaluate` with the snippet below to get the current URL, hostname, and scroll position. Keep both results in context.
+
+   ```js
+   (() => ({
+     hostname: location.hostname,
+     pathname: location.pathname,
+     href: location.href,
+     scrollY: window.scrollY,
+     innerHeight: window.innerHeight,
+     docHeight: document.documentElement.scrollHeight
+   }))()
+   ```
+
+2. **Classify** the screen into one of: `FULL_TEXT_REVIEW`, `UNKNOWN`.
+3. **Act** per the action policy below.
+4. **Sleep** `tick_seconds` if no action was taken this tick; otherwise immediately repeat from step 1 (so the page has time to react to an upload/note before re-reading).
+
+## State Classification
+
+Two signals, in order of preference:
+
+1. **URL + page landmark** (primary, deterministic) -- the `tab.evaluate` snippet above returns `hostname` and `pathname`. Classify:
+   - `FULL_TEXT_REVIEW`: hostname is `app.covidence.org` AND the page heading reads `Full text review` with a `Screen references N` tab active (bold/underlined), alongside `Resolve conflicts`, `Awaiting other reviewer`, and `Excluded references` tabs, and a `Bulk upload missing full texts` button top-right. The accessibility tree contains at least one reference block matching the structure below.
+   - If hostname is not `app.covidence.org`, OR the active tab is anything other than `Screen references` (e.g. the user navigated to `Resolve conflicts`), classify as `UNKNOWN` and apply the off-domain/off-tab safety rule -- do NOT act.
+
+2. **Accessibility tree scan** (`tab.observe()`) -- the Full text review "Screen references" tab is a **single scrollable list of reference blocks** (NOT one reference per screen), same layout family as `covidence-screening`'s T&A list. Each reference block contains, in order:
+   - A header line like `#82 - Agarwal 2026` (Covidence's own ref number + first author + year). Use the numeric part after `#` as `current_ref_id` if a `Ref ID:` line is not present; otherwise prefer the `Ref ID:` value, same way `covidence-screening` does.
+   - Right-aligned **`Include`** / **`Exclude`** buttons -- present on this page too. This skill MUST NEVER click either (see Safety Rules); their presence is not a signal to act on, only to avoid.
+   - The article **title** (large bold text).
+   - The **authors** line.
+   - The **journal/venue + year** line -- for preprints this may be two lines, e.g. `arXiv preprint arXiv:2602.08254 // 2026;(Query date: 2026-05-23 15:57:58): arxiv.org 2026 //`. Keep the full citation text; the Full-Text Discovery Step regexes it for an arXiv ID.
+   - A **`DOI:`** line with the DOI text and an external-link icon, e.g. `DOI: 10.1609/aaai.v40i36.40246 ↗`. Not every reference has one (preprint-only entries often omit it).
+   - A primary action row: **`Upload full text`** button (cloud-upload icon) and an **`Abstract`** disclosure toggle.
+   - A per-reference footer with `Note`, `History`, `Duplicate`, `Move to screening` links. `Note` opens a notes dialog -- it is NOT an inline textarea (same as `covidence-screening`).
+   - **Already-resolved detection**: a reference block already has full text attached when its primary action button's accessible name is anything other than exactly `Upload full text` (Covidence swaps the button/label once a file exists). Treat any block whose primary button does not read exactly `Upload full text` as already resolved and skip it.
+   - Look across the whole visible list, not just the top of the page. Multiple ref blocks are on screen at once; the agent must walk them top-to-bottom.
+   - Do not click `Sort`, `Filter`, `Show criteria`, `More options`, or `Tag` in the top toolbar, and do not click `All` (select-all checkbox) or `Bulk upload missing full texts`.
+
+3. **Screenshot + vision** (fallback only) -- invoked when the tree is ambiguous:
+   - The primary action button is icon-only (no accessible name) so the already-resolved heuristic can't be applied from the tree alone.
+   - The notes dialog or file-chooser input is not exposed in the tree (shadow DOM).
+   - An unexpected modal or overlay.
+   The vision pass describes what is on screen and returns a ref or coordinate. Never use vision for the discovery decision itself -- discovery is the deterministic Unpaywall / Semantic Scholar / arXiv / NotebookLM-Discover lookup in the Full-Text Discovery Step, not visual reasoning over the page.
+
+### `UNKNOWN` handling
+
+Increment an `unknown_streak` counter. If `unknown_streak > 2`: take a screenshot via `tab.screenshot()`, describe what you see, log the observation, and keep polling (NO clicks) until `FULL_TEXT_REVIEW` reappears or a stop condition fires. Do **not** click blindly, and do NOT navigate the tab yourself -- if the user is on the wrong tab, log and wait rather than clicking `Screen references` for them.
