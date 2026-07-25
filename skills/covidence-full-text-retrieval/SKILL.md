@@ -85,3 +85,111 @@ Two signals, in order of preference:
 ### `UNKNOWN` handling
 
 Increment an `unknown_streak` counter. If `unknown_streak > 2`: take a screenshot via `tab.screenshot()`, describe what you see, log the observation, and keep polling (NO clicks) until `FULL_TEXT_REVIEW` reappears or a stop condition fires. Do **not** click blindly, and do NOT navigate the tab yourself -- if the user is on the wrong tab, log and wait rather than clicking `Screen references` for them.
+
+## Full-Text Discovery Step
+
+Pure terminal lookups, not UI actions, unless noted otherwise. Run once per unresolved reference block, top-to-bottom. Layers are tried in order; the first one that resolves to a validated PDF wins.
+
+1. **Extract identifiers** from the block's text (already in context from the Observe step):
+   - `doi`: the text after `DOI:` up to (not including) the trailing `↗` glyph or whitespace, e.g. `10.1609/aaai.v40i36.40246`. Empty string if no `DOI:` line.
+   - `arxiv_id`: regex the full citation text (header + journal/venue lines) for `arXiv:(\d{4}\.\d{4,5})`. Empty string if no match.
+   - `title`: the block's title text, used as a Semantic Scholar search fallback query and (if Layer 4 is enabled) as the NotebookLM Discover search query.
+
+2. **Layer 1 -- Unpaywall** (only if `doi` is non-empty):
+   ```bash
+   curl -s --max-time 20 "https://api.unpaywall.org/v2/${DOI}?email=${CONTACT_EMAIL}" \
+     | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print('')
+    sys.exit()
+loc = d.get('best_oa_location') or {}
+print(loc.get('url_for_pdf') or loc.get('url') or '')
+"
+   ```
+   Non-empty stdout -> `candidate_url`, `source=unpaywall`. Empty, or a JSON `{"error":true,...}` body -> fall through to Layer 2.
+
+3. **Layer 2 -- Semantic Scholar** (if Layer 1 produced nothing):
+   ```bash
+   Q="${DOI:-$TITLE}"
+   ENC_Q=$(python3 -c "import urllib.parse, sys; print(urllib.parse.quote(sys.argv[1]))" "$Q")
+   curl -s --max-time 20 "https://api.semanticscholar.org/graph/v1/paper/search?query=${ENC_Q}&fields=title,openAccessPdf&limit=1" \
+     | python3 -c "
+import json, sys
+try:
+    d = json.load(sys.stdin)
+except Exception:
+    print('')
+    sys.exit()
+data = d.get('data') or []
+if not data:
+    print('')
+    sys.exit()
+oa = data[0].get('openAccessPdf') or {}
+print(oa.get('url') or '')
+"
+   ```
+   If `doi` is set, query `DOI:${doi}` as `Q` for a precise match; otherwise query the title text directly. Non-empty stdout -> `candidate_url`, `source=semantic_scholar`. Empty -> fall through to Layer 3.
+
+4. **Layer 3 -- arXiv direct** (only if `arxiv_id` is non-empty and Layers 1-2 produced nothing):
+   `candidate_url="https://arxiv.org/pdf/${arxiv_id}"`, `source=arxiv`.
+
+5. **No candidate from Layers 1-3**: if `notebooklm_topic` is set, run **Layer 4 -- NotebookLM Discover** (see the dedicated section below) before concluding. If `notebooklm_topic` is not set, or Layer 4 also produces nothing, discovery result is `NOT_FOUND` (`source=none`, or `source=notebooklm` if Layer 4 ran but missed). Go to the Action Policy's Not-Found branch.
+
+6. **Validate** whichever `candidate_url` was produced (Layer 1, 2, 3, or 4) actually serves a PDF, not an HTML landing/paywall page:
+   ```bash
+   curl -sIL --max-time 20 "$candidate_url" | grep -i '^content-type:' | tail -1
+   ```
+   Expected: a line containing `application/pdf`. If the header is missing, times out, or reads anything else (e.g. `text/html`), this candidate is invalid:
+   - If it came from Layer 1, retry Layer 2, then Layer 3, then Layer 4 (if enabled).
+   - If it came from Layer 2, retry Layer 3, then Layer 4 (if enabled).
+   - If it came from Layer 3 (arXiv direct), retry Layer 4 (if enabled) -- otherwise `NOT_FOUND` overall.
+   - If it came from Layer 4, try Layer 4's next candidate per its own internal retry rule (see the dedicated section); if all of Layer 4's candidates are exhausted, `NOT_FOUND` overall.
+   If valid: discovery result is `FOUND` with this `candidate_url` and its `source`.
+
+Never construct a `candidate_url` on a domain containing `sci-hub`, `libgen`, `annas-archive`, or `z-lib` (defensive check that applies to every layer, including Layer 4, even though none of the four legitimate sources used here can produce one) -- see Safety Rules.
+
+## Action Policy
+
+### `FULL_TEXT_REVIEW` -- walk the list top-to-bottom
+
+The Screen references list is a scrollable list of reference blocks, many visible at once. The agent walks them top-to-bottom, resolving the first unresolved block it finds, then re-observing and continuing.
+
+1. **Scan the visible reference blocks** top-to-bottom. For each block, determine `current_ref_id` and whether it is already resolved (primary button does not read exactly `Upload full text`; see State Classification).
+2. **Find the first unresolved block.** If all visible blocks are already resolved, scroll down (`tab.evaluate(() => window.scrollBy(0, window.innerHeight * 0.8))`) to reveal more, and re-observe. If scrolling produces no new unresolved blocks after 2 attempts, the queue is empty -- see "Queue empty" below.
+3. **Idempotency guard**: if `current_ref_id` is already in `processed_ref_ids`, skip this block (do NOT process it again). Continue scanning down the list.
+4. Run the **Full-Text Discovery Step** for the target block (including Layer 4 if enabled and Layers 1-3 missed). Result is `FOUND` (with `candidate_url`, `source`) or `NOT_FOUND`.
+5. **Approve-first-N onboarding**: if `actions_approved_this_session < approve_first_n` AND `auto_mode` is false:
+   - Print to the terminal: the `current_ref_id`, the ref header, the title (short), the discovery result (`FOUND` + `candidate_url` + `source`, or `NOT_FOUND`), and the action about to be taken (`upload` or `note`).
+   - Wait for user input. Accept three responses only:
+     - `approve` -- take the action as decided. Increment `actions_approved_this_session`. If it now equals `approve_first_n`, set `auto_mode = true` and announce "Onboarding complete, switching to unattended mode."
+     - `skip` -- do not act on this reference. Do NOT increment `actions_approved_this_session`. Add `current_ref_id` to `skipped_ref_ids` and continue scanning down. Log the skip.
+     - `stop` -- end the session immediately. Log summary including which references were skipped.
+6. **If `FOUND`** (or describing it under `dry_run`):
+   - Download: `mkdir -p "${DOWNLOAD_DIR}"` then `curl -sL --max-time 60 -o "${DOWNLOAD_DIR}/${current_ref_id}.pdf" "$candidate_url"`.
+   - Verify the download: the file must exist and be larger than 1024 bytes (`stat -f%z` on macOS). A file at or under that size is a truncated response or an error page that slipped past the Content-Type check -- treat as `NOT_FOUND` instead and fall through to step 7's Not-Found handling for this reference (log the discrepancy).
+   - In `dry_run`: skip the actual `curl` download and print "would download `$candidate_url` and upload it" instead; do not touch the browser.
+   - Otherwise, in the browser (Covidence tab): click the target block's `Upload full text` button via its `@eN` ref -- make sure it's the button belonging to THIS block, not the one above or below. This reveals a file input (possibly inside a small modal). Find that file input via `tab.observe()` and call `tab.uploadFile` on it with the local path `${DOWNLOAD_DIR}/${current_ref_id}.pdf`. If the input isn't directly exposed (e.g. a "Choose file" sub-button opens it first), click through, then call `tab.uploadFile`.
+   - Re-observe within 3 ticks to confirm: the block's primary button no longer reads `Upload full text` (per the already-resolved heuristic). If confirmed: log `ok:true`, add `current_ref_id` to `uploaded_ref_ids`.
+   - If not confirmed after 3 ticks: screenshot+vision fallback once to check for a stuck modal or error toast. If still unresolved, log "upload did not confirm, needs manual check", add `current_ref_id` to `upload_failed_ref_ids` -- do NOT retry the click a second time (avoid double-uploading).
+7. **If `NOT_FOUND`** (or describing it under `dry_run`):
+   - Compose a note: `"[covidence-full-text-retrieval] No full text found via automated lookup on <ISO date>. Tried: Unpaywall<if doi present>, Semantic Scholar, arXiv<if arxiv_id present><, NotebookLM Discover (N sources added to notebook '<notebooklm_topic>') if Layer 4 ran>. Needs manual retrieval."` (include only the sources actually attempted per the identifiers extracted and whether Layer 4 was enabled).
+   - In `dry_run`: print the note text instead of opening the dialog.
+   - Otherwise: click the target block's `Note` link via its `@eN` ref. Find the textarea inside the opened dialog via `tab.observe()`, type the note with `tab.fill`, then click the dialog's save/submit button. If the dialog or textarea is not exposed in the tree, fall back to screenshot+vision to locate it. If still not found after 1 retry, log "notes dialog unavailable, skipped note" and move on without a note -- do NOT click `Upload full text` or either vote button as a substitute action.
+   - Add `current_ref_id` to `not_found_ref_ids`.
+8. In all cases (uploaded, upload-failed, note written, or note-skipped): add `current_ref_id` to `processed_ref_ids`, increment `refs_processed` and the daily counter in `STATE.md`.
+9. Poll the next tick immediately (no sleep) so the page has time to register the action before re-reading.
+
+### `FULL_TEXT_REVIEW` -- queue empty
+
+The Screen references list does NOT show a "No more references" banner. The queue is empty when:
+- Scrolling reveals no new unresolved reference blocks after 2 scroll attempts, AND
+- The top tab count confirms (e.g. `Screen references 0` remaining, or the count matches `refs_processed` this session).
+
+When both hold, stop the loop, log "queue empty", print summary. If the tab count shows unresolved refs remain but none render, log and STOP -- do not click blindly.
+
+### `UNKNOWN`
+
+Increment `unknown_streak`. Screenshot + vision to classify. If genuinely a transient page transition (Covidence loading), wait one tick and re-observe. If a modal/error overlay is blocking, or the user has navigated to a different tab (`Resolve conflicts`, `Awaiting other reviewer`, `Excluded references`) or a different Covidence section, log and STOP -- do not click through modals or navigate the tab back yourself.
