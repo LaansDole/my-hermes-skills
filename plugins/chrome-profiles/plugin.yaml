@@ -1,0 +1,8 @@
+manifest_version: 1
+name: chrome-profiles
+version: 1.2.0
+description: Browser profile rotation — switch between local and remote Chrome/Brave/Edge instances via CDP
+author: yuqi
+provides_tools:
+  - browser_profile
+provides_hooks: []
