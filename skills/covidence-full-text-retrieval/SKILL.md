@@ -23,6 +23,34 @@ metadata:
 - `dry_run` (bool, default false): when true, run full-text discovery for real (the lookups, including Layer 4's Discover search and source-add, are read-only-ish informational calls) but *describe* the upload or note action WITHOUT downloading past the validation check, clicking "Upload full text", calling `tab.uploadFile`, or opening the Covidence notes dialog. Use for first-pass validation against a real review or the Covidence Demo review.
 - `tick_seconds` (int, default 5): idle polling interval between ticks when no action was taken. After an action, poll again immediately (the page needs time to react).
 
+## Browser Window Management
+
+Run this procedure whenever any of the following occur:
+- The user says "open Brave", "re-open Brave", or "the browser isn't showing anything".
+- The user reports that the tabs they see on screen don't match what CDP tools report (e.g. `browser_snapshot` returns empty, `browser_navigate` lands on `/sign_in` but the user says they are already logged in, the page title here differs from what is visible on screen).
+- `browser_snapshot` returns `(empty page)` with 0 elements even though CDP reports the correct URL.
+
+Steps (in order):
+
+1. Check if Brave is running but windowless:
+   `computer_use(action='list_apps')` -- look for `com.brave.Browser` with `running=true` but `windows=[]`.
+
+2. If no visible window, create one via AppleScript:
+   `osascript -e 'tell application "Brave Browser" to make new window'`
+
+3. Bring Brave to front (this is required even in background-first mode, because the user needs to see the window):
+   `computer_use(action='focus_app', app='com.brave.Browser', raise_window=true)`
+
+4. Confirm the window is now visible:
+   `computer_use(action='capture', app='com.brave.Browser', mode='vision')`
+
+5. Navigate the CDP session to the correct Covidence URL -- making the window visible does NOT sync the CDP tab; an explicit browser_navigate is always required after restoring a window:
+   `browser_navigate(url='https://app.covidence.org/reviews/773228/full_text_reviews/screen_references')`
+
+6. Click the Covidence tab in the visible tab strip (via computer_use coordinate/element click on the tab) so the on-screen active tab matches the CDP tab, then re-capture to verify the page loaded.
+
+Always run this proactively when the user says they cannot see any tabs or the browser looks empty -- before concluding a Covidence session has expired.
+
 ## Prerequisites
 
 - A Chrome instance is running with `--remote-debugging-port=9222`.
