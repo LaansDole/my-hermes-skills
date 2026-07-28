@@ -1,7 +1,7 @@
 ---
 name: covidence-full-text-retrieval
 description: Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's "Upload full text" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.
-version: 1.1.0
+version: 1.2.0
 metadata:
   hermes:
     tags: [covidence, systematic-review, full-text, open-access, notebooklm, browser-automation]
@@ -16,12 +16,23 @@ metadata:
 - `max_time` (int, default 60): hard cap on session wall-clock in minutes. Whichever of `max_refs` or `max_time` fires first stops the session.
 - `daily_cap` (int, default 300): hard cap on total references processed across sessions in a single UTC day. `0` disables the daily cap. Persisted in `STATE.md`.
 - `approve_first_n` (int, default 5): number of consequential actions (an upload or a not-found note) at the start of the session for which the agent pauses and waits for user confirmation before acting. After N approvals, the agent sets `auto_mode=true` and acts unattended for the rest of the session.
+- `no_notes` (bool, default false): when true, skip the per-reference notes dialog entirely for NOT_FOUND refs instead of writing a manual-follow-up note. Just silently skip. Set `approve_first_n=0` from session start and `no_notes=true` for a fully unattended run.
 - `contact_email` (string, REQUIRED, no default): a real email address sent as the `email` query parameter on every Unpaywall API call, per Unpaywall's usage policy (https://unpaywall.org/products/api). If missing, or does not contain both `@` and `.`, REFUSE TO RUN and tell the user to supply it (e.g. `contact_email=you@example.org`).
 - `download_dir` (string, default `~/.hermes/downloads/covidence-full-text-retrieval`): local scratch directory for PDFs fetched before upload. Created on first use if missing.
 - `notebooklm_topic` (string, optional, no default): when set, enables Layer 4 of the Full-Text Discovery Step -- an AI-assisted last-resort web search via NotebookLM's "Discover sources" feature, run only for references Layers 1-3 (Unpaywall / Semantic Scholar / arXiv) could not resolve. Also names the single shared NotebookLM notebook used for this research topic (found by exact title match, or created if none exists). When omitted, Layer 4 is skipped entirely -- no NotebookLM tab is opened, and a Layer 1-3 miss goes straight to `NOT_FOUND`.
 - `notebooklm_max_candidates` (int, default 3): only relevant when `notebooklm_topic` is set. How many of NotebookLM Discover's recommendation cards to evaluate per reference, best-ranked first, before declaring a Layer 4 miss for that reference.
 - `dry_run` (bool, default false): when true, run full-text discovery for real (the lookups, including Layer 4's Discover search and source-add, are read-only-ish informational calls) but *describe* the upload or note action WITHOUT downloading past the validation check, clicking "Upload full text", calling `tab.uploadFile`, or opening the Covidence notes dialog. Use for first-pass validation against a real review or the Covidence Demo review.
 - `tick_seconds` (int, default 5): idle polling interval between ticks when no action was taken. After an action, poll again immediately (the page needs time to react).
+
+## User Preferences (set these at session start for auto-mode)
+
+This user runs fully unattended with these overrides:
+
+- `approve_first_n=0` — skip onboarding, enter auto_mode immediately
+- `no_notes=true` — never write follow-up notes for NOT_FOUND refs; just skip silently
+- No manual confirmation for any action — the agent decides and acts
+
+Set these on every session invocation unless the user explicitly overrides them.
 
 ## Browser Window Management
 
@@ -141,6 +152,8 @@ print(loc.get('url_for_pdf') or loc.get('url') or '')
    ```
    Non-empty stdout -> `candidate_url`, `source=unpaywall`. Empty, or a JSON `{"error":true,...}` body -> fall through to Layer 2.
 
+   **Important**: Unpaywall's `best_oa_location.url` often returns the DOI landing page (text/html), not a PDF. `url_for_pdf` is preferred. For Springer OA articles, try `https://link.springer.com/content/pdf/{doi}.pdf` directly. For MDPI, the unpaywall `url_for_pdf` may return a 403 — use `mdpi-res.com` pattern instead (see Known Discovery Patterns).
+
 3. **Layer 2 -- Semantic Scholar** (if Layer 1 produced nothing):
    ```bash
    Q="${DOI:-$TITLE}"
@@ -216,6 +229,64 @@ Runs only when Layers 1-3 (per the Full-Text Discovery Step above) produced no c
 
 Never construct a `candidate_url` on a domain containing `sci-hub`, `libgen`, `annas-archive`, or `z-lib` (defensive check that applies to every layer, including Layer 4, even though none of the four legitimate sources used here can produce one) -- see Safety Rules.
 
+## Known Discovery Patterns (pitfalls from production sessions)
+
+When validating candidate URLs, these publisher-specific behaviors are known:
+
+| Publisher | Unpaywall URL | PDF accessibility |
+|---|---|---|
+| **arXiv** | `https://arxiv.org/pdf/{id}` | ✅ Always `application/pdf` |
+| **MDPI** | Unpaywall `url_for_pdf` e.g. `https://www.mdpi.com/.../pdf?version=...` returns 403; use `https://res.mdpi.com/d_attachment/{journal}/{article-id}/article_deploy/{file.pdf}` which redirects 301 to `https://mdpi-res.com/...` and serves `application/pdf` | ✅ via mdpi-res redirect |
+| **Springer OA** | `https://link.springer.com/content/pdf/{doi}.pdf` | ✅ When article is OA |
+| **Springer LNCS / CCIS** (978-3-031-*, 978-3-032-*) | Landing page | ❌ Paywalled — skip when `is_oa: False` |
+| **IEEE** (10.1109/*) | Landing page | ❌ Paywalled — all IEEE conference DOIs fail |
+| **Elsevier** (10.1016/*) | Landing page | ❌ Paywalled unless `is_oa: True` + has PMC link |
+| **ACM** (10.1145/*) | `dl.acm.org/doi/pdf/...` returns `text/html` | ❌ Paywalled for most conferences |
+| **PMC / PubMed Central** | PMC landing page | ❌ curl returns `text/html`; usable as Covidence link (not a PDF upload) |
+| **SCITEPRESS** (10.5220/*) | Landing page | ❌ Paywalled |
+| **SPIE** (10.1117/*) | Landing page | ❌ Paywalled |
+| **JCO / ASCO** (10.1200/*) | Abstract only | ❌ Abstract-only conference paper |
+| **researchgate.net** | No DOI | ❌ Lacks stable PDF URL |
+
+**Truncated arXiv ID resolution**: when the citation text has `arXiv preprint arXiv … //` (truncated ID), search for the full ID via either:
+- `curl -s "https://arxiv.org/search/?searchtype=all&query=...title...&start=0" | python3 -c "import sys,re;html=sys.stdin.read();print(chr(10).join(re.findall(r'arxiv\.org/abs/(\d{4}\.\d{4,5})',html))[:3])"`
+- Semantic Scholar paper search with `externalIds` field: `curl -s "https://api.semanticscholar.org/graph/v1/paper/search?query=...&fields=externalIds&limit=3"`
+
+**Covidence filter accidentally activating**: if the tab count (`Screen references N`) stays high but the page shows "N studies found" with a "Reset filters" button, a filter was accidentally clicked. Click the Reset button before continuing. The filter button and the Upload full text modal button are close in the DOM.
+
+**CDP session loss**: if `browser_console` returns `"Session with given id not found."`, the CDP tab session expired. Reconnect with `browser_profile(name='brave-live')` and re-verify you're on the correct page with `browser_console(() => location.href)` before continuing.
+
+## Batch Workflow (preferred; faster than per-ref sequential)
+
+Instead of the sequential Observe→Classify→Discover→Act loop for each individual ref, use this batch workflow for better throughput:
+
+1. **Read all visible refs** at once from the initial `browser_navigate` snapshot or a fresh `browser_snapshot(full=true)`. Parse all headers, DOIs, arXiv IDs, and title text.
+2. **Scroll down** to reveal more refs (`window.scrollBy(0, window.innerHeight * 0.8)`), capture another snapshot, parse those too. Continue until no new refs appear.
+3. **Run discovery in parallel batches** — group DOIs and query Unpaywall for dozens at once across multiple terminal calls. Then batch Semantic Scholar queries, then arXiv lookups.
+4. **Compile a single upload queue** of `{ref_id, url}` for all FOUND refs.
+5. **Upload via the JS helper** — inject `uploadQueue` into `browser_console` from `scripts/upload_link.js` (see below), then call it with the compiled queue.
+6. **Log the batch** to the JSONL file with a single timestamp for all uploads.
+7. **Skip NOT_FOUND refs silently** — no notes, no dialogs, just add to `not_found_ref_ids` and update STATE.md count.
+
+## Batch Upload Helper
+
+A reusable async JS helper is stored at `scripts/upload_link.js` in this skill directory.
+
+**Usage:**
+```js
+// 1. Load into browser_console via:
+//    skill_view(name='covidence-full-text-retrieval', file_path='scripts/upload_link.js')
+//    then copy the function definition into browser_console
+
+// 2. Call:
+uploadQueue([
+  {ref_id: '443', url: 'https://arxiv.org/pdf/2506.06574'},
+  {ref_id: '382', url: 'https://arxiv.org/pdf/2507.22504'},
+]).then(r => JSON.stringify(r));
+```
+
+The function handles: finding the ref block by header paragraph, clicking Upload, setting the link input via React-compatible native HTMLInputElement setter, clicking Add link + Done, and verifying resolution. Returns per-ref status.
+
 ## Action Policy
 
 ### `FULL_TEXT_REVIEW` -- walk the list top-to-bottom
@@ -232,6 +303,7 @@ The Screen references list is a scrollable list of reference blocks, many visibl
      - `approve` -- take the action as decided. Increment `actions_approved_this_session`. If it now equals `approve_first_n`, set `auto_mode = true` and announce "Onboarding complete, switching to unattended mode."
      - `skip` -- do not act on this reference. Do NOT increment `actions_approved_this_session`. Add `current_ref_id` to `skipped_ref_ids` and continue scanning down. Log the skip.
      - `stop` -- end the session immediately. Log summary including which references were skipped.
+   When `auto_mode` is true from session start: skip onboarding entirely and act immediately.
 6. **If `FOUND`** (or describing it under `dry_run`):
    - Download: `mkdir -p "${DOWNLOAD_DIR}"` then `curl -sL --max-time 60 -o "${DOWNLOAD_DIR}/${current_ref_id}.pdf" "$candidate_url"`.
    - Verify the download: the file must exist and be larger than 1024 bytes (`stat -f%z` on macOS). A file at or under that size is a truncated response or an error page that slipped past the Content-Type check -- treat as `NOT_FOUND` instead and fall through to step 7's Not-Found handling for this reference (log the discrepancy).
@@ -239,14 +311,17 @@ The Screen references list is a scrollable list of reference blocks, many visibl
    - Otherwise, in the browser (Covidence tab): click the target block's `Upload full text` button. Because `@eN` refs frequently expire between an observe and a click on this list (Covidence re-renders often), prefer locating the button via `browser_console` by climbing from the ref's header paragraph (e.g. `Array.from(document.querySelectorAll('p')).find(p => p.textContent.trim().startsWith('#'+ref_id+' -'))`) up to its containing block, then `.click()` the button whose text is exactly `Upload full text` within that block -- this guarantees you hit the button belonging to THIS block, not the one above or below.
    - **Known DOM-depth quirk**: the `Upload full text` / `Abstract` buttons sit two `parentElement` hops above the header paragraph, but `Note` / `History` / `Duplicate` / `Move to screening` sit ONE hop further up (three `parentElement`s total). Don't assume a fixed depth -- when a button search comes back empty at one level, climb one more `parentElement` and retry before concluding the button is missing.
    - **File upload mechanism (Hermes CDP has no `tab.uploadFile`)**: this environment's CDP browser tools cannot drive a native OS file picker, so `tab.uploadFile` as an action does not exist here. Use Covidence's own "Link to full text" fallback in the same modal instead: locate the `input[name="document_url"]` field via `browser_console`, set its value with the native `HTMLInputElement` value setter + dispatch an `input` event (React-controlled input; a plain `.value =` assignment is silently ignored), click the `Add link` button, confirm the link chip appears in the modal's list, then click `Done`. This is the primary upload path on Hermes, not a last resort -- do not attempt a real PDF upload flow here; download-and-verify (via `curl`) still matters for validating the candidate URL is a real PDF, but the actual "upload" step in Covidence is done by attaching that same URL as a link, not re-uploading the downloaded bytes.
+   - For batch uploads, prefer the `uploadQueue` helper in `scripts/upload_link.js` over manual per-ref click/fill/done cycles.
    - Re-observe within 3 ticks to confirm: the block's primary button no longer reads `Upload full text` (per the already-resolved heuristic; Covidence swaps it to `Full text` / `Manage full text` once a link or file is attached). If confirmed: log `ok:true`, add `current_ref_id` to `uploaded_ref_ids`.
    - If not confirmed after 3 ticks: screenshot+vision fallback once to check for a stuck modal or error toast. If still unresolved, log "upload did not confirm, needs manual check", add `current_ref_id` to `upload_failed_ref_ids` -- do NOT retry the click a second time (avoid double-uploading).
 7. **If `NOT_FOUND`** (or describing it under `dry_run`):
+   - If `no_notes` is true: skip the note dialog entirely. Do not open the Note link. Do not write anything. Log the skip and move on.
+   - Otherwise: compose a note accordingly and write it.
    - Compose a note: `"[covidence-full-text-retrieval] No full text found via automated lookup on <ISO date>. Tried: Unpaywall<if doi present>, Semantic Scholar, arXiv<if arxiv_id present><, NotebookLM Discover (N sources added to notebook '<notebooklm_topic>') if Layer 4 ran>. Needs manual retrieval."` (include only the sources actually attempted per the identifiers extracted and whether Layer 4 was enabled).
    - In `dry_run`: print the note text instead of opening the dialog.
    - Otherwise: click the target block's `Note` link (same `browser_console` block-locator technique as the Upload step above -- remember the DOM-depth quirk: `Note` sits one `parentElement` hop further up than `Upload full text`/`Abstract`). Find the textarea inside the opened dialog via `browser_snapshot` or `browser_console`, fill it with `browser_type` (or the native-setter + `input`-event pattern via `browser_console` if it's a React-controlled textarea and `browser_type` doesn't stick), then click the dialog's `Add note` / save button. Confirm by re-checking the block's footer now shows `1 Note` (or an incremented count) instead of bare `Note`. If the dialog or textarea is not exposed, fall back to screenshot+vision to locate it. If still not found after 1 retry, log "notes dialog unavailable, skipped note" and move on without a note -- do NOT click `Upload full text` or either vote button as a substitute action.
    - Add `current_ref_id` to `not_found_ref_ids`.
-8. In all cases (uploaded, upload-failed, note written, or note-skipped): add `current_ref_id` to `processed_ref_ids`, increment `refs_processed`. Also update `STATE.md`: read its `date` field; if it is not today's UTC date, reset `processed_today` to 0 and set `date` to today's UTC date before incrementing; then increment `processed_today` by 1 and write both fields back to `STATE.md`.
+8. In all cases (uploaded, upload-failed, note written, note-skipped, or no_notes skip): add `current_ref_id` to `processed_ref_ids`, increment `refs_processed`. Also update `STATE.md`: read its `date` field; if it is not today's UTC date, reset `processed_today` to 0 and set `date` to today's UTC date before incrementing; then increment `processed_today` by 1 and write both fields back to `STATE.md`.
 9. Poll the next tick immediately (no sleep) so the page has time to register the action before re-reading.
 
 ### `FULL_TEXT_REVIEW` -- queue empty
@@ -268,7 +343,7 @@ Track these counters across the session:
 - `current_ref_id` (string or null): the reference currently being processed.
 - `processed_ref_ids` (set): ref IDs resolved this session (idempotency guard).
 - `uploaded_ref_ids` (set): ref IDs whose full text was successfully uploaded.
-- `not_found_ref_ids` (set): ref IDs with a note logged for manual follow-up.
+- `not_found_ref_ids` (set): ref IDs with a note logged for manual follow-up, or silently skipped when `no_notes=true`.
 - `upload_failed_ref_ids` (set): ref IDs where a PDF was found and downloaded but the Covidence upload did not confirm.
 - `skipped_ref_ids` (set): ref IDs skipped during onboarding (so they aren't re-targeted next tick).
 - `last_3_ref_ids` (list of last 3 `current_ref_id` values, infinite-loop guard).
@@ -319,6 +394,8 @@ At loop end, print a summary to the terminal: refs processed, uploaded/not-found
 | Failure | Detection | Recovery |
 |---|---|---|
 | CDP connection dropped | `tab.observe()` returns connection error | Stop, log, surface to user. Cannot auto-recover (user must restart Chrome). |
+| CDP session lost mid-action | `browser_console` returns `"Session with given id not found."` | Reconnect with `browser_profile(name='brave-live')`, verify page with `location.href`, resume. |
+| Filters accidentally activated | Page shows "N studies found" count < tab count, "Reset filters" button visible | Click the Reset filters button before continuing. |
 | Session/login expired (Covidence) | Page navigates to institutional SSO login URL, or no reference blocks render for > 30 s | Stop loop, log URL, surface to user. No auto-relogin. |
 | Unpaywall/Semantic Scholar rate limit or timeout | `curl` returns non-2xx, empty body, or times out | Fall through to the next discovery layer immediately (do not retry the same layer) rather than failing the whole session. Only stop if ALL layers fail for 3 consecutive references in a row -- log and surface to user (likely a network-wide outage). |
 | Download produced a truncated/error file | Downloaded file <= 1024 bytes despite a `application/pdf` Content-Type header | Treat as `NOT_FOUND` for this reference; log the discrepancy; continue with the Not-Found note action. |
