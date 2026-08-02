@@ -1,12 +1,159 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>my-hermes-skills — LaansDole</title>
-  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/" />
-  <style>
-    :root {
+#!/usr/bin/env python3
+"""Generate docs/index.html from skills/**/SKILL.md frontmatter.
+
+Zero dependencies (no PyYAML): parses the frontmatter subset used in this
+repo — name, version, description (plain or double-quoted), tags (inline
+list). Parent/child nesting is inferred from the folder tree: a SKILL.md
+whose parent folder also contains a SKILL.md is a child of that skill.
+
+Run:  python3 scripts/generate_docs.py
+Out:  docs/index.html  (overwritten)
+"""
+
+import html
+import re
+import sys
+from pathlib import Path
+
+REPO = Path(__file__).resolve().parent.parent
+SKILLS = REPO / "skills"
+OUT = REPO / "docs" / "index.html"
+GH = "https://github.com/LaansDole/my-hermes-skills"
+
+# top-level skills/ dir -> (section title, icon, icon bg color)
+CATEGORY_MAP = {
+    "covidence-screening":        ("Systematic Review (Covidence)", "🔬", "#1a2d4a"),
+    "covidence-full-text-retrieval": ("Systematic Review (Covidence)", "🔬", "#1a2d4a"),
+    "productivity":               ("Productivity", "⚡", "#2d1f4a"),
+    "slack-scan":                 ("Slack", "💬", "#2d2a1f"),
+}
+# fixed section order; unknown sections append alphabetically
+SECTION_ORDER = ["Systematic Review (Covidence)", "Productivity", "Slack"]
+
+
+def parse_frontmatter(text: str) -> dict:
+    """Extract name/version/description/tags from a SKILL.md frontmatter block."""
+    m = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
+    if not m:
+        return {}
+    fm = m.group(1)
+    out = {}
+
+    name = re.search(r"^name:\s*(.+)$", fm, re.MULTILINE)
+    if name:
+        out["name"] = name.group(1).strip().strip('"')
+
+    version = re.search(r"^version:\s*(.+)$", fm, re.MULTILINE)
+    if version:
+        out["version"] = version.group(1).strip().strip('"')
+
+    desc = re.search(r"^description:\s*(.+)$", fm, re.MULTILINE)
+    if desc:
+        d = desc.group(1).strip()
+        if d.startswith('"') and d.endswith('"'):
+            d = d[1:-1].replace('\\"', '"')
+        out["description"] = d
+
+    tags = re.search(r"^\s*tags:\s*\[(.*?)\]", fm, re.MULTILINE)
+    if tags:
+        out["tags"] = [t.strip().strip('"').strip("'")
+                       for t in tags.group(1).split(",") if t.strip()]
+    return out
+
+
+def find_skills() -> list:
+    """Return dicts for every SKILL.md under skills/, with category/nesting."""
+    skills = []
+    for p in sorted(SKILLS.rglob("SKILL.md")):
+        rel = p.relative_to(REPO)
+        skill_dir = p.parent
+        top = skill_dir.relative_to(SKILLS).parts[0]
+        fm = parse_frontmatter(p.read_text())
+        if not fm.get("name"):
+            continue
+
+        # child if the parent folder is itself a skill (has its own SKILL.md)
+        parent_skill = None
+        if (skill_dir.parent / "SKILL.md").exists():
+            parent_skill = skill_dir.parent.name
+
+        skills.append({
+            "name": fm["name"],
+            "version": fm.get("version", ""),
+            "description": fm.get("description", ""),
+            "tags": fm.get("tags", []),
+            "rel_dir": str(skill_dir.relative_to(REPO)),
+            "top": top,
+            "parent_skill": parent_skill,
+        })
+    return skills
+
+
+def card_html(s: dict, child: bool = False) -> str:
+    cls = "card card-child" if child else "card"
+    version = f'<span class="card-version">v{s["version"]}</span>' if s["version"] else ""
+    tags = "\n".join(f'          <span class="tag">{html.escape(t)}</span>'
+                     for t in s["tags"])
+    desc = html.escape(s["description"])
+    return f"""      <div class="{cls}">
+        <div class="card-top">
+          <span class="card-name">{html.escape(s['name'])}</span>
+          {version}
+          <div class="card-links">
+            <a class="card-link" href="{GH}/blob/main/{s['rel_dir']}/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="{GH}/tree/main/{s['rel_dir']}" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          {desc}
+        </p>
+        <div class="card-tags">
+{tags}
+        </div>
+      </div>"""
+
+
+def sections_html(skills: list) -> str:
+    """Group skills by section title; children immediately after their parent."""
+    by_section = {}
+    for s in skills:
+        title, icon, bg = CATEGORY_MAP.get(s["top"], (s["top"], "📦", "#21262d"))
+        by_section.setdefault(title, {"icon": icon, "bg": bg, "skills": []})
+        by_section[title]["skills"].append(s)
+
+    ordered = sorted(by_section, key=lambda t: (SECTION_ORDER.index(t)
+                                                if t in SECTION_ORDER
+                                                else len(SECTION_ORDER) + 1))
+    blocks = []
+    for title in ordered:
+        sec = by_section[title]
+        cards = []
+        for s in sorted(sec["skills"], key=lambda x: x["name"]):
+            if s["parent_skill"]:
+                continue  # rendered under its parent below
+            cards.append(card_html(s))
+            for c in sorted(sec["skills"], key=lambda x: x["name"]):
+                if c["parent_skill"] == s["name"]:
+                    cards.append(card_html(c, child=True))
+        n = len(cards)
+        count = "1 skill" if n == 1 else f"{n} skills"
+        blocks.append(f"""  <!-- Category: {title} -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:{sec['bg']}">{sec['icon']}</div>
+      <span class="section-title">{html.escape(title)}</span>
+      <span class="section-count">{count}</span>
+    </div>
+    <div class="cards">
+
+{chr(10).join(cards)}
+
+    </div>
+  </div>""")
+    return "\n\n".join(blocks)
+
+
+CSS = """    :root {
       --bg: #0d1117;
       --bg2: #161b22;
       --bg3: #21262d;
@@ -273,7 +420,25 @@
       .hero h1 { font-size: 24px; }
       .hero-stats { gap: 16px; }
       .card-child { margin-left: 12px; }
-    }
+    }"""
+
+
+def main() -> int:
+    skills = find_skills()
+    if not skills:
+        print("error: no skills found under skills/", file=sys.stderr)
+        return 1
+
+    n_cats = len({CATEGORY_MAP.get(s["top"], (s["top"],))[0] for s in skills})
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>my-hermes-skills — LaansDole</title>
+  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/" />
+  <style>
+{CSS}
   </style>
 </head>
 <body>
@@ -288,7 +453,7 @@
       my-hermes-skills
     </div>
     <div class="header-links">
-      <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">GitHub</a>
+      <a href="{GH}" target="_blank">GitHub</a>
       <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
     </div>
   </div>
@@ -308,11 +473,11 @@
     </p>
     <div class="hero-stats">
       <div class="stat">
-        <span class="stat-num">5</span>
+        <span class="stat-num">{len(skills)}</span>
         <span class="stat-label">skills</span>
       </div>
       <div class="stat">
-        <span class="stat-num">3</span>
+        <span class="stat-num">{n_cats}</span>
         <span class="stat-label">categories</span>
       </div>
       <div class="stat">
@@ -343,154 +508,26 @@
     </div>
   </div>
 
-  <!-- Category: Systematic Review (Covidence) -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#1a2d4a">🔬</div>
-      <span class="section-title">Systematic Review (Covidence)</span>
-      <span class="section-count">3 skills</span>
-    </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">covidence-full-text-retrieval</span>
-          <span class="card-version">v1.2.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user&#x27;s Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence&#x27;s &quot;Upload full text&quot; action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">full-text</span>
-          <span class="tag">open-access</span>
-          <span class="tag">notebooklm</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-      <div class="card card-child">
-        <div class="card-top">
-          <span class="card-name">covidence-full-text-review</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Review full-text papers in a Covidence systematic review. Mode 1 (unattended): processes the queue of references with uploaded full texts and casts Include/Exclude votes autonomously. Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">full-text</span>
-          <span class="tag">review</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">covidence-screening</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously screen references at the title &amp; abstract stage of a Covidence systematic review in the user&#x27;s Chrome session via CDP. Votes Yes/Maybe/No per the user&#x27;s PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">screening</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Category: Productivity -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#2d1f4a">⚡</div>
-      <span class="section-title">Productivity</span>
-      <span class="section-count">1 skill</span>
-    </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">pbcopy-word-delivery</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/pbcopy-word-delivery/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/pbcopy-word-delivery" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Deliver structured text content (verdicts, reports, summaries) directly to the macOS clipboard via pbcopy so the user can Cmd+V into Word without Warp terminal soft-wrap artifacts.
-        </p>
-        <div class="card-tags">
-          <span class="tag">clipboard</span>
-          <span class="tag">word</span>
-          <span class="tag">macos</span>
-          <span class="tag">pbcopy</span>
-          <span class="tag">formatting</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
-
-  <!-- Category: Slack -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#2d2a1f">💬</div>
-      <span class="section-title">Slack</span>
-      <span class="section-count">1 skill</span>
-    </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">slack-scan</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack-scan/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-scan" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Summarize today&#x27;s Slack activity on demand -- one channel or every channel/DM the bot is in.
-        </p>
-        <div class="card-tags">
-          <span class="tag">slack</span>
-          <span class="tag">summary</span>
-          <span class="tag">notifications</span>
-          <span class="tag">todo</span>
-        </div>
-      </div>
-
-    </div>
-  </div>
+{sections_html(skills)}
 
 </main>
 
 <footer>
   <p>
     Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
+    <a href="{GH}/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
+    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
     <a href="https://laansdole.github.io/my-hermes-skills/">laansdole.github.io/my-hermes-skills</a>
   </p>
 </footer>
 
 </body>
 </html>
+"""
+    OUT.write_text(page)
+    print(f"wrote {OUT} ({len(skills)} skills, {n_cats} categories)")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

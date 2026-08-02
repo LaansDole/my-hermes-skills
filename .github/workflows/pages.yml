@@ -6,6 +6,7 @@ on:
     paths:
       - "docs/**"
       - "skills/**"
+      - "scripts/**"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -27,6 +28,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v7
+
+      - name: Generate docs site
+        run: python3 scripts/generate_docs.py
 
       - name: Setup Pages
         uses: actions/configure-pages@v6

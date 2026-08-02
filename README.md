@@ -4,7 +4,7 @@
 
 Personal collection of [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, MIT) skills, plugins, and bots. Each one is self-contained -- own README/SKILL.md, own setup, own scope. This file is just the index.
 
-**Documentation site:** https://laansdole.github.io/my-hermes-skills/
+**Documentation site:** https://laansdole.github.io/my-hermes-skills/ — auto-generated from the `skills/**/SKILL.md` frontmatter by `scripts/generate_docs.py` on every push (via the GitHub Pages workflow). Delete or add a skill folder and the site updates itself; no manual HTML edits needed.
 
 ## Skills
 
@@ -43,6 +43,8 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |   |-- productivity/
 |   |   `-- pbcopy-word-delivery/
 |   `-- slack-scan/
+|-- scripts/
+|   `-- generate_docs.py       # builds docs/index.html from skills/** frontmatter
 |-- plugins/
 |   `-- chrome-profiles/
 |-- slack-todo-bot/
