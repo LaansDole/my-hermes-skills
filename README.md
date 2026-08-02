@@ -38,7 +38,6 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |   `-- config-patch.yaml     # example approvals + browser config patch
 |-- skills/
 |   |-- covidence-screening/
-|   |   `-- covidence-full-text-screening/
 |   |-- covidence-full-text-retrieval/
 |   |   `-- covidence-full-text-review/
 |   |-- productivity/
