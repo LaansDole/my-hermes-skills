@@ -40,7 +40,7 @@
     a { color: var(--accent); text-decoration: none; }
     a:hover { text-decoration: underline; }
 
-    /* ── Layout ── */
+    /* Layout */
     header {
       background: var(--bg2);
       border-bottom: 1px solid var(--border);
@@ -82,10 +82,8 @@
       padding: 48px 24px 80px;
     }
 
-    /* ── Hero ── */
-    .hero {
-      margin-bottom: 48px;
-    }
+    /* Hero */
+    .hero { margin-bottom: 48px; }
     .hero-eyebrow {
       font-size: 12px;
       font-family: var(--mono);
@@ -110,31 +108,18 @@
       max-width: 580px;
       margin-bottom: 24px;
     }
-    .hero-stats {
-      display: flex;
-      gap: 24px;
-      flex-wrap: wrap;
-    }
-    .stat {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
+    .hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
     .stat-num {
       font-size: 22px;
       font-weight: 700;
       color: var(--text);
       font-family: var(--mono);
     }
-    .stat-label {
-      font-size: 12px;
-      color: var(--text-muted);
-    }
+    .stat-label { font-size: 12px; color: var(--text-muted); }
 
-    /* ── Section ── */
-    .section {
-      margin-bottom: 48px;
-    }
+    /* Section */
+    .section { margin-bottom: 48px; }
     .section-header {
       display: flex;
       align-items: center;
@@ -153,11 +138,7 @@
       font-size: 14px;
       flex-shrink: 0;
     }
-    .section-title {
-      font-size: 16px;
-      font-weight: 600;
-      color: var(--text);
-    }
+    .section-title { font-size: 16px; font-weight: 600; color: var(--text); }
     .section-count {
       margin-left: auto;
       font-size: 12px;
@@ -169,12 +150,8 @@
       padding: 1px 8px;
     }
 
-    /* ── Cards ── */
-    .cards {
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+    /* Cards */
+    .cards { display: flex; flex-direction: column; gap: 10px; }
     .card {
       background: var(--bg2);
       border: 1px solid var(--border);
@@ -183,16 +160,8 @@
       transition: border-color 0.15s, background 0.15s;
       cursor: default;
     }
-    .card:hover {
-      border-color: var(--accent-dim);
-      background: var(--bg3);
-    }
-    .card-top {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      margin-bottom: 8px;
-    }
+    .card:hover { border-color: var(--accent-dim); background: var(--bg3); }
+    .card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
     .card-name {
       font-family: var(--mono);
       font-size: 13px;
@@ -211,11 +180,7 @@
       padding: 1px 6px;
       flex-shrink: 0;
     }
-    .card-links {
-      display: flex;
-      gap: 8px;
-      flex-shrink: 0;
-    }
+    .card-links { display: flex; gap: 8px; flex-shrink: 0; }
     .card-link {
       font-size: 11px;
       color: var(--text-muted);
@@ -225,22 +190,14 @@
       padding: 2px 8px;
       transition: color 0.15s, border-color 0.15s;
     }
-    .card-link:hover {
-      color: var(--text);
-      border-color: var(--text-muted);
-      text-decoration: none;
-    }
+    .card-link:hover { color: var(--text); border-color: var(--text-muted); text-decoration: none; }
     .card-desc {
       font-size: 13px;
       color: var(--text-muted);
       line-height: 1.55;
       margin-bottom: 10px;
     }
-    .card-tags {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
+    .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
     .tag {
       font-size: 11px;
       font-family: var(--mono);
@@ -257,12 +214,9 @@
       border-left: 2px solid var(--border);
       border-radius: 0 8px 8px 0;
     }
-    .card-child .card-name::before {
-      content: "↳ ";
-      color: var(--text-dim);
-    }
+    .card-child .card-name::before { content: "↳ "; color: var(--text-dim); }
 
-    /* ── Setup box ── */
+    /* Setup box */
     .setup-box {
       background: var(--bg2);
       border: 1px solid var(--border);
@@ -271,20 +225,14 @@
       margin-bottom: 48px;
     }
     .setup-box h2 {
-      font-size: 14px;
+      font-size: 11px;
       font-weight: 600;
       margin-bottom: 12px;
       color: var(--text-muted);
       text-transform: uppercase;
       letter-spacing: 0.06em;
-      font-size: 11px;
     }
-    .setup-step {
-      display: flex;
-      gap: 12px;
-      margin-bottom: 10px;
-      align-items: flex-start;
-    }
+    .setup-step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
     .step-num {
       width: 20px;
       height: 20px;
@@ -310,7 +258,7 @@
       color: var(--green);
     }
 
-    /* ── Footer ── */
+    /* Footer */
     footer {
       border-top: 1px solid var(--border);
       padding: 24px;
@@ -395,7 +343,7 @@
     </div>
   </div>
 
-  <!-- Category: Systematic Review -->
+  <!-- Category: Systematic Review (Covidence) -->
   <div class="section">
     <div class="section-header">
       <div class="section-icon" style="background:#1a2d4a">🔬</div>
@@ -403,29 +351,6 @@
       <span class="section-count">3 skills</span>
     </div>
     <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">covidence-screening</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously screens Covidence references at the title &amp; abstract stage.
-          Votes Yes / Maybe / No against your PICO criteria via CDP-attached browser.
-          Runs unattended after an optional onboarding phase; writes one-line rationale for Maybe votes.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">title-abstract</span>
-          <span class="tag">cdp</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
 
       <div class="card">
         <div class="card-top">
@@ -437,21 +362,17 @@
           </div>
         </div>
         <p class="card-desc">
-          For each reference in Covidence's full-text review queue, locates an open-access PDF via
-          Unpaywall → Semantic Scholar → arXiv (with optional NotebookLM Discover as last resort)
-          and uploads it via Covidence's "Upload full text" link field.
-          Never casts Include / Exclude — that decision stays manual.
+          Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user&#x27;s Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence&#x27;s &quot;Upload full text&quot; action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.
         </p>
         <div class="card-tags">
           <span class="tag">covidence</span>
+          <span class="tag">systematic-review</span>
           <span class="tag">full-text</span>
           <span class="tag">open-access</span>
-          <span class="tag">unpaywall</span>
           <span class="tag">notebooklm</span>
           <span class="tag">browser-automation</span>
         </div>
       </div>
-
       <div class="card card-child">
         <div class="card-top">
           <span class="card-name">covidence-full-text-review</span>
@@ -462,17 +383,33 @@
           </div>
         </div>
         <p class="card-desc">
-          Two modes: <strong style="color:var(--text)">unattended</strong> — processes the full-text review queue and casts Include / Exclude votes autonomously;
-          <strong style="color:var(--text)">secondary_reviewer</strong> — accepts a URL, reads the paper, returns a structured verdict,
-          and optionally casts the vote when a Covidence ref_id is supplied.
-          Verdict delivered via pbcopy for clean paste into Word.
+          Review full-text papers in a Covidence systematic review. Mode 1 (unattended): processes the queue of references with uploaded full texts and casts Include/Exclude votes autonomously. Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.
         </p>
         <div class="card-tags">
+          <span class="tag">covidence</span>
+          <span class="tag">systematic-review</span>
           <span class="tag">full-text</span>
           <span class="tag">review</span>
-          <span class="tag">include-exclude</span>
-          <span class="tag">cdp</span>
-          <span class="tag">pbcopy</span>
+          <span class="tag">browser-automation</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">covidence-screening</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Autonomously screen references at the title &amp; abstract stage of a Covidence systematic review in the user&#x27;s Chrome session via CDP. Votes Yes/Maybe/No per the user&#x27;s PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.
+        </p>
+        <div class="card-tags">
+          <span class="tag">covidence</span>
+          <span class="tag">systematic-review</span>
+          <span class="tag">screening</span>
+          <span class="tag">browser-automation</span>
         </div>
       </div>
 
@@ -498,18 +435,14 @@
           </div>
         </div>
         <p class="card-desc">
-          Delivers structured text (verdicts, reports, summaries) directly to the macOS clipboard via
-          <code style="font-family:var(--mono);font-size:12px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">pbcopy</code>
-          so the user can Cmd+V into Word without Warp terminal soft-wrap artifacts corrupting
-          line breaks. Uses the heredoc pattern for safe handling of single-quoted content.
-          macOS only (Linux equivalent: xclip).
+          Deliver structured text content (verdicts, reports, summaries) directly to the macOS clipboard via pbcopy so the user can Cmd+V into Word without Warp terminal soft-wrap artifacts.
         </p>
         <div class="card-tags">
           <span class="tag">clipboard</span>
+          <span class="tag">word</span>
           <span class="tag">macos</span>
           <span class="tag">pbcopy</span>
-          <span class="tag">word</span>
-          <span class="tag">warp</span>
+          <span class="tag">formatting</span>
         </div>
       </div>
 
@@ -535,15 +468,13 @@
           </div>
         </div>
         <p class="card-desc">
-          On-demand Slack summary: ask Hermes to summarize today's activity across every channel and DM
-          the bot is in, or target a single named channel. No cron job required.
-          Calls the Slack Web API via curl + <code style="font-family:var(--mono);font-size:12px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">SLACK_BOT_TOKEN</code>.
+          Summarize today&#x27;s Slack activity on demand -- one channel or every channel/DM the bot is in.
         </p>
         <div class="card-tags">
           <span class="tag">slack</span>
           <span class="tag">summary</span>
-          <span class="tag">on-demand</span>
-          <span class="tag">curl</span>
+          <span class="tag">notifications</span>
+          <span class="tag">todo</span>
         </div>
       </div>
 
