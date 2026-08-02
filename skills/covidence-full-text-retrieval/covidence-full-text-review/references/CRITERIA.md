@@ -61,6 +61,27 @@
 - Non-English publications.
 - Full text inaccessible (already filtered at retrieval stage; should not appear here).
 
+## COVIDENCE EXCLUSION REASONS (exact dropdown options, review #773228)
+
+When casting an Exclude vote, select the FIRST applicable reason from this list:
+
+- Adult population
+- Paediatric population
+- Wrong comparator
+- Wrong dose
+- Wrong indication
+- Wrong intervention  <- use for wrong Concept (non-LLM-driven, single-agent, pre-LLM ABM, ReAct tool-chaining)
+- Wrong outcomes
+- Wrong patient population  <- use for wrong Population (non-HC domain, veterinary, HC-as-benchmark-only)
+- Wrong route of administration
+- Wrong setting  <- use for wrong Context (non-HC setting, bench biomedicine, superficial demo)
+- Wrong study design
+
+PCC-to-dropdown mapping:
+- Wrong Concept -> Wrong intervention
+- Wrong Population -> Wrong patient population
+- Wrong Context -> Wrong setting
+
 ## DECISION GUIDANCE
 
 At full-text review stage you have the complete paper. Apply criteria strictly:

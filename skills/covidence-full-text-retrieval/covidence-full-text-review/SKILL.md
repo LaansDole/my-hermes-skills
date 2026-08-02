@@ -320,6 +320,27 @@ Queue is empty when scrolling reveals no unreviewed reference blocks (with `Incl
 - This skill operates ONLY on the `Screen references` tab. Any other tab -> classify as UNKNOWN.
 - The `Resolve conflicts` tab is out of scope even if there are conflicting votes.
 
+## Covidence Exclusion Reasons (review #773228, exact dropdown)
+
+When casting an Exclude vote in Covidence, select the FIRST applicable reason:
+
+- Adult population
+- Paediatric population
+- Wrong comparator
+- Wrong dose
+- Wrong indication
+- Wrong intervention  <- wrong Concept (non-LLM-driven, single-agent, pre-LLM ABM, ReAct tool-chaining)
+- Wrong outcomes
+- Wrong patient population  <- wrong Population (non-HC domain, veterinary, HC-as-benchmark-only)
+- Wrong route of administration
+- Wrong setting  <- wrong Context (non-HC setting, bench biomedicine, superficial demo)
+- Wrong study design
+
+PCC-to-dropdown quick map:
+- Wrong Concept  -> Wrong intervention
+- Wrong Population -> Wrong patient population
+- Wrong Context  -> Wrong setting
+
 ## Safety Rules
 
 Hard rules for BOTH modes:
