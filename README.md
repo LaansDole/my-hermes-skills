@@ -1,6 +1,10 @@
 # my-hermes-skills
 
+[![GitHub Pages](https://img.shields.io/badge/docs-GitHub%20Pages-blue?style=flat-square&logo=github)](https://laansdole.github.io/my-hermes-skills/)
+
 Personal collection of [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, MIT) skills, plugins, and bots. Each one is self-contained -- own README/SKILL.md, own setup, own scope. This file is just the index.
+
+**Documentation site:** https://laansdole.github.io/my-hermes-skills/
 
 ## Skills
 
@@ -34,14 +38,20 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |   `-- config-patch.yaml     # example approvals + browser config patch
 |-- skills/
 |   |-- covidence-screening/
+|   |   `-- covidence-full-text-screening/
 |   |-- covidence-full-text-retrieval/
+|   |   `-- covidence-full-text-review/
+|   |-- productivity/
+|   |   `-- pbcopy-word-delivery/
 |   `-- slack-scan/
 |-- plugins/
 |   `-- chrome-profiles/
 |-- slack-todo-bot/
-`-- docs/superpowers/
-    |-- specs/                # design specs
-    `-- plans/                # implementation plans
+|-- docs/
+|   `-- index.html            # GitHub Pages documentation site
+`-- .github/
+    `-- workflows/
+        `-- pages.yml         # auto-deploys docs/ to GitHub Pages on push
 ```
 
 ## License

@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>my-hermes-skills — LaansDole</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --bg2: #161b22;
+      --bg3: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --text-muted: #8b949e;
+      --text-dim: #6e7681;
+      --accent: #58a6ff;
+      --accent-dim: #1f6feb;
+      --green: #3fb950;
+      --purple: #bc8cff;
+      --orange: #d29922;
+      --red: #f85149;
+      --tag-bg: #1f2937;
+      --tag-border: #374151;
+      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
+      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--font);
+      font-size: 14px;
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    /* ── Layout ── */
+    header {
+      background: var(--bg2);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .header-inner {
+      max-width: 960px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      height: 56px;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-weight: 600;
+      font-size: 15px;
+      color: var(--text);
+    }
+    .logo svg { flex-shrink: 0; }
+    .header-links {
+      margin-left: auto;
+      display: flex;
+      gap: 20px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+    .header-links a { color: var(--text-muted); }
+    .header-links a:hover { color: var(--text); text-decoration: none; }
+
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 48px 24px 80px;
+    }
+
+    /* ── Hero ── */
+    .hero {
+      margin-bottom: 48px;
+    }
+    .hero-eyebrow {
+      font-size: 12px;
+      font-family: var(--mono);
+      color: var(--accent);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+    .hero h1 {
+      font-size: 32px;
+      font-weight: 700;
+      line-height: 1.2;
+      margin-bottom: 12px;
+      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-sub {
+      color: var(--text-muted);
+      font-size: 15px;
+      max-width: 580px;
+      margin-bottom: 24px;
+    }
+    .hero-stats {
+      display: flex;
+      gap: 24px;
+      flex-wrap: wrap;
+    }
+    .stat {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .stat-num {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--text);
+      font-family: var(--mono);
+    }
+    .stat-label {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* ── Section ── */
+    .section {
+      margin-bottom: 48px;
+    }
+    .section-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .section-icon {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+    .section-count {
+      margin-left: auto;
+      font-size: 12px;
+      color: var(--text-dim);
+      font-family: var(--mono);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1px 8px;
+    }
+
+    /* ── Cards ── */
+    .cards {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .card {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px 18px;
+      transition: border-color 0.15s, background 0.15s;
+      cursor: default;
+    }
+    .card:hover {
+      border-color: var(--accent-dim);
+      background: var(--bg3);
+    }
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 8px;
+    }
+    .card-name {
+      font-family: var(--mono);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--accent);
+      flex: 1;
+      min-width: 0;
+    }
+    .card-version {
+      font-family: var(--mono);
+      font-size: 11px;
+      color: var(--text-dim);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 6px;
+      flex-shrink: 0;
+    }
+    .card-links {
+      display: flex;
+      gap: 8px;
+      flex-shrink: 0;
+    }
+    .card-link {
+      font-size: 11px;
+      color: var(--text-muted);
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 2px 8px;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    .card-link:hover {
+      color: var(--text);
+      border-color: var(--text-muted);
+      text-decoration: none;
+    }
+    .card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.55;
+      margin-bottom: 10px;
+    }
+    .card-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+    .tag {
+      font-size: 11px;
+      font-family: var(--mono);
+      color: var(--text-dim);
+      background: var(--tag-bg);
+      border: 1px solid var(--tag-border);
+      border-radius: 3px;
+      padding: 1px 6px;
+    }
+
+    /* child card (indented) */
+    .card-child {
+      margin-left: 24px;
+      border-left: 2px solid var(--border);
+      border-radius: 0 8px 8px 0;
+    }
+    .card-child .card-name::before {
+      content: "↳ ";
+      color: var(--text-dim);
+    }
+
+    /* ── Setup box ── */
+    .setup-box {
+      background: var(--bg2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 48px;
+    }
+    .setup-box h2 {
+      font-size: 14px;
+      font-weight: 600;
+      margin-bottom: 12px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      font-size: 11px;
+    }
+    .setup-step {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 10px;
+      align-items: flex-start;
+    }
+    .step-num {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-dim);
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .step-body { font-size: 13px; color: var(--text-muted); }
+    .step-body code {
+      font-family: var(--mono);
+      font-size: 12px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 1px 5px;
+      color: var(--green);
+    }
+
+    /* ── Footer ── */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 24px;
+      text-align: center;
+      color: var(--text-dim);
+      font-size: 12px;
+    }
+    footer a { color: var(--text-dim); }
+    footer a:hover { color: var(--text-muted); }
+
+    @media (max-width: 600px) {
+      .hero h1 { font-size: 24px; }
+      .hero-stats { gap: 16px; }
+      .card-child { margin-left: 12px; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      my-hermes-skills
+    </div>
+    <div class="header-links">
+      <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">GitHub</a>
+      <a href="https://claude-code.nousresearch.com/docs" target="_blank">Hermes Docs</a>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <!-- Hero -->
+  <div class="hero">
+    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
+    <h1>Personal Hermes Agent Skills</h1>
+    <p class="hero-sub">
+      A curated collection of reusable skills for
+      <a href="https://claude-code.nousresearch.com" target="_blank">Hermes Agent</a>
+      — covering systematic review automation, productivity utilities, and Slack tooling.
+      Each skill is self-contained with its own <code style="font-family:var(--mono);font-size:13px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">SKILL.md</code> and setup instructions.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-num">6</span>
+        <span class="stat-label">skills</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">3</span>
+        <span class="stat-label">categories</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">MIT</span>
+        <span class="stat-label">license</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Quick setup -->
+  <div class="setup-box">
+    <h2>Quick Setup</h2>
+    <div class="setup-step">
+      <div class="step-num">1</div>
+      <div class="step-body">Clone or fork this repo, then symlink (or copy) any skill folder into <code>~/.hermes/skills/</code></div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">2</div>
+      <div class="step-body">Merge <code>.hermes-config/config-patch.yaml</code> into <code>~/.hermes/config.yaml</code> for auto-approvals needed by CDP browser skills</div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">3</div>
+      <div class="step-body">For skills with a <code>SETUP.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</div>
+    </div>
+    <div class="setup-step">
+      <div class="step-num">4</div>
+      <div class="step-body">Hermes auto-discovers skills in <code>~/.hermes/skills/</code> — just start a new session and the skill will be available</div>
+    </div>
+  </div>
+
+  <!-- Category: Systematic Review -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#1a2d4a">🔬</div>
+      <span class="section-title">Systematic Review (Covidence)</span>
+      <span class="section-count">4 skills</span>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">covidence-screening</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Autonomously screens Covidence references at the title &amp; abstract stage.
+          Votes Yes / Maybe / No against your PICO criteria via CDP-attached browser.
+          Runs unattended after an optional onboarding phase; writes one-line rationale for Maybe votes.
+        </p>
+        <div class="card-tags">
+          <span class="tag">covidence</span>
+          <span class="tag">systematic-review</span>
+          <span class="tag">title-abstract</span>
+          <span class="tag">cdp</span>
+          <span class="tag">browser-automation</span>
+        </div>
+      </div>
+
+      <div class="card card-child">
+        <div class="card-top">
+          <span class="card-name">covidence-full-text-screening</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/covidence-full-text-screening/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening/covidence-full-text-screening" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Reads a paper's full text (PDF, arXiv URL, DOI link) and applies the review's PCC criteria
+          to give a structured Include / Exclude verdict with rationale.
+          Distinct from retrieval — this provides the intellectual screening decision.
+          Delivers the verdict directly to the macOS clipboard via pbcopy for clean paste into Word.
+        </p>
+        <div class="card-tags">
+          <span class="tag">full-text</span>
+          <span class="tag">screening</span>
+          <span class="tag">pcc</span>
+          <span class="tag">pymupdf</span>
+          <span class="tag">pbcopy</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">covidence-full-text-retrieval</span>
+          <span class="card-version">v1.2.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          For each reference in Covidence's full-text review queue, locates an open-access PDF via
+          Unpaywall → Semantic Scholar → arXiv (with optional NotebookLM Discover as last resort)
+          and uploads it via Covidence's "Upload full text" link field.
+          Never casts Include / Exclude — that decision stays manual.
+        </p>
+        <div class="card-tags">
+          <span class="tag">covidence</span>
+          <span class="tag">full-text</span>
+          <span class="tag">open-access</span>
+          <span class="tag">unpaywall</span>
+          <span class="tag">notebooklm</span>
+          <span class="tag">browser-automation</span>
+        </div>
+      </div>
+
+      <div class="card card-child">
+        <div class="card-top">
+          <span class="card-name">covidence-full-text-review</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Two modes: <strong style="color:var(--text)">unattended</strong> — processes the full-text review queue and casts Include / Exclude votes autonomously;
+          <strong style="color:var(--text)">secondary_reviewer</strong> — accepts a URL, reads the paper, returns a structured verdict,
+          and optionally casts the vote when a Covidence ref_id is supplied.
+          Verdict delivered via pbcopy for clean paste into Word.
+        </p>
+        <div class="card-tags">
+          <span class="tag">full-text</span>
+          <span class="tag">review</span>
+          <span class="tag">include-exclude</span>
+          <span class="tag">cdp</span>
+          <span class="tag">pbcopy</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Category: Productivity -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#2d1f4a">⚡</div>
+      <span class="section-title">Productivity</span>
+      <span class="section-count">1 skill</span>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">pbcopy-word-delivery</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/pbcopy-word-delivery/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/pbcopy-word-delivery" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Delivers structured text (verdicts, reports, summaries) directly to the macOS clipboard via
+          <code style="font-family:var(--mono);font-size:12px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">pbcopy</code>
+          so the user can Cmd+V into Word without Warp terminal soft-wrap artifacts corrupting
+          line breaks. Uses the heredoc pattern for safe handling of single-quoted content.
+          macOS only (Linux equivalent: xclip).
+        </p>
+        <div class="card-tags">
+          <span class="tag">clipboard</span>
+          <span class="tag">macos</span>
+          <span class="tag">pbcopy</span>
+          <span class="tag">word</span>
+          <span class="tag">warp</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Category: Slack -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#2d2a1f">💬</div>
+      <span class="section-title">Slack</span>
+      <span class="section-count">1 skill</span>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">slack-scan</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack-scan/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-scan" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          On-demand Slack summary: ask Hermes to summarize today's activity across every channel and DM
+          the bot is in, or target a single named channel. No cron job required.
+          Calls the Slack Web API via curl + <code style="font-family:var(--mono);font-size:12px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">SLACK_BOT_TOKEN</code>.
+        </p>
+        <div class="card-tags">
+          <span class="tag">slack</span>
+          <span class="tag">summary</span>
+          <span class="tag">on-demand</span>
+          <span class="tag">curl</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>
+    Built with <a href="https://claude-code.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+</body>
+</html>
