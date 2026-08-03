@@ -64,14 +64,11 @@ For each TODO / next step:
   - If none: create it, then re-list to capture the ID.
   - If more than one (a stray duplicate exists): use the one that already holds reminders (or the oldest creation date); the empty duplicate must be removed manually in Reminders.app — remindctl has no list-delete command.
 - For each NEW task: `remindctl add --title "<title>" --list-id "<HF_LIST_ID>" --due "<YYYY-MM-DD HH:mm>" --notes "<context>"` — always a concrete date string (see pitfall 6). Using `--list-id` (not `--list`) sidesteps the name-ambiguity failure entirely.
-- **The notes field is what makes a reminder self-sufficient.** A bare title ("check PR #805 CI") tells the future you nothing; the notes must carry the session context so the reminder alone is enough to act on. Build one notes block per session (not per task — the same context applies to all its reminders) from the handoff sections:
+- **The notes field is what makes a reminder self-sufficient.** A bare title ("check PR #805 CI") tells the future you nothing; the notes must carry the session context so the reminder alone is enough to act on. Build one notes block per session (not per task — the same context applies to all its reminders) from the handoff sections. **Do NOT re-list the TODOs**: the reminder title IS the task, so a NEXT section in the notes would just duplicate it. The notes carry only what the title can't:
   ```
   GOAL: <goal, one line>
   
   DONE: <what shipped, one line>
-  
-  NEXT:
-  - <every TODO in this session, so the reminder shows what else is pending>
   
   OPEN: <blockers a fresh session needs to know>
   
@@ -134,7 +131,7 @@ For each TODO / next step:
 7. **Cron must run MCP-free.** The `session-handoff-daily` cron job MUST include `no_mcp` in its `enabled_toolsets` (`[terminal, file, skills, no_mcp]`). Hermes' scheduler otherwise unions every globally-enabled MCP server — e.g. a Jira/Atlassian MCP — into the job's toolsets, and the cron session hangs connecting to it, freezing the whole CLI session. `no_mcp` strips all MCP servers from the job.
 8. **`--create` creates duplicates (remindctl 0.3.2).** `remindctl list "Name" --create` is NOT idempotent — it creates a second, empty list when one already exists. Then every name-based `remindctl add --list "Name"` fails with `matches multiple lists`. Always resolve the list ID first and use `--list-id` (capture-mode step 5). If a stray duplicate already exists, it must be deleted manually in Reminders.app — remindctl has no list-delete command. Name-based *reads* (`list --json`) still work fine with duplicates; only `add` breaks.
 9. **Title case matters across the pipeline.** tasks.json titles must match reminder titles exactly (capture step 4), and the cron's presence check is case-insensitive (review step 2). If these drift, the cron creates duplicate reminders for tasks that already have them.
-10. **Bare reminder titles are useless.** A reminder that only says "check PR #805 CI" forces the future you to go hunting for the handoff file. Always attach the context notes block (step 5) — Goal, Done, Next, Open, Files, Handoff path. The reminder should be actionable on its own; the handoff file is the backup, not the required reading.
+10. **Bare reminder titles are useless.** A reminder that only says "check PR #805 CI" forces the future you to go hunting for the handoff file. Always attach the context notes block (step 5) — Goal, Done, Open, Files, Handoff path. Do NOT include a NEXT/TODO section in the notes: the reminder title is the task, listing it again is duplication. The reminder should be actionable on its own; the handoff file is the backup, not the required reading.
 11. **Notes text via shell.** A quoted heredoc containing backticks or quotes breaks macOS bash when nested inside `--notes "$(cat ...)"`. Write the block to a temp file first (`write_file` to /tmp), then `--notes "$(cat /tmp/handoff_notes.txt)"`, and remove the temp file after.
 
 ## Verification Checklist
