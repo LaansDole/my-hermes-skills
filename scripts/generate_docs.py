@@ -173,25 +173,24 @@ CSS = """    :root {
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
 
-    /* Light theme (GitHub light palette) — follows the OS setting; dark stays the default */
-    @media (prefers-color-scheme: light) {
-      :root {
-        --bg: #ffffff;
-        --bg2: #f6f8fa;
-        --bg3: #eaeef2;
-        --border: #d0d7de;
-        --text: #1f2328;
-        --text-muted: #59636e;
-        --text-dim: #6e7781;
-        --accent: #0969da;
-        --accent-dim: #0969da;
-        --green: #1a7f37;
-        --purple: #8250df;
-        --orange: #9a6700;
-        --red: #cf222e;
-        --tag-bg: #eff1f3;
-        --tag-border: #d0d7de;
-      }
+    /* Light theme (GitHub light palette) — applied via [data-theme] set by the
+       inline JS (OS preference, overridable by the header toggle, persisted) */
+    :root[data-theme="light"] {
+      --bg: #ffffff;
+      --bg2: #f6f8fa;
+      --bg3: #eaeef2;
+      --border: #d0d7de;
+      --text: #1f2328;
+      --text-muted: #59636e;
+      --text-dim: #6e7781;
+      --accent: #0969da;
+      --accent-dim: #0969da;
+      --green: #1a7f37;
+      --purple: #8250df;
+      --orange: #9a6700;
+      --red: #cf222e;
+      --tag-bg: #eff1f3;
+      --tag-border: #d0d7de;
     }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -237,12 +236,30 @@ CSS = """    :root {
     .header-links {
       margin-left: auto;
       display: flex;
+      align-items: center;
       gap: 20px;
       font-size: 13px;
       color: var(--text-muted);
     }
     .header-links a { color: var(--text-muted); }
     .header-links a:hover { color: var(--text); text-decoration: none; }
+
+    .theme-toggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 28px;
+      height: 28px;
+      background: var(--bg3);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 14px;
+      line-height: 1;
+      padding: 0;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s, background 0.15s;
+    }
+    .theme-toggle:hover { border-color: var(--text-muted); background: var(--bg3); }
 
     main {
       max-width: 960px;
@@ -444,6 +461,50 @@ CSS = """    :root {
     }"""
 
 
+# Set data-theme before first paint: stored choice wins, else follow the OS.
+PREPAINT_JS = """  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>"""
+
+# Header toggle: flips the theme, persists the choice; auto-follows the OS
+# until the user overrides it. Icon shows the theme you'll switch to.
+TOGGLE_JS = """  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn || !icon) return;
+      function paint() {
+        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>"""
+
+
 def main() -> int:
     skills = find_skills()
     if not skills:
@@ -461,6 +522,7 @@ def main() -> int:
   <style>
 {CSS}
   </style>
+{PREPAINT_JS}
 </head>
 <body>
 
@@ -476,6 +538,7 @@ def main() -> int:
     <div class="header-links">
       <a href="{GH}" target="_blank">GitHub</a>
       <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
     </div>
   </div>
 </header>
@@ -542,6 +605,7 @@ def main() -> int:
   </p>
 </footer>
 
+{TOGGLE_JS}
 </body>
 </html>
 """
