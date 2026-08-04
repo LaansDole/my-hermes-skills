@@ -173,6 +173,27 @@ CSS = """    :root {
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
 
+    /* Light theme (GitHub light palette) — follows the OS setting; dark stays the default */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --bg2: #f6f8fa;
+        --bg3: #eaeef2;
+        --border: #d0d7de;
+        --text: #1f2328;
+        --text-muted: #59636e;
+        --text-dim: #6e7781;
+        --accent: #0969da;
+        --accent-dim: #0969da;
+        --green: #1a7f37;
+        --purple: #8250df;
+        --orange: #9a6700;
+        --red: #cf222e;
+        --tag-bg: #eff1f3;
+        --tag-border: #d0d7de;
+      }
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
