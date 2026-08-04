@@ -42,7 +42,8 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |   |-- covidence-full-text-retrieval/
 |   |   `-- covidence-full-text-review/
 |   |-- productivity/
-|   |   `-- pbcopy-word-delivery/
+|   |   |-- pbcopy-word-delivery/
+|   |   `-- session-handoff/
 |   |-- slack-scan/
 |   `-- superpowers/            # 15 skills, each in superpowers-<name>/
 |       |-- superpowers-brainstorming/

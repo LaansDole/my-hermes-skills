@@ -26,6 +26,27 @@
       --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
     }
 
+    /* Light theme (GitHub light palette) — follows the OS setting; dark stays the default */
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #ffffff;
+        --bg2: #f6f8fa;
+        --bg3: #eaeef2;
+        --border: #d0d7de;
+        --text: #1f2328;
+        --text-muted: #59636e;
+        --text-dim: #6e7781;
+        --accent: #0969da;
+        --accent-dim: #0969da;
+        --green: #1a7f37;
+        --purple: #8250df;
+        --orange: #9a6700;
+        --red: #cf222e;
+        --tag-bg: #eff1f3;
+        --tag-border: #d0d7de;
+      }
+    }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -308,11 +329,11 @@
     </p>
     <div class="hero-stats">
       <div class="stat">
-        <span class="stat-num">5</span>
+        <span class="stat-num">21</span>
         <span class="stat-label">skills</span>
       </div>
       <div class="stat">
-        <span class="stat-num">3</span>
+        <span class="stat-num">4</span>
         <span class="stat-label">categories</span>
       </div>
       <div class="stat">
@@ -421,7 +442,7 @@
     <div class="section-header">
       <div class="section-icon" style="background:#2d1f4a">⚡</div>
       <span class="section-title">Productivity</span>
-      <span class="section-count">1 skill</span>
+      <span class="section-count">2 skills</span>
     </div>
     <div class="cards">
 
@@ -443,6 +464,28 @@
           <span class="tag">macos</span>
           <span class="tag">pbcopy</span>
           <span class="tag">formatting</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">session-handoff</span>
+          <span class="card-version">v1.2.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/session-handoff/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/session-handoff" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when ending or pausing a session, switching between sessions, or asked to save/compress session state with TODOs - compresses the current session into a handoff file, updates a task index, and creates Apple Reminders for follow-up. Also used by the daily reminder cron in review mode to pick up leftover tasks.
+        </p>
+        <div class="card-tags">
+          <span class="tag">session</span>
+          <span class="tag">handoff</span>
+          <span class="tag">todo</span>
+          <span class="tag">reminders</span>
+          <span class="tag">macos</span>
+          <span class="tag">productivity</span>
+          <span class="tag">cron</span>
         </div>
       </div>
 
@@ -475,6 +518,293 @@
           <span class="tag">summary</span>
           <span class="tag">notifications</span>
           <span class="tag">todo</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Category: superpowers -->
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#21262d">📦</div>
+      <span class="section-title">superpowers</span>
+      <span class="section-count">15 skills</span>
+    </div>
+    <div class="cards">
+
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-brainstorming</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-brainstorming/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-brainstorming" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">planning</span>
+          <span class="tag">design</span>
+          <span class="tag">requirements</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-dispatching-parallel-agents</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-dispatching-parallel-agents/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-dispatching-parallel-agents" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">delegation</span>
+          <span class="tag">parallel</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-executing-plans</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-executing-plans/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-executing-plans" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when you have a written implementation plan to execute in a separate session with review checkpoints
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">planning</span>
+          <span class="tag">execution</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-finishing-a-development-branch</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-finishing-a-development-branch/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-finishing-a-development-branch" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when implementation is complete, all tests pass, and you need to decide how to integrate the work - guides completion of development work by presenting structured options for merge, PR, or cleanup
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">git</span>
+          <span class="tag">branch</span>
+          <span class="tag">workflow</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-receiving-code-review</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-receiving-code-review/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-receiving-code-review" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when receiving code review feedback, before implementing suggestions, especially if feedback seems unclear or technically questionable - requires technical rigor and verification, not performative agreement or blind implementation
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">code-review</span>
+          <span class="tag">feedback</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-requesting-code-review</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-requesting-code-review/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-requesting-code-review" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when completing tasks, implementing major features, or before merging to verify work meets requirements
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">code-review</span>
+          <span class="tag">quality</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-slash-commands</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-slash-commands/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-slash-commands" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Index and invocation guide for the Superpowers skills. Use when the user asks for a Superpowers skill by name or wants to know which skills exist.
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">skills</span>
+          <span class="tag">navigation</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-subagent-driven-development</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-subagent-driven-development/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-subagent-driven-development" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when executing implementation plans with independent tasks in the current session
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">delegation</span>
+          <span class="tag">subagents</span>
+          <span class="tag">execution</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-systematic-debugging</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-systematic-debugging/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-systematic-debugging" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when encountering any bug, test failure, or unexpected behavior, before proposing fixes
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">debugging</span>
+          <span class="tag">root-cause</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-test-driven-development</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-test-driven-development/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-test-driven-development" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when implementing any feature or bugfix, before writing implementation code
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">tdd</span>
+          <span class="tag">testing</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-using-git-worktrees</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-using-git-worktrees/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-git-worktrees" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when starting feature work that needs isolation from current workspace or before executing implementation plans - creates isolated git worktrees with smart directory selection and safety verification
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">git</span>
+          <span class="tag">worktrees</span>
+          <span class="tag">isolation</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-using-superpowers</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-using-superpowers/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">skills</span>
+          <span class="tag">workflow</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-verification-before-completion</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-verification-before-completion/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-verification-before-completion" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">verification</span>
+          <span class="tag">quality</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-writing-plans</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-writing-plans/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-writing-plans" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when you have a spec or requirements for a multi-step task, before touching code
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">planning</span>
+          <span class="tag">implementation</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-top">
+          <span class="card-name">superpowers-writing-skills</span>
+          <span class="card-version">v1.0.0</span>
+          <div class="card-links">
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-writing-skills/SKILL.md" target="_blank">SKILL.md</a>
+            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-writing-skills" target="_blank">source</a>
+          </div>
+        </div>
+        <p class="card-desc">
+          Use when creating new skills, editing existing skills, or verifying skills work before deployment
+        </p>
+        <div class="card-tags">
+          <span class="tag">superpowers</span>
+          <span class="tag">skill-authoring</span>
+          <span class="tag">tdd</span>
         </div>
       </div>
 
