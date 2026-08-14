@@ -584,7 +584,7 @@ def main() -> int:
     </div>
     <div class="setup-step">
       <div class="step-num">3</div>
-      <div class="step-body">For skills with a <code>SETUP.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</div>
+      <div class="step-body">For skills with a <code>README.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</div>
     </div>
     <div class="setup-step">
       <div class="step-num">4</div>
