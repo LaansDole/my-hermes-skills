@@ -8,7 +8,7 @@ Personal collection of [Hermes Agent](https://hermes-agent.nousresearch.com/) (N
 
 ## Skills
 
-Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source of truth (symlink or copy each one in, per its own SETUP.md).
+Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source of truth (symlink or copy each one in, per its own README.md).
 
 - [`skills/covidence-screening/`](skills/covidence-screening/SKILL.md) -- Autonomously screens Covidence systematic-review references at the title & abstract stage, voting Yes/Maybe/No against your PICO criteria. Uses CDP to attach to your logged-in Chrome.
 - [`skills/covidence-full-text-retrieval/`](skills/covidence-full-text-retrieval/SKILL.md) -- Companion to `covidence-screening` for the next stage: for each reference in Covidence's full-text review "Screen references" list, looks up an open-access PDF via Unpaywall/Semantic Scholar/arXiv (with an optional NotebookLM Discover last-resort web search) and uploads it, or leaves a note for manual follow-up if none is found. Never casts an Include/Exclude vote -- that stage stays fully manual. Design/plan docs: `docs/superpowers/specs/2026-07-25-covidence-notebooklm-fulltext-discovery-design.md`, `docs/superpowers/plans/2026-07-25-covidence-full-text-retrieval.md`.
