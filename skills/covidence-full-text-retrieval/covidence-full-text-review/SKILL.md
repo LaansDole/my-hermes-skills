@@ -1,7 +1,7 @@
 ---
 name: covidence-full-text-review
 description: "Review full-text papers in a Covidence systematic review. Mode 1 (unattended): processes the queue of references with uploaded full texts and casts Include/Exclude votes autonomously. Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied. Mode 3 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes)."
-version: 1.1.0
+version: 1.1.1
 metadata:
   hermes:
     tags: [covidence, systematic-review, full-text, review, browser-automation]
@@ -46,7 +46,7 @@ This user runs Mode 3 (websearch_queue) with:
 
 - Verdicts reported IN CHAT ONLY — NO Covidence writes of any kind (no vote, no note). The user casts votes themselves.
 - Tab policy: CLOSE each paper tab after reading it (user explicitly approved closing tabs).
-- Verdict format: one compact block per paper (see Mode 3 workflow) — user praised this exact format as "comprehensive and concise". Do NOT switch to the pbcopy/Word format in Mode 3.
+- Verdict format: one compact block per paper (see Mode 3 workflow) — user praised this exact format as "comprehensive and concise". Do NOT switch to the pbcopy/Word format in Mode 3. EVERY verdict block includes a `Full text: <URL>` line with the link the paper was read from — the user pastes it into Covidence when attaching the full text.
 - Papers-access profile: Brave `research` (port 9254, profile_directory "Profile 3"). Never touch port 9222 (user's personal-work profile).
 - If the first search result is not actually the paper (search noise) but a later result IS the paper with a DOI visible in the Covidence block, use the DOI-derived URL instead of reviewing the wrong hit.
 
@@ -168,7 +168,7 @@ Mode 3 reviews the queue WITHOUT uploaded full texts: for each unreviewed refere
    d. **Full-text check**: if `error` is set, or `len` is tiny (< ~5K chars for an HTML page) and the digest shows paywall markers ("preview of subscription content", "log in via an institution", "Buy Chapter", "Request PDF" without content), the full text is NOT accessible → **SKIP** (log `no_full_text`, move on). If the digest shows real content (abstract + sections, or "Access provided by <institution>"), proceed to read.
    e. **Read the full text**: read the saved `<prefix>.txt` file (or digest). Prioritize abstract + architecture/methods sections. Search the text for LLM/agent keywords when deciding.
    f. **Apply the Decision Step** (same criteria as Mode 1/2: PCC from `CRITERIA.md`).
-   g. **Report the verdict in chat** using the user's preferred format (see below). Log to JSONL + Mnemosyne (see Verdict Persistence).
+   g. **Report the verdict in chat** using the user's preferred format (see below) — ALWAYS include the `Full text: <URL>` line (the URL the paper was read from). Log to JSONL + Mnemosyne (see Verdict Persistence).
 
 3. **Stop** when: user says stop, queue exhausted, or a daily cap the user set is hit. Report a batch summary (Include/Exclude/Skip counts) when pausing.
 
@@ -179,7 +179,10 @@ Print one block per paper in chat, exactly in this shape (user praised it as "co
 ```
 #<N> — "<Title>" (Author Year, Venue/Publisher)
 Verdict: <INCLUDE|EXCLUDE|SKIP> — <2-4 sentence rationale naming the agents/architecture and the decisive criterion; for EXCLUDE state which exclusion criterion and map to the dropdown reason (e.g. "Wrong intervention"); for SKIP state why full text was unreachable>. Confidence: <HIGH/MEDIUM/LOW> (<one-line note if MEDIUM/LOW>).
+Full text: <URL>
 ```
+
+**ALWAYS include the `Full text:` line** with the actual URL the paper was read from (the web-search result / DOI-derived URL that yielded the full text). This is the user's key workflow aid: they paste that link into Covidence to attach the full text when casting their vote. Include it for INCLUDE and EXCLUDE verdicts; for SKIP, still include the attempted URL (so the user knows what was tried) — e.g. `Full text: <URL> (paywalled/unreachable)`.
 
 Do NOT use the pbcopy/Word format in Mode 3 — the user reads these in chat and casts votes in Covidence themselves.
 
