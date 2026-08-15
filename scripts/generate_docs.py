@@ -11,6 +11,7 @@ Out:  docs/index.html  (overwritten)
 """
 
 import html
+import json
 import re
 import sys
 from pathlib import Path
@@ -151,6 +152,49 @@ def sections_html(skills: list) -> str:
     </div>
   </div>""")
     return "\n\n".join(blocks)
+
+
+def entry_json(s: dict, title: str) -> dict:
+    """One flat manifest entry for a skill."""
+    return {
+        "name": s["name"],
+        "version": s["version"],
+        "description": s["description"],
+        "category": title,
+        "path": s["rel_dir"],
+        "url": f"{GH}/tree/main/{s['rel_dir']}",
+    }
+
+
+def manifest_json(skills: list) -> dict:
+    """Build the skills.json manifest (deterministic: no timestamps)."""
+    flat = []
+    by_section = {}
+    for s in sorted(skills, key=lambda x: x["name"]):
+        title, _, _ = CATEGORY_MAP.get(s["top"], (s["top"], "📦", "#21262d"))
+        flat.append(entry_json(s, title))
+        by_section.setdefault(title, []).append(s)
+
+    ordered = sorted(by_section, key=lambda t: (SECTION_ORDER.index(t)
+                                                if t in SECTION_ORDER
+                                                else len(SECTION_ORDER) + 1))
+    sections = []
+    for title in ordered:
+        sec_skills = []
+        for s in sorted(by_section[title], key=lambda x: x["name"]):
+            if s["parent_skill"]:
+                continue  # rendered under its parent below
+            sec_skills.append(entry_json(s, title))
+            for c in sorted(by_section[title], key=lambda x: x["name"]):
+                if c["parent_skill"] == s["name"]:
+                    sec_skills.append(entry_json(c, title))
+        sections.append({"title": title, "skills": sec_skills})
+
+    return {
+        "source_repo": GH,
+        "skills": flat,
+        "sections": sections,
+    }
 
 
 CSS = """    :root {
@@ -510,6 +554,13 @@ def main() -> int:
     if not skills:
         print("error: no skills found under skills/", file=sys.stderr)
         return 1
+
+    if "--json" in sys.argv:
+        manifest = manifest_json(skills)
+        json_out = REPO / "skills.json"
+        json_out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+        print(f"wrote {json_out} ({len(manifest['skills'])} skills)")
+        return 0
 
     n_cats = len({CATEGORY_MAP.get(s["top"], (s["top"],))[0] for s in skills})
     page = f"""<!DOCTYPE html>
