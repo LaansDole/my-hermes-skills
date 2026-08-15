@@ -99,11 +99,11 @@ Mode 1 is the primary workflow: the user is logged into a browser profile with i
 2. **For each title** (in queue order), until the user says stop or the queue is exhausted:
    a. **Web search** the title (quoted exact title first; if empty/rate-limited, retry without quotes or after a pause).
    b. **Pick the URL**: take the FIRST result. If the first result is clearly not the paper (search noise — e.g. an unrelated arXiv paper), but a later result matches the title AND the Covidence block shows a DOI, use the DOI-derived URL (`https://link.springer.com/chapter/<doi>`, `https://dl.acm.org/doi/<doi>`, etc.) instead. NEVER review a wrong paper.
-   c. **Open + extract via CDP script** (opens a tab in the papers-access profile, extracts text, closes the tab):
+   c. **Open + extract via CDP script** (SILENT: downloads via the profile's session cookies with curl — no tab is created, the window is never raised, cursor focus never moves; falls back to a non-activated background tab only when a page needs JS rendering):
       ```bash
       python3 <skill_dir>/scripts/cdp_paper_extract.py "<url>" ~/.hermes/downloads/covidence-full-text-review/ref<N>
       ```
-      Inspect the JSON: `is_pdf`, `len`, `digest`, `error`.
+      Inspect the JSON: `mode` (`cookie` = silent curl, `background_tab` = non-activated tab), `is_pdf`, `len`, `digest`, `error`.
    d. **Full-text check**: if `error` is set, or `len` is tiny (< ~5K chars for an HTML page) and the digest shows paywall markers ("preview of subscription content", "log in via an institution", "Buy Chapter", "Request PDF" without content), the full text is NOT accessible → **SKIP** (log `no_full_text`, move on). If the digest shows real content (abstract + sections, or "Access provided by <institution>"), proceed to read.
    e. **Read the full text**: read the saved `<prefix>.txt` file (or digest). Prioritize abstract + architecture/methods sections. Search the text for LLM/agent keywords when deciding.
    f. **Apply the Decision Step** (same criteria as Mode 2: PCC from `CRITERIA.md`).
@@ -130,12 +130,12 @@ Do NOT use the pbcopy/Word format in Mode 1 — the user reads these in chat and
 - **Wrong profile**: the running Brave must be Research (`--profile-directory="Profile 3"`). A windowless/default-profile instance gives empty snapshots or paywalled pages. Verify via `ps` before starting; relaunch via the cdp-browser-profiles skill if wrong (quit first — confirm with user if they have other windows).
 - **Search rate limits**: web_search may return HTTP 429 when batched; space searches out or retry after a few seconds.
 - **Search noise**: first result unrelated to the paper → use the DOI from the Covidence block (Springer/ACM DOI-derived URL) or the next matching result.
-- **PDFs in browser**: Chrome/Brave's PDF viewer exposes no `innerText`; the CDP script fetches bytes through the tab (session cookies apply) and runs `pdftotext`. If `pdf_fetch_failed`, the site blocks fetch → try `curl` fallback; if that also fails, SKIP.
+- **PDFs in browser**: Chrome/Brave's PDF viewer exposes no `innerText`; the script downloads PDF bytes via cookie mode (curl with the profile's session cookies) or, when the site blocks curl (e.g. ACM Cloudflare), via a non-activated background tab whose in-page `fetch()` carries session cookies. `pdftotext` runs on the bytes. If both paths fail, SKIP.
 - **ACM DL**: `dl.acm.org/doi/<doi>` HTML often returns ~20 chars (bot protection) — use `dl.acm.org/doi/pdf/<doi>` instead.
 - **Springer paywall**: even with institutional access some chapters show "preview of subscription content" (institution doesn't subscribe to that volume) → SKIP. When "Access provided by <institution>" appears, full text is available.
 - **ResearchGate**: the publication page may embed only the first section of the paper; treat a page that shows abstract + intro but then "Citations (6) / Recommended publications" as PARTIAL — check the extracted text length; if the key methods sections are missing, either fetch the PDF via the page's "Download full-text PDF" link or SKIP with a note.
 - **Duplicates in queue**: Covidence may list the same paper twice (title repeats) — review once, report both with the same verdict.
-- **Tab hygiene**: always close the paper tab after extraction (the script does this automatically). Never close or navigate the user's Covidence tab or port-9222 tabs.
+- **Tab hygiene**: the script never creates a visible tab (cookie mode) or creates a non-activated background tab that it closes automatically. The user's Covidence tab and port-9222 tabs are never touched, closed, or navigated.
 
 ## Mode 2: Secondary Reviewer Workflow
 
