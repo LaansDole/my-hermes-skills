@@ -1,7 +1,7 @@
 ---
 name: covidence-full-text-review
-description: "Review full-text papers in a Covidence systematic review. Mode 1 (unattended): processes the queue of references with uploaded full texts and casts Include/Exclude votes autonomously. Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied."
-version: 1.0.0
+description: "Review full-text papers in a Covidence systematic review. Mode 1 (unattended): processes the queue of references with uploaded full texts and casts Include/Exclude votes autonomously. Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied. Mode 3 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes)."
+version: 1.1.0
 metadata:
   hermes:
     tags: [covidence, systematic-review, full-text, review, browser-automation]
@@ -10,16 +10,19 @@ metadata:
 
 # Covidence Full-Text Review
 
-This skill operates in two modes set via the `mode` parameter:
+This skill operates in three modes set via the `mode` parameter:
 
 - **Mode 1 (`unattended`)**: scans the Covidence Full text review -> Screen references queue, accesses each reference's uploaded full text, reads the PDF, applies eligibility criteria, and casts Include/Exclude votes with rationale notes — all autonomously after an optional onboarding phase.
 - **Mode 2 (`secondary_reviewer`)**: the user supplies a `url` (paper URL, DOI landing page, or arXiv link). The agent downloads and reads the paper, applies criteria, and returns a structured verdict. If `ref_id` is also provided, the agent additionally casts the vote in Covidence and writes the rationale to the notes field.
+- **Mode 3 (`websearch_queue`)**: the user is logged into a browser profile with institutional/papers access (e.g. Brave `research` profile). The agent walks the Covidence Screen references queue, and for each unreviewed title: web-searches the title, opens the FIRST result in a new tab of the papers-access profile, reads the full text via the tab (session cookies apply, so paywalled-but-subscribed content unlocks), and reports an Include/Exclude verdict in chat. References whose first result has no accessible full text are SKIPPED (no vote). NO Covidence writes are made — the user casts votes themselves based on the verdicts.
 
 ## Parameters
 
-- `mode` (str, REQUIRED): `"unattended"` or `"secondary_reviewer"`. REFUSE TO RUN if absent.
+- `mode` (str, REQUIRED): `"unattended"`, `"secondary_reviewer"`, or `"websearch_queue"`. REFUSE TO RUN if absent.
 - `url` (str, Mode 2 only, REQUIRED when mode=secondary_reviewer): the paper URL to review. May be a direct PDF URL, DOI link, arXiv abstract, PubMed page, or any URL from which the agent can reach the full text.
 - `ref_id` (str, optional, Mode 2 only): Covidence Ref ID (the numeric `Ref ID:` value on the reference block, e.g. `"4060"`). When provided alongside `url`, the agent also casts the Include/Exclude vote in Covidence and writes the rationale note. When omitted in Mode 2, the agent returns a recommendation only (no Covidence write).
+- `profile_port` (int, default 9254, Mode 3 only): CDP port of the papers-access browser profile (Brave `research` profile). The agent must NOT touch port 9222 — that is the user's personal-work profile.
+- `profile_name` (str, default `"research"`, Mode 3 only): name passed to `browser_profile` to attach the browser tools to the papers-access profile.
 - `review_id` (str, default `"773228"`): the Covidence review ID. Used to construct the full-text review URL. Override only when running on a different review.
 - `criteria_file` (str, default `"CRITERIA.md"`): path to the eligibility criteria file, relative to this skill directory. Must exist and be filled in before running. The agent refuses to run if it still contains the placeholder text.
 - `max_refs` (int, default 20, Mode 1 only): hard cap on references reviewed per session.
@@ -39,7 +42,15 @@ This user runs Mode 1 fully unattended with:
 - `rationale_in_notes=true` — always write rationale (Include or Exclude reason) to the note field
 - No manual confirmation for any action
 
-Set these on every Mode 1 invocation unless the user explicitly overrides.
+This user runs Mode 3 (websearch_queue) with:
+
+- Verdicts reported IN CHAT ONLY — NO Covidence writes of any kind (no vote, no note). The user casts votes themselves.
+- Tab policy: CLOSE each paper tab after reading it (user explicitly approved closing tabs).
+- Verdict format: one compact block per paper (see Mode 3 workflow) — user praised this exact format as "comprehensive and concise". Do NOT switch to the pbcopy/Word format in Mode 3.
+- Papers-access profile: Brave `research` (port 9254, profile_directory "Profile 3"). Never touch port 9222 (user's personal-work profile).
+- If the first search result is not actually the paper (search noise) but a later result IS the paper with a DOI visible in the Covidence block, use the DOI-derived URL instead of reviewing the wrong hit.
+
+Set these on every Mode 3 invocation unless the user explicitly overrides.
 
 ## Prerequisites
 
@@ -57,6 +68,13 @@ Set these on every Mode 1 invocation unless the user explicitly overrides.
 ### Mode 2 (secondary_reviewer) additional prerequisites
 - No Covidence browser session is required unless `ref_id` is provided (vote-casting step needs the same browser prerequisites as Mode 1).
 - The `url` parameter must be reachable by `curl`. For paywalled content, supply a direct OA PDF URL (e.g. arXiv, PMC, Unpaywall result).
+
+### Mode 3 (websearch_queue) additional prerequisites
+- A Brave instance is running with `--remote-debugging-port=<profile_port>` (default 9254) AND `--profile-directory="Profile 3"` (the Research profile — the user's papers-access login). Verify with `ps aux | grep -i brave | grep -oE -- "--profile-directory=[^ ]+"` before starting; if the running instance has NO profile flag it is the Default profile — STOP and relaunch as Research (see cdp-browser-profiles skill for the quit/relaunch procedure).
+- The user is logged into Covidence at `app.covidence.org` in that profile, on the **Full text review -> Screen references** tab.
+- `browser_profile(name='research')` attaches the browser tools to port 9254. The CDP helper script `scripts/cdp_paper_extract.py` in this skill dir hardcodes port 9254 — edit the `CDP` constant if the profile port differs.
+- `python3` with the `websockets` package (`pip install websockets` if missing).
+- The user's personal-work profile runs on port 9222 — NEVER attach to it, never close its tabs, never navigate it.
 
 ## Browser Window Management
 
@@ -118,6 +136,64 @@ Mode 2 is a single-pass workflow (no loop):
    - Navigate to `https://app.covidence.org/reviews/<review_id>/full_text_reviews/screen_references`.
    - Find the reference block by `ref_id`, write rationale to notes if `rationale_in_notes=true`, click Include/Exclude.
    - Confirm vote landed. Log to JSONL.
+
+## Mode 3: Web-Search Queue Review (websearch_queue)
+
+Mode 3 reviews the queue WITHOUT uploaded full texts: for each unreviewed reference, web-search the title, open the first result in the papers-access profile (Research, port 9254), read the full text through the tab (session cookies unlock subscribed content), and report the verdict in chat. **No Covidence writes.**
+
+### Workflow (single pass down the queue)
+
+1. **Extract the queue** from the Covidence Screen references tab via `browser_console`:
+   ```js
+   (() => {
+     const blocks = Array.from(document.querySelectorAll('h3')).map(h => {
+       let el = h;
+       let num = null;
+       for (let i=0;i<6;i++){ el=el.parentElement; if(!el) break; const lbl = el.querySelector('label input[type=checkbox]'); if(lbl){ const lab = lbl.closest('label'); if(lab) num = lab.textContent.trim().match(/Study #(\d+)/)?.[1] || null; break; } }
+       return {num, title: h.textContent.trim()};
+     }).filter(b => b.title);
+     return {count: blocks.length, blocks};
+   })()
+   ```
+   Filter out non-reference blocks (e.g. "Feedback & Support"). Keep the title list; note any DOI visible in each block.
+
+2. **For each title** (in queue order), until the user says stop or the queue is exhausted:
+   a. **Web search** the title (quoted exact title first; if empty/rate-limited, retry without quotes or after a pause).
+   b. **Pick the URL**: take the FIRST result. If the first result is clearly not the paper (search noise — e.g. an unrelated arXiv paper), but a later result matches the title AND the Covidence block shows a DOI, use the DOI-derived URL (`https://link.springer.com/chapter/<doi>`, `https://dl.acm.org/doi/<doi>`, etc.) instead. NEVER review a wrong paper.
+   c. **Open + extract via CDP script** (opens a tab in the papers-access profile, extracts text, closes the tab):
+      ```bash
+      python3 <skill_dir>/scripts/cdp_paper_extract.py "<url>" ~/.hermes/downloads/covidence-full-text-review/ref<N>
+      ```
+      Inspect the JSON: `is_pdf`, `len`, `digest`, `error`.
+   d. **Full-text check**: if `error` is set, or `len` is tiny (< ~5K chars for an HTML page) and the digest shows paywall markers ("preview of subscription content", "log in via an institution", "Buy Chapter", "Request PDF" without content), the full text is NOT accessible → **SKIP** (log `no_full_text`, move on). If the digest shows real content (abstract + sections, or "Access provided by <institution>"), proceed to read.
+   e. **Read the full text**: read the saved `<prefix>.txt` file (or digest). Prioritize abstract + architecture/methods sections. Search the text for LLM/agent keywords when deciding.
+   f. **Apply the Decision Step** (same criteria as Mode 1/2: PCC from `CRITERIA.md`).
+   g. **Report the verdict in chat** using the user's preferred format (see below). Log to JSONL + Mnemosyne (see Verdict Persistence).
+
+3. **Stop** when: user says stop, queue exhausted, or a daily cap the user set is hit. Report a batch summary (Include/Exclude/Skip counts) when pausing.
+
+### Verdict format (Mode 3 — the user's preferred compact block)
+
+Print one block per paper in chat, exactly in this shape (user praised it as "comprehensive and concise"):
+
+```
+#<N> — "<Title>" (Author Year, Venue/Publisher)
+Verdict: <INCLUDE|EXCLUDE|SKIP> — <2-4 sentence rationale naming the agents/architecture and the decisive criterion; for EXCLUDE state which exclusion criterion and map to the dropdown reason (e.g. "Wrong intervention"); for SKIP state why full text was unreachable>. Confidence: <HIGH/MEDIUM/LOW> (<one-line note if MEDIUM/LOW>).
+```
+
+Do NOT use the pbcopy/Word format in Mode 3 — the user reads these in chat and casts votes in Covidence themselves.
+
+### Mode 3 pitfalls
+
+- **Wrong profile**: the running Brave must be Research (`--profile-directory="Profile 3"`). A windowless/default-profile instance gives empty snapshots or paywalled pages. Verify via `ps` before starting; relaunch via the cdp-browser-profiles skill if wrong (quit first — confirm with user if they have other windows).
+- **Search rate limits**: web_search may return HTTP 429 when batched; space searches out or retry after a few seconds.
+- **Search noise**: first result unrelated to the paper → use the DOI from the Covidence block (Springer/ACM DOI-derived URL) or the next matching result.
+- **PDFs in browser**: Chrome/Brave's PDF viewer exposes no `innerText`; the CDP script fetches bytes through the tab (session cookies apply) and runs `pdftotext`. If `pdf_fetch_failed`, the site blocks fetch → try `curl` fallback; if that also fails, SKIP.
+- **ACM DL**: `dl.acm.org/doi/<doi>` HTML often returns ~20 chars (bot protection) — use `dl.acm.org/doi/pdf/<doi>` instead.
+- **Springer paywall**: even with institutional access some chapters show "preview of subscription content" (institution doesn't subscribe to that volume) → SKIP. When "Access provided by <institution>" appears, full text is available.
+- **ResearchGate**: the publication page may embed only the first section of the paper; treat a page that shows abstract + intro but then "Citations (6) / Recommended publications" as PARTIAL — check the extracted text length; if the key methods sections are missing, either fetch the PDF via the page's "Download full-text PDF" link or SKIP with a note.
+- **Duplicates in queue**: Covidence may list the same paper twice (title repeats) — review once, report both with the same verdict.
+- **Tab hygiene**: always close the paper tab after extraction (the script does this automatically). Never close or navigate the user's Covidence tab or port-9222 tabs.
 
 ## Mode 1: Unattended Review Loop
 
@@ -343,7 +419,7 @@ PCC-to-dropdown quick map:
 
 ## Safety Rules
 
-Hard rules for BOTH modes:
+Hard rules for ALL modes (1, 2, and 3):
 
 - NEVER cast Include/Exclude without first reading and processing the full text.
 - Never vote based solely on the Covidence reference block's title/abstract.
@@ -357,9 +433,15 @@ Hard rules for BOTH modes:
 - Never fetch from domains containing `sci-hub`, `libgen`, `annas-archive`, or `z-lib`.
 - Hermes's built-in destructive-action blocklists remain active and are NOT overridden.
 
-## Logging
+## Verdict Persistence (Mnemosyne + JSONL)
 
-Write a JSON line to `~/.hermes/logs/covidence-full-text-review-<session-id>.jsonl` for every decision:
+Every decision MUST be persisted to BOTH places so the user can later ask "what were your verdicts on all papers?":
+
+1. **Mnemosyne** (primary, queryable): after composing the decision, call `mnemosyne_remember` (scope=`global`, source=`covidence_ft_review`, importance=0.65, extract_entities=true, veracity=`tool`) with:
+   - content: `FT verdict (Covidence review <review_id>, LLM multi-agent in healthcare): '<title>' (<url>) => INCLUDE/EXCLUDE. <rationale condensed to 1-3 sentences>.` — if the verdict overturns an earlier one, append `(Earlier verdict <date> was <old decision>; overturned by <criteria_version>.)`
+   - metadata dict: `{"review_id": "<id>", "url": "<ft_url>", "decision": "include|exclude", "confidence": "HIGH|MEDIUM|LOW", "criteria_version": "<version>", "verdict_date": "<ISO date>"}`
+   - Do NOT re-store a duplicate for the same URL+decision+verdict_date; idempotency check via `mnemosyne_recall(query="FT verdict <title>")` first if unsure.
+2. **JSONL log** (raw audit trail): write a JSON line to `~/.hermes/logs/covidence-full-text-review-<session-id>.jsonl` for every decision:
 
 ```json
 {"ts":"2026-08-02T12:34:56Z","ref_id":"82","ref_header":"#82 - Agarwal 2026","title":"<short title>","mode":"unattended","ft_url":"https://arxiv.org/pdf/2506.06574","text_extracted_chars":14500,"decision":"include","rationale":"<2-4 sentences>","confidence":"HIGH","note_written":true,"vote_cast":true,"ok":true}
@@ -370,7 +452,13 @@ Mode 2 (ref_id may be null):
 {"ts":"2026-08-02T12:40:00Z","ref_id":null,"url":"https://arxiv.org/pdf/2506.06574","title":"<title>","mode":"secondary_reviewer","decision":"exclude","rationale":"<rationale>","confidence":"HIGH","note_written":false,"vote_cast":false,"ok":true}
 ```
 
-Session summary (at loop end): refs reviewed, Include/Exclude counts, skipped counts by category, vote failures, confidence distribution, time elapsed, daily cap remaining, log file path.
+Mode 3 (no Covidence writes; skips are logged too, with the skip reason):
+```json
+{"ts":"2026-08-15T09:05:00Z","ref_id":null,"title":"<title>","mode":"websearch_queue","ft_url":"<first-result-or-DOI-url>","text_extracted_chars":12822,"decision":"exclude","rationale":"<2-4 sentences>","confidence":"MEDIUM","note_written":false,"vote_cast":false,"ok":true}
+{"ts":"2026-08-15T09:10:00Z","ref_id":null,"title":"<title>","mode":"websearch_queue","ft_url":"<url>","text_extracted_chars":0,"decision":"skip","skip_reason":"no_full_text|paywalled|download_failed|text_extraction_failed","note_written":false,"vote_cast":false,"ok":true}
+```
+
+Session summary (at loop end): refs reviewed, Include/Exclude/Skip counts, skipped counts by reason, confidence distribution, time elapsed, log file path.
 
 ## Error Recovery
 
@@ -388,3 +476,7 @@ Session summary (at loop end): refs reviewed, Include/Exclude counts, skipped co
 | Infinite loop | `last_3_ref_ids` all identical after vote attempts | Stop, log, surface to user. |
 | Daily cap hit | STATE.md counter >= daily_cap | Stop, log "daily cap reached (N/N)". |
 | `browser_navigate` false-timeout | Returns "Operation timed out" despite navigation completing | Check `location.href` via `browser_console` — if URL matches target, proceed. |
+| Wrong Brave profile (Mode 3) | `ps aux | grep brave` shows no `--profile-directory="Profile 3"`, or Springer pages show paywall despite expected access | Stop. Relaunch Brave with `--remote-debugging-port=9254 --profile-directory="Profile 3"` per cdp-browser-profiles skill (quit first, confirm with user). Re-attach via `browser_profile(name='research')`. |
+| Search rate-limited (Mode 3) | web_search returns HTTP 429 | Wait a few seconds, retry; if persistent, switch to DOI-derived URL from the Covidence block. |
+| CDP script connect refused (Mode 3) | `cdp_paper_extract.py` errors `Connect call failed` | Confirm the papers-access profile is running on the port in the script's `CDP` constant (default 9254); fix the constant if the port changed. |
+| Paywalled first result (Mode 3) | digest shows "preview of subscription content" / "Buy Chapter" / tiny `len` | Try DOI-derived URL if the Covidence block has a DOI; otherwise log `skip_reason=paywalled` and move on. |
