@@ -14,6 +14,7 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 - [`skills/covidence-full-text-retrieval/`](skills/covidence-full-text-retrieval/SKILL.md) -- Companion to `covidence-screening` for the next stage: for each reference in Covidence's full-text review "Screen references" list, looks up an open-access PDF via Unpaywall/Semantic Scholar/arXiv (with an optional NotebookLM Discover last-resort web search) and uploads it, or leaves a note for manual follow-up if none is found. Never casts an Include/Exclude vote -- that stage stays fully manual. Design/plan docs: `docs/superpowers/specs/2026-07-25-covidence-notebooklm-fulltext-discovery-design.md`, `docs/superpowers/plans/2026-07-25-covidence-full-text-retrieval.md`.
 - [`skills/slack-scan/`](skills/slack-scan/SKILL.md) -- On-demand Slack summary: ask Hermes directly in any chat to summarize today's activity -- every channel/DM it's in, or one named channel -- no cron job required. Calls the Slack Web API via `curl` + `SLACK_BOT_TOKEN`.
 - [`skills/superpowers/`](skills/superpowers/superpowers-using-superpowers/SKILL.md) -- The [obra/superpowers](https://github.com/obra/superpowers) methodology converted to Hermes tool calls (derivative of [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)): 15 skills covering brainstorming, writing/executing plans, subagent-driven development, TDD, systematic debugging, code review, git worktrees, and verification-before-completion. Symlinked at `~/.hermes/skills/superpowers`; each skill is prefixed `superpowers-` so it never collides with native Hermes skills.
+- [`skills/productivity/i-have-adhd/`](skills/productivity/i-have-adhd/SKILL.md) -- Output-shaping skill for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Vendored from [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) (MIT); symlinked at `~/.hermes/skills/productivity/i-have-adhd`. Activate by asking "use i-have-adhd mode"; turn off with "stop adhd mode".
 
 ## Bots
 
@@ -42,6 +43,7 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |   |-- covidence-full-text-retrieval/
 |   |   `-- covidence-full-text-review/
 |   |-- productivity/
+|   |   |-- i-have-adhd/          # vendored from ayghri/i-have-adhd (MIT)
 |   |   |-- pbcopy-word-delivery/
 |   |   `-- session-handoff/
 |   |-- slack-scan/
