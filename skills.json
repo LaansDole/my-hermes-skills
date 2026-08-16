@@ -192,6 +192,14 @@
       "category": "superpowers",
       "path": "skills/superpowers/superpowers-writing-skills",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-writing-skills"
+    },
+    {
+      "name": "tldr",
+      "version": "1.0.0",
+      "description": "Use when the user asks for a TL;DR or before/after summary.",
+      "category": "Productivity",
+      "path": "skills/productivity/tldr",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
     }
   ],
   "sections": [
@@ -258,6 +266,14 @@
           "category": "Productivity",
           "path": "skills/productivity/session-handoff",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/session-handoff"
+        },
+        {
+          "name": "tldr",
+          "version": "1.0.0",
+          "description": "Use when the user asks for a TL;DR or before/after summary.",
+          "category": "Productivity",
+          "path": "skills/productivity/tldr",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
         }
       ]
     },
