@@ -26,6 +26,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
     },
     {
+      "name": "i-have-adhd",
+      "version": "",
+      "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
+      "category": "Productivity",
+      "path": "skills/productivity/i-have-adhd",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
+    },
+    {
       "name": "ilearning-autoadvance",
       "version": "5.0.0",
       "description": "Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.",
@@ -219,6 +227,14 @@
     {
       "title": "Productivity",
       "skills": [
+        {
+          "name": "i-have-adhd",
+          "version": "",
+          "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
+          "category": "Productivity",
+          "path": "skills/productivity/i-have-adhd",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
+        },
         {
           "name": "memory-ui",
           "version": "",

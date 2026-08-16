@@ -53,6 +53,8 @@ def parse_frontmatter(text: str) -> dict:
         d = desc.group(1).strip()
         if d.startswith('"') and d.endswith('"'):
             d = d[1:-1].replace('\\"', '"')
+        elif d.startswith("'") and d.endswith("'"):
+            d = d[1:-1].replace("\\'", "'")
         out["description"] = d
 
     tags = re.search(r"^\s*tags:\s*\[(.*?)\]", fm, re.MULTILINE)
