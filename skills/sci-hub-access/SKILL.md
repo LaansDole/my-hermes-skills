@@ -1,7 +1,7 @@
 ---
 name: sci-hub-access
 description: "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API."
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -25,6 +25,36 @@ Two-tier access to paywalled papers:
 
 **First check the legal route**: Unpaywall `is_oa: false` → no legal OA copy
 exists → proceed here. Never substitute a lookalike paper.
+
+## When is a paper actually on Sci-Hub?
+
+Sci-Hub's DB is a frozen snapshot of ~a decade of credential-proxy downloads
+(~88M docs, ~100 TB). Two conditions historically:
+
+1. **Published before ~2022** — publishers rolled out 2FA in 2022, which broke
+   Sci-Hub's automated login harvesting. The database effectively stops there.
+   NEW papers enter only via Sci-Net requests (fulfilled uploads are added to
+   Sci-Hub's DB for everyone).
+2. **Someone with institutional access downloaded it through the proxy** —
+   coverage is uneven. Not every pre-2022 paper is present.
+
+Coverage factors (pre-2022): major publishers (Elsevier/Springer/IEEE/Wiley/
+ACS/Nature) and major venues (LNCS, AAAI, NeurIPS) = near-total; small
+national journals and workshop-only proceedings = spotty; famous/heavily-cited
+papers ≈ always present; OA papers may be ABSENT (Sci-Hub stored what people
+requested, not everything that exists); no-DOI items largely absent.
+
+**Decision tree before spending time:**
+
+| Paper | Expected outcome | Go to |
+|---|---|---|
+| Published after 2022 | not on Sci-Hub | Sci-Net flow (section 4) |
+| Pre-2022, major publisher/venue | ~90%+ hit | direct CDN → mirror |
+| Pre-2022, obscure venue | coin flip | one CDN attempt, then Sci-Net/author |
+| Any year, small national journal | likely missing | author email / Sci-Net |
+
+Ground truth is always the mirror: the not-found page ("Scientific mutual aid
+community") is definitive — same DB on all mirrors, one check settles it.
 
 ## When to use
 
@@ -92,6 +122,21 @@ If the CDN domain has rotated (404/empty), fall through to the browser flow.
    `pdftotext`.
 
 ### 4. Sci-Net join + invite code (for post-2022 papers)
+
+**What the tokens are for** (before spending anything): the $Sci-Hub (SCI)
+token is the platform's economy — it makes strangers upload papers for you.
+Four jobs: (1) **bounty reward** — you attach a bounty (min 1 SCI) to a
+request; a member uploads, you approve, they get paid; this replaced the old
+automated harvesting. (2) **your balance, not a fee** — the activation payment
+lands in your new account (send 12.83, account receives 12); it's
+pre-funding, not a subscription. (3) **anti-spam gate** — accounts cost real
+money, which blocks bot registration. (4) **project funding** — Elbakyan's
+tokenomics sustains Sci-Hub/Sci-Net operations (PayPal froze donations in
+2013; crypto is the channel that stayed open). You also EARN tokens by
+fulfilling others' requests, so the balance can become self-sustaining.
+Cost framing: ~$5 seed ≈ less than one €29.95 Springer chapter, and the
+fulfilled paper enters Sci-Hub's DB for everyone. Caveat: young Solana token,
+value can fluctuate; treat the seed as the price of a chapter.
 
 **Prerequisites** (one-time, ~15 min, ~$5): Phantom wallet (phantom.com) →
 buy ≥ 0.035 SOL → swap SOL → $SCI (in-app or `sci-net.xyz/exchange`).
