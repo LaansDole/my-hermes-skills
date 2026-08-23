@@ -2,7 +2,7 @@
 
 Retrieve full text of paywalled papers via Sci-Hub mirrors, and join/use Sci-Net (sci-net.xyz) for post-2022 papers. Covers live-mirror discovery, the Turnstile browser gate, direct PDF fetch from the Sci-Hub CDN (`sci.bban.top`), and the Sci-Net invite-code API (`/invite/create` → `/invite/handle` → activation with `t.d` SCI tokens).
 
-**Version**: 1.0.0  \
+**Version**: 1.1.0  \
 **Requires**: Hermes Agent, `browser` + `terminal` toolsets, `curl` + `python3` on `$PATH`
 
 ## One-time setup

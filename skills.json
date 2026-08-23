@@ -34,6 +34,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
     },
     {
+      "name": "sci-hub-access",
+      "version": "1.1.0",
+      "description": "Retrieve full text of paywalled papers via Sci-Hub mirrors (live-mirror discovery, Turnstile browser gate, direct CDN PDF fetch) and join/use Sci-Net (sci-net.xyz) for post-2022 papers — invite-code API, activation with t.d SCI tokens, registration. Unpaywall check first; wallet transaction always left to the user.",
+      "category": "Research Access",
+      "path": "skills/sci-hub-access",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
+    },
+    {
       "name": "ilearning-autoadvance",
       "version": "5.0.0",
       "description": "Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.",
@@ -56,14 +64,6 @@
       "category": "Productivity",
       "path": "skills/productivity/pbcopy-word-delivery",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/pbcopy-word-delivery"
-    },
-    {
-      "name": "sci-hub-access",
-      "version": "1.0.0",
-      "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-      "category": "Research Access",
-      "path": "skills/sci-hub-access",
-      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
     },
     {
       "name": "session-handoff",
@@ -282,19 +282,6 @@
           "category": "Productivity",
           "path": "skills/productivity/tldr",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
-        }
-      ]
-    },
-    {
-      "title": "Research Access",
-      "skills": [
-        {
-          "name": "sci-hub-access",
-          "version": "1.0.0",
-          "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-          "category": "Research Access",
-          "path": "skills/sci-hub-access",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
         }
       ]
     },
