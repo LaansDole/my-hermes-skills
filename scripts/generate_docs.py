@@ -26,10 +26,11 @@ CATEGORY_MAP = {
     "covidence-screening":        ("Systematic Review (Covidence)", "🔬", "#1a2d4a"),
     "covidence-full-text-retrieval": ("Systematic Review (Covidence)", "🔬", "#1a2d4a"),
     "productivity":               ("Productivity", "⚡", "#2d1f4a"),
+    "sci-hub-access":             ("Research Access", "📚", "#1f4a2d"),
     "slack-scan":                 ("Slack", "💬", "#2d2a1f"),
 }
 # fixed section order; unknown sections append alphabetically
-SECTION_ORDER = ["Systematic Review (Covidence)", "Productivity", "Slack"]
+SECTION_ORDER = ["Systematic Review (Covidence)", "Productivity", "Research Access", "Slack"]
 
 
 def parse_frontmatter(text: str) -> dict:
