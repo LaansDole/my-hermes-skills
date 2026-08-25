@@ -29,9 +29,9 @@
       "name": "hermes-deepseek-cache",
       "version": "1.0.0",
       "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config. Covers the /cache-stats, /cache-graph, and /cache-reset commands and the agent/deepseek_cache.py telemetry module.",
-      "category": "DeepSeek / Hermes",
-      "path": "skills/hermes-deepseek-cache",
-      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/hermes-deepseek-cache"
+      "category": "Productivity",
+      "path": "skills/productivity/hermes-deepseek-cache",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
     },
     {
       "name": "i-have-adhd",
@@ -252,6 +252,14 @@
       "title": "Productivity",
       "skills": [
         {
+          "name": "hermes-deepseek-cache",
+          "version": "1.0.0",
+          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config. Covers the /cache-stats, /cache-graph, and /cache-reset commands and the agent/deepseek_cache.py telemetry module.",
+          "category": "Productivity",
+          "path": "skills/productivity/hermes-deepseek-cache",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
+        },
+        {
           "name": "i-have-adhd",
           "version": "",
           "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
@@ -316,19 +324,6 @@
           "category": "Slack",
           "path": "skills/slack-scan",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-scan"
-        }
-      ]
-    },
-    {
-      "title": "DeepSeek / Hermes",
-      "skills": [
-        {
-          "name": "hermes-deepseek-cache",
-          "version": "1.0.0",
-          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config. Covers the /cache-stats, /cache-graph, and /cache-reset commands and the agent/deepseek_cache.py telemetry module.",
-          "category": "DeepSeek / Hermes",
-          "path": "skills/hermes-deepseek-cache",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/hermes-deepseek-cache"
         }
       ]
     },
