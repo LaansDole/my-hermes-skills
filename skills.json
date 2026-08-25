@@ -5,7 +5,7 @@
       "name": "covidence-full-text-retrieval",
       "version": "1.2.0",
       "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
-      "category": "Systematic Review (Covidence)",
+      "category": "Research",
       "path": "skills/covidence-full-text-retrieval",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval"
     },
@@ -13,7 +13,7 @@
       "name": "covidence-full-text-review",
       "version": "2.0.0",
       "description": "Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.",
-      "category": "Systematic Review (Covidence)",
+      "category": "Research",
       "path": "skills/covidence-full-text-retrieval/covidence-full-text-review",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review"
     },
@@ -21,7 +21,7 @@
       "name": "covidence-screening",
       "version": "1.0.0",
       "description": "Autonomously screen references at the title & abstract stage of a Covidence systematic review in the user's Chrome session via CDP. Votes Yes/Maybe/No per the user's PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.",
-      "category": "Systematic Review (Covidence)",
+      "category": "Research",
       "path": "skills/covidence-screening",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
     },
@@ -69,7 +69,7 @@
       "name": "sci-hub-access",
       "version": "1.1.0",
       "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-      "category": "Research Access",
+      "category": "Research",
       "path": "skills/sci-hub-access",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
     },
@@ -220,13 +220,13 @@
   ],
   "sections": [
     {
-      "title": "Systematic Review (Covidence)",
+      "title": "Research",
       "skills": [
         {
           "name": "covidence-full-text-retrieval",
           "version": "1.2.0",
           "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
-          "category": "Systematic Review (Covidence)",
+          "category": "Research",
           "path": "skills/covidence-full-text-retrieval",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval"
         },
@@ -234,7 +234,7 @@
           "name": "covidence-full-text-review",
           "version": "2.0.0",
           "description": "Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.",
-          "category": "Systematic Review (Covidence)",
+          "category": "Research",
           "path": "skills/covidence-full-text-retrieval/covidence-full-text-review",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review"
         },
@@ -242,9 +242,17 @@
           "name": "covidence-screening",
           "version": "1.0.0",
           "description": "Autonomously screen references at the title & abstract stage of a Covidence systematic review in the user's Chrome session via CDP. Votes Yes/Maybe/No per the user's PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.",
-          "category": "Systematic Review (Covidence)",
+          "category": "Research",
           "path": "skills/covidence-screening",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
+        },
+        {
+          "name": "sci-hub-access",
+          "version": "1.1.0",
+          "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
+          "category": "Research",
+          "path": "skills/sci-hub-access",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
         }
       ]
     },
@@ -298,19 +306,6 @@
           "category": "Productivity",
           "path": "skills/productivity/tldr",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
-        }
-      ]
-    },
-    {
-      "title": "Research Access",
-      "skills": [
-        {
-          "name": "sci-hub-access",
-          "version": "1.1.0",
-          "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-          "category": "Research Access",
-          "path": "skills/sci-hub-access",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
         }
       ]
     },
