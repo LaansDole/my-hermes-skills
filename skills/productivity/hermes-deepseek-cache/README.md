@@ -43,5 +43,7 @@ Persisted telemetry lives under `$HERMES_HOME/deepseek-cache/`
   serialized input in a persistent LRU (cap 64); DeepSeek-flash aux prefers
   temperature 0.
 
-Full detail: see the parent `omp-implementation-dispatch` skill +
-`SKILL.md` in this folder.
+Full detail: see `SKILL.md` in this folder; `references/migration-guide.md` has
+the six wiring hooks, and `scripts/deepseek_cache.py` is the full drop-in module —
+so this skill is self-contained and can be applied to any Hermes install that
+doesn't already carry the DeepSeek prefix-cache feature.
