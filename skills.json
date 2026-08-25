@@ -27,8 +27,8 @@
     },
     {
       "name": "hermes-deepseek-cache",
-      "version": "1.0.0",
-      "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config. Covers the /cache-stats, /cache-graph, and /cache-reset commands and the agent/deepseek_cache.py telemetry module.",
+      "version": "1.1.0",
+      "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
       "category": "Productivity",
       "path": "skills/productivity/hermes-deepseek-cache",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
@@ -253,8 +253,8 @@
       "skills": [
         {
           "name": "hermes-deepseek-cache",
-          "version": "1.0.0",
-          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config. Covers the /cache-stats, /cache-graph, and /cache-reset commands and the agent/deepseek_cache.py telemetry module.",
+          "version": "1.1.0",
+          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
           "category": "Productivity",
           "path": "skills/productivity/hermes-deepseek-cache",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
