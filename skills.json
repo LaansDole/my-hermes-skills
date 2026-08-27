@@ -58,6 +58,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
     },
     {
+      "name": "oh-my-pi",
+      "version": "",
+      "description": "Troubleshoot/operate the Oh-My-Pi (omp) coding agent.",
+      "category": "Coding Agents",
+      "path": "skills/oh-my-pi",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi"
+    },
+    {
       "name": "pbcopy-word-delivery",
       "version": "1.0.0",
       "description": "Deliver structured text content (verdicts, reports, summaries) directly to the macOS clipboard via pbcopy so the user can Cmd+V into Word without Warp terminal soft-wrap artifacts.",
@@ -306,6 +314,19 @@
           "category": "Productivity",
           "path": "skills/productivity/tldr",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
+        }
+      ]
+    },
+    {
+      "title": "Coding Agents",
+      "skills": [
+        {
+          "name": "oh-my-pi",
+          "version": "",
+          "description": "Troubleshoot/operate the Oh-My-Pi (omp) coding agent.",
+          "category": "Coding Agents",
+          "path": "skills/oh-my-pi",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi"
         }
       ]
     },
