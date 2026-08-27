@@ -28,9 +28,10 @@ CATEGORY_MAP = {
     "productivity":               ("Productivity", "⚡", "#2d1f4a"),
     "sci-hub-access":             ("Research", "📚", "#1f4a2d"),
     "slack-scan":                 ("Slack", "💬", "#2d2a1f"),
+    "oh-my-pi":                   ("Coding Agents", "🤖", "#0f3a3a"),
 }
 # fixed section order; unknown sections append alphabetically
-SECTION_ORDER = ["Research", "Productivity", "Slack"]
+SECTION_ORDER = ["Research", "Productivity", "Coding Agents", "Slack"]
 
 
 def parse_frontmatter(text: str) -> dict:
