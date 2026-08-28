@@ -10,6 +10,16 @@ description: "Troubleshoot/operate the Oh-My-Pi (omp) coding agent."
 - Do NOT confuse with earendil-works/pi (the upstream). If the user says "pi", confirm which. The user corrected exactly this confusion (Aug 2026) — "I am using Claude Opus 5 on Oh-My-Pi".
 - Config root: `~/.omp/`. Bundled agents live in-repo at `packages/coding-agent/src/prompts/agents/*.md`.
 
+## Portable dotfiles (LaansDole/omp-preset)
+
+The reproducible home for this skill's subject is the **omp-preset** repo:
+https://github.com/LaansDole/omp-preset. It versions the source-of-truth `config.yml`,
+the custom task agents (`reviewer`, `reviewer-deep`, `tldr`, `pr`), `WATCHDOG.md`, the
+plugin install manifest, and the `writing-pr-descriptions` skill, plus a sandbox-verified
+`bootstrap.sh` that installs them into the active omp profile. Not a fork: it always
+installs the latest omp binary and carries only the portable user-scope layer.
+`git clone .../omp-preset && ./bootstrap.sh` reproduces this harness on another machine.
+
 ## hub tool — the coordination surface
 - One tool for: peer messaging (`send`/`inbox`/`list`), background jobs (`wait`/`jobs`/`cancel`), and process supervision (`start`/`ps`/`logs`/`stop`/`restart`/`describe`). Always registered.
 - `hub wait` is a RACE: first watched running job's promise | first matching peer message | wait window | steering abort. It returns on the FIRST event — never "when everything finishes"; the model re-issues to keep waiting. Job results self-deliver even if the agent stops waiting.

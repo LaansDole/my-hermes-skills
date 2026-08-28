@@ -33,6 +33,10 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 
 `.hermes-config/config-patch.yaml` -- example `approvals`/`browser` block for `~/.hermes/config.yaml` that auto-approves the browser tool calls a CDP-driven skill needs for unattended operation, plus pinning `browser.cloud_provider: local` (no cloud CDP provider). Referenced as a starting pattern by the browser-automation skills above; copy the relevant keys in, don't apply it wholesale if you don't want every browser call auto-approved.
 
+## Companion repo
+
+- [`LaansDole/omp-preset`](https://github.com/LaansDole/omp-preset) -- Portable Oh-My-Pi (omp) harness. Not a fork and not a Hermes skill -- it's the source-of-truth dotfiles for the `oh-my-pi` skill's subject: `config.yml`, custom task agents (`reviewer`, `reviewer-deep`, `tldr`, `pr`), `WATCHDOG.md`, a plugin install manifest, the `writing-pr-descriptions` skill, and a sandbox-verified `bootstrap.sh`. Clone it and run `./bootstrap.sh` to reproduce this agent harness on a new machine.
+
 ## Repository layout
 
 ```
