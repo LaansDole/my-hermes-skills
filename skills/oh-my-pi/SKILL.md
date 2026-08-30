@@ -177,6 +177,20 @@ never report a billing-failed dispatch as done (worktree stays clean/unimplement
 - Real-binary verification (strongest): `scripts/omp-rpc-extension-smoke.ts` — spawns `omp --mode rpc --no-session --adhd` WITHOUT `--no-extensions` so ambient discovery loads the plugin via the manifest, then asserts commands register and no extension error. Pitfalls: omp RPC ignores stdin EOF (kill the child or the harness hangs); a bare `reader.read()` blocks past any deadline (race it with a timer); strip API keys from the env.
 - Full session-manager API surface (`class Mi` method list), the `Os()`/`JQ()` context-builder shapes, the minified-bundle extraction recipe, and the mock-harness verification pattern: `references/source-verified-mechanics.md` → "Extension API: session manager surface".
 
+## Statusline via pi-statusline (installed 2026-08-30, verified live)
+
+- Plugin: `npm:pi-statusline` (hsingjui, 0.0.2) — Claude-Code-compatible command-driven statusline. `omp plugin doctor` clean; loads under omp.
+- Config location matters: it reads `statusLine` from `~/.pi/agent/settings.json` (global) + `<project>/.pi/settings.json` (project, merged over global) — NOT omp's `config.yml`. Key shape: `{type:"command", command:"<sh script>", placement:"footer"|"widget", padding, debounceMs, timeoutMs}`.
+- Contract: the extension pipes a Claude-like JSON payload to the command's stdin (useful fields: `.model.display_name`, `.context_window.used_percentage`, `.context_window.remaining_percentage`, `.cost.total_cost_usd`); stdout lines render as the footer widget (ANSI colors OK — renderer skips escapes when truncating). Non-zero exit or empty output = blank statusline (always `exit 0`).
+- User's script: `~/.omp/agent/statusline.sh` (source of truth: LaansDole/omp-preset `statusline.sh`) — model ┃ ctx% + zone `[code]`/`[wrap up]`/`[NEW SESSION]` (tunables CODE_ZONE_MAX=59, WRAP_ZONE_MAX=84; idea from u/luongnv-com's statusline-pi) ┃ $cost ┃ git branch+dirty. Requires jq (present at /usr/bin/jq).
+- Verification (no LLM call): spawn `omp --mode rpc --no-session` in background, wait ~6s, grep the log for `extension_ui_request` with `setWidget` + `"widgetKey":"pi-statusline"` and zero `Extension .* error` lines. Don't use `timeout` (not on macOS); background + kill instead.
+
+## omp-preset as a pi package (2026-08-30)
+
+- LaansDole/omp-preset now carries `package.json` with `omp` + `pi` manifests (`"skills": ["./skills"]`). Bundle-verified: omp scans plugin/package roots for an `agents/` subdir and loads each `*.md` as a task agent — so agents + skills ship via the package path; config.yml/WATCHDOG/statusline/pi-settings/plugins need `bootstrap.sh`.
+- Package install: `omp plugin install ~/Projects/omp-preset` or `omp plugin link` (dev mode, edits live). Manifest `omp` key is read first, `pi` fallback.
+- bootstrap.sh also merges the statusLine block into `~/.pi/agent/settings.json` via python3 (preserves existing keys, idempotent, .preset-bak backup).
+
 ## Support files
 - `references/source-verified-mechanics.md` — exact file paths, line-level evidence, and code locations from the oh-my-pi repo, so future sessions skip the re-clone.
 - `references/extensions-and-custom-roles.md` — how to build user-scope omp extensions + task-agent roles (v18 verified): event surface, non-interfering `sendMessage(display:true, triggerTurn:false)`, the no-raw-LLM-in-extension rule, install + RPC-smoke verify, and the tldr/pr role recipes.
