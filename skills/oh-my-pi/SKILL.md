@@ -177,13 +177,20 @@ never report a billing-failed dispatch as done (worktree stays clean/unimplement
 - Real-binary verification (strongest): `scripts/omp-rpc-extension-smoke.ts` — spawns `omp --mode rpc --no-session --adhd` WITHOUT `--no-extensions` so ambient discovery loads the plugin via the manifest, then asserts commands register and no extension error. Pitfalls: omp RPC ignores stdin EOF (kill the child or the harness hangs); a bare `reader.read()` blocks past any deadline (race it with a timer); strip API keys from the env.
 - Full session-manager API surface (`class Mi` method list), the `Os()`/`JQ()` context-builder shapes, the minified-bundle extraction recipe, and the mock-harness verification pattern: `references/source-verified-mechanics.md` → "Extension API: session manager surface".
 
-## Statusline via pi-statusline (installed 2026-08-30, verified live)
+## Statusline on omp: use the NATIVE statusline, NOT pi-statusline (2026-08-30, verified)
 
-- Plugin: `npm:pi-statusline` (hsingjui, 0.0.2) — Claude-Code-compatible command-driven statusline. `omp plugin doctor` clean; loads under omp.
-- Config location matters: it reads `statusLine` from `~/.pi/agent/settings.json` (global) + `<project>/.pi/settings.json` (project, merged over global) — NOT omp's `config.yml`. Key shape: `{type:"command", command:"<sh script>", placement:"footer"|"widget", padding, debounceMs, timeoutMs}`.
-- Contract: the extension pipes a Claude-like JSON payload to the command's stdin (useful fields: `.model.display_name`, `.context_window.used_percentage`, `.context_window.remaining_percentage`, `.cost.total_cost_usd`); stdout lines render as the footer widget (ANSI colors OK — renderer skips escapes when truncating). Non-zero exit or empty output = blank statusline (always `exit 0`).
-- User's script: `~/.omp/agent/statusline.sh` (source of truth: LaansDole/omp-preset `statusline.sh`) — model ┃ ctx% + zone `[code]`/`[wrap up]`/`[NEW SESSION]` (tunables CODE_ZONE_MAX=59, WRAP_ZONE_MAX=84; idea from u/luongnv-com's statusline-pi) ┃ $cost ┃ git branch+dirty. Requires jq (present at /usr/bin/jq).
-- Verification (no LLM call): spawn `omp --mode rpc --no-session` in background, wait ~6s, grep the log for `extension_ui_request` with `setWidget` + `"widgetKey":"pi-statusline"` and zero `Extension .* error` lines. Don't use `timeout` (not on macOS); background + kill instead.
+- **omp has its OWN built-in statusline** — config keys `statusLine.*` (`preset: default|minimal|compact|full|nerd|ascii|custom`, `leftSegments`/`rightSegments`, `contextLine: off|percentage|annotated|embedded`, `separator`), plus theme colors baked into the binary (`statusLineModel`, `statusLinePath`, `statusLineGitDirty`, `statusLineContext`, `statusLineCost`). What you see in the omp terminal is THIS, config-driven — not anything an extension draws.
+- **pi-statusline (npm; Claude-Code-compatible statusline for pi) does NOT render under omp.** Verified via live `omp --mode rpc --no-session` capture: the extension emits `ctx.ui.setFooter()`/`setWidget()`, but omp's TUI never renders extension footers — the RPC stream shows `setStatus` (ponytail, i-have-adhd) and `setWidget` but the pi-statusline widget carries the CLEAR (empty) payload, never content. In both `placement: footer` and `placement: widget` it renders nothing. So wiring `pi-statusline` gives "no visible difference," because omp draws its own native bar.
+- Native statusline segment values accepted (verified via `omp config set statusLine.leftSegments`): `model`, `path`, `git`, `context`, `cost` (+ `branch`/`staged`/`untracked` in theme). Configure to show a real context %:
+  ```yaml
+  display:
+    showTokenUsage: true
+  statusLine:
+    contextLine: percentage          # or off|annotated|embedded
+    rightSegments: [model, context, git]
+  ```
+  These are accepted by omp's config schema; applies on next TUI launch (config is read at startup).
+- The "context zone" statusline idea (r/PiCodingAgent statusline-pi: tells you when to plan/code/new-session) is best implemented in omp's native `statusLine.*`, or as an extension using **`ctx.ui.setStatus()`** (the mechanism ponytail/i-have-adhd actually use that omp renders) — not `setFooter`.
 
 ## omp-preset as a pi package (2026-08-30)
 
