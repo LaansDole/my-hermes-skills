@@ -180,7 +180,7 @@ never report a billing-failed dispatch as done (worktree stays clean/unimplement
 ## Second brain over session transcripts (omp-episodic-memory)
 - Installed 2026-08-31 (npm `omp-episodic-memory` 1.1.0, global → `~/.local/bin/omp-episodic`, `omp-episodic-mcp`). Local-first second brain: indexes raw `~/.omp/agent/sessions/**/*.jsonl` (incl. `omp -p` headless runs) into SQLite (`~/.local/share/omp-episodic-memory/index.db`) with FTS5 keyword + `sqlite-vec` MiniLM-L6-v2 embeddings; hybrid RRF retrieval; read-only toward omp state; no cloud/keys.
 - Usage: `omp-episodic index` (incremental), `omp-episodic search "q"`, `omp-episodic recall <task...>` (token-budgeted context), `stats`, `extract`/`inbox`/`approve`/`reject` (derive decisions/gotchas/runbooks), `graph`, `context`.
-- MCP: `omp-episodic-mcp` (stdio) tools search/read/recall_for_task/list_gotchas/get_project_context; register in omp/mcp config (`command: omp-episodic-mcp`).
+- MCP: `omp-episodic-mcp` (stdio) tools search/read/recall_for_task/list_gotchas/get_project_context. Register in **user-scope** `~/.omp/agent/mcp.json` (NOT `~/.omp/mcp.json` — that path is ignored) as `{ "mcpServers": { "omp-episodic-memory": { "command": "omp-episodic-mcp", "args": [] } } }`. Verified: an `omp -p --smol` session then exposes the `search` tool and returns real hits.
 - Pitfall: v1.1.0 CLI has NO `daemon` subcommand (README ahead of release); background loop = `omp-episodic watch` (or run `index` on cron/launchd). First-run downloads the MiniLM model via Transformers.js.
 - Why it's the right pick for this user: local-first (cloud-averse), and it searches the exact transcripts the `omp -p` workflow already produces.
 
