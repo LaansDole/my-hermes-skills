@@ -177,6 +177,13 @@ never report a billing-failed dispatch as done (worktree stays clean/unimplement
 - Real-binary verification (strongest): `scripts/omp-rpc-extension-smoke.ts` — spawns `omp --mode rpc --no-session --adhd` WITHOUT `--no-extensions` so ambient discovery loads the plugin via the manifest, then asserts commands register and no extension error. Pitfalls: omp RPC ignores stdin EOF (kill the child or the harness hangs); a bare `reader.read()` blocks past any deadline (race it with a timer); strip API keys from the env.
 - Full session-manager API surface (`class Mi` method list), the `Os()`/`JQ()` context-builder shapes, the minified-bundle extraction recipe, and the mock-harness verification pattern: `references/source-verified-mechanics.md` → "Extension API: session manager surface".
 
+## Second brain over session transcripts (omp-episodic-memory)
+- Installed 2026-08-31 (npm `omp-episodic-memory` 1.1.0, global → `~/.local/bin/omp-episodic`, `omp-episodic-mcp`). Local-first second brain: indexes raw `~/.omp/agent/sessions/**/*.jsonl` (incl. `omp -p` headless runs) into SQLite (`~/.local/share/omp-episodic-memory/index.db`) with FTS5 keyword + `sqlite-vec` MiniLM-L6-v2 embeddings; hybrid RRF retrieval; read-only toward omp state; no cloud/keys.
+- Usage: `omp-episodic index` (incremental), `omp-episodic search "q"`, `omp-episodic recall <task...>` (token-budgeted context), `stats`, `extract`/`inbox`/`approve`/`reject` (derive decisions/gotchas/runbooks), `graph`, `context`.
+- MCP: `omp-episodic-mcp` (stdio) tools search/read/recall_for_task/list_gotchas/get_project_context; register in omp/mcp config (`command: omp-episodic-mcp`).
+- Pitfall: v1.1.0 CLI has NO `daemon` subcommand (README ahead of release); background loop = `omp-episodic watch` (or run `index` on cron/launchd). First-run downloads the MiniLM model via Transformers.js.
+- Why it's the right pick for this user: local-first (cloud-averse), and it searches the exact transcripts the `omp -p` workflow already produces.
+
 ## Support files
 - `references/source-verified-mechanics.md` — exact file paths, line-level evidence, and code locations from the oh-my-pi repo, so future sessions skip the re-clone.
 - `references/extensions-and-custom-roles.md` — how to build user-scope omp extensions + task-agent roles (v18 verified): event surface, non-interfering `sendMessage(display:true, triggerTurn:false)`, the no-raw-LLM-in-extension rule, install + RPC-smoke verify, and the tldr/pr role recipes.
