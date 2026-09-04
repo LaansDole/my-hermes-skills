@@ -93,6 +93,19 @@ deepseek_cache:
 - `scripts/deepseek_cache.py` — full implementing module (571 lines, drop-in).
 - `references/migration-guide.md` — six wiring hooks + constraints + verification.
 
+## Hermes ≥0.21.0 adaptation notes (rebased 2026-09-04)
+- Upstream 0.21.0 ships its OWN status-bar cache hit-rate display
+  (`_cache_hit_rate` / `cache_hit_pct` in cli.py) — the F2 status-bar hook is
+  superseded; do not re-add the `cache_segment` snapshot key.
+- Upstream removed pre-call aux route resolution in `_generate_summary`
+  (route is filled by `call_llm` into `route_info`). The F6 temp-0 flash gate
+  must read `self.summary_model or self.model` pre-call instead of patching
+  `_resolve_task_provider_model`; tests set `compressor.summary_model`.
+- The same-provider credential-preservation fix (old local commit) is native
+  in 0.21.0 — drop it when rebasing.
+- `_close_cached_client` now takes `close_async=` keyword; keep upstream call
+  shape and only swap the return to `_compat_model(client, model, default_model)`.
+
 ## Verification
 - Unit tests: `scripts/run_tests.sh tests/agent/test_deepseek_cache.py tests/hermes_cli/test_cache_slash_commands.py -q`.
 - Live spot-check: run a few DeepSeek turns, then `/cache-stats`, `/cache-graph`, `/cache-reset`; watch the status-bar segment; force a prefix break and check agent.log.
