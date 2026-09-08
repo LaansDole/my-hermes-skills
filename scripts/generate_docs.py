@@ -18,6 +18,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
 SKILLS = REPO / "skills"
+REPORTS = REPO / "reports"
 OUT = REPO / "docs" / "index.html"
 GH = "https://github.com/LaansDole/my-hermes-skills"
 
@@ -94,6 +95,41 @@ def find_skills() -> list:
     return skills
 
 
+def find_reports() -> list:
+    """Return dicts for every report markdown file under reports/YYYY-MM/.
+
+    Expected naming: YYYY-MM-DD-<slug>.md; the leading date becomes the card
+    date and the slug becomes the title. Files not matching the pattern still
+    render, keyed by filename.
+    """
+    reports = []
+    if not REPORTS.is_dir():
+        return reports
+    for p in sorted(REPORTS.rglob("*.md"), reverse=True):
+        rel = p.relative_to(REPO)
+        stem = p.stem
+        m = re.match(r"^(\d{4}-\d{2}-\d{2})-(.+)$", stem)
+        date, slug = (m.group(1), m.group(2)) if m else ("", stem)
+        # Human title from slug: first paragraph of the file is the fallback.
+        title = slug.replace("-", " ").replace("_", " ").strip()
+        text = p.read_text()
+        h1 = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
+        if h1:
+            title = h1.group(1).strip()
+        # Verdict = first non-empty line after a '## Verdict' heading, if any.
+        verdict = ""
+        vm = re.search(r"^##\s+Verdict\s*$\n+(.+)$", text, re.MULTILINE)
+        if vm:
+            verdict = vm.group(1).strip().split("\n")[0]
+        reports.append({
+            "rel_path": str(rel),
+            "date": date,
+            "title": title,
+            "verdict": verdict,
+        })
+    return reports
+
+
 def card_html(s: dict, child: bool = False) -> str:
     cls = "card card-child" if child else "card"
     version = f'<span class="card-version">v{s["version"]}</span>' if s["version"] else ""
@@ -115,6 +151,24 @@ def card_html(s: dict, child: bool = False) -> str:
         <div class="card-tags">
 {tags}
         </div>
+      </div>"""
+
+
+def report_card_html(r: dict) -> str:
+    """One report card for the Daily News page."""
+    date = html.escape(r["date"]) if r["date"] else "undated"
+    title = html.escape(r["title"])
+    verdict = ""
+    if r["verdict"]:
+        verdict = f"""\n        <p class=\"card-desc\">\n          <strong style=\"color:var(--green)\">Verdict:</strong> {html.escape(r['verdict'][:280])}\n        </p>"""
+    return f"""      <div class="card">
+        <div class="card-top">
+          <span class="card-name">{title}</span>
+          <span class="card-version">{date}</span>
+          <div class="card-links">
+            <a class="card-link" href="{GH}/blob/main/{r['rel_path']}" target="_blank">report.md</a>
+          </div>
+        </div>{verdict}
       </div>"""
 
 
@@ -553,11 +607,107 @@ TOGGLE_JS = """  <script>
   </script>"""
 
 
+def write_daily_news(reports: list) -> None:
+    """Generate docs/daily-news.html — a dedicated tab page for dated reports."""
+    out = REPO / "docs" / "daily-news.html"
+    if not reports:
+        cards = "    <p class=\"card-desc\" style=\"padding:0 4px\">No reports filed yet.</p>\n"
+    else:
+        cards = "\n".join(report_card_html(r) for r in reports)
+    n = len(reports)
+    count = "1 report" if n == 1 else f"{n} reports"
+    page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily News — my-hermes-skills</title>
+  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/daily-news.html" />
+  <style>
+{CSS}
+  </style>
+{PREPAINT_JS}
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      my-hermes-skills
+    </div>
+    <div class="header-links">
+      <a href="index.html">Skills</a>
+      <a href="{GH}" target="_blank">GitHub</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+
+  <div class="hero">
+    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
+    <h1>Daily News</h1>
+    <p class="hero-sub">
+      Dated reports filed by the <a href="{GH}/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank">writing-reports</a> skill —
+      one card per report, newest first. Each card links to the full markdown report in the repo.
+    </p>
+    <div class="hero-stats">
+      <div class="stat">
+        <span class="stat-num">{n}</span>
+        <span class="stat-label">reports</span>
+      </div>
+      <div class="stat">
+        <span class="stat-num">📅</span>
+        <span class="stat-label">newest first</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">
+      <div class="section-icon" style="background:#3a2a0f">📰</div>
+      <span class="section-title">All reports</span>
+      <span class="section-count">{count}</span>
+    </div>
+    <div class="cards">
+
+{cards}
+
+    </div>
+  </div>
+
+</main>
+
+<footer>
+  <p>
+    Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
+    <a href="{GH}/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
+    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
+    <a href="index.html">Skills</a>
+  </p>
+</footer>
+
+{TOGGLE_JS}
+</body>
+</html>
+"""
+    out.write_text(page)
+    print(f"wrote {out} ({n} reports)")
+
+
 def main() -> int:
     skills = find_skills()
     if not skills:
         print("error: no skills found under skills/", file=sys.stderr)
         return 1
+
+    reports = find_reports()
+    write_daily_news(reports)
 
     if "--json" in sys.argv:
         manifest = manifest_json(skills)
@@ -591,6 +741,7 @@ def main() -> int:
       my-hermes-skills
     </div>
     <div class="header-links">
+      <a href="daily-news.html">Daily News</a>
       <a href="{GH}" target="_blank">GitHub</a>
       <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
