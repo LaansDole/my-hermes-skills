@@ -224,6 +224,14 @@
       "category": "Productivity",
       "path": "skills/productivity/tldr",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
+    },
+    {
+      "name": "writing-reports",
+      "version": "1.0.0",
+      "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
+      "category": "Productivity",
+      "path": "skills/productivity/writing-reports",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports"
     }
   ],
   "sections": [
@@ -314,6 +322,14 @@
           "category": "Productivity",
           "path": "skills/productivity/tldr",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
+        },
+        {
+          "name": "writing-reports",
+          "version": "1.0.0",
+          "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
+          "category": "Productivity",
+          "path": "skills/productivity/writing-reports",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports"
         }
       ]
     },
