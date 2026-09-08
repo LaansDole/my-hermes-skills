@@ -161,12 +161,14 @@ def report_card_html(r: dict) -> str:
     verdict = ""
     if r["verdict"]:
         verdict = f"""\n        <p class=\"card-desc\">\n          <strong style=\"color:var(--green)\">Verdict:</strong> {html.escape(r['verdict'][:280])}\n        </p>"""
+    page_href = "../reports/" + r["rel_path"][len("reports/"):-3] + ".html"  # rendered page lives under docs/reports/
     return f"""      <div class="card">
         <div class="card-top">
           <span class="card-name">{title}</span>
           <span class="card-version">{date}</span>
           <div class="card-links">
-            <a class="card-link" href="{GH}/blob/main/{r['rel_path']}" target="_blank">report.md</a>
+            <a class="card-link" href="{page_href}">read</a>
+            <a class="card-link" href="{GH}/blob/main/{r['rel_path']}" target="_blank">.md</a>
           </div>
         </div>{verdict}
       </div>"""
@@ -607,6 +609,199 @@ TOGGLE_JS = """  <script>
   </script>"""
 
 
+def md_to_html(text: str) -> str:
+    """Minimal zero-dependency markdown -> HTML for report files.
+
+    Handles the constructs the writing-reports template produces: headings,
+    bold/italic/inline code, fenced code blocks, GFM tables, ordered and
+    unordered lists, blockquotes, hr, and links. Escapes everything else.
+    """
+    # fenced code blocks first (protect from other passes)
+    blocks: list[str] = []
+
+    def _fence(m: re.Match) -> str:
+        blocks.append(f"<pre><code>{html.escape(m.group(1))}</code></pre>")
+        return f"\x00FENCE{len(blocks) - 1}\x00"
+
+    text = re.sub(r"```[^\n]*\n(.*?)```", _fence, text, flags=re.S)
+
+    def inline(s: str) -> str:
+        s = html.escape(s, quote=False)
+        s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+        s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+        s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", s)
+        s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
+                   rf'<a href="\2" target="_blank">\1</a>', s)
+        # autolink bare URLs not already inside an href
+        s = re.sub(r'(?<!href=")(?<!">)(https?://[^\s<)"]+)',
+                   rf'<a href="\1" target="_blank">\1</a>', s)
+        return s
+
+    lines = text.split("\n")
+    out: list[str] = []
+    i = 0
+    while i < len(lines):
+        ln = lines[i]
+        if ln.startswith("\x00FENCE"):
+            out.append(ln); i += 1; continue
+        if re.match(r"^\s*(---+|\*\*\*+)\s*$", ln):
+            out.append("<hr>"); i += 1; continue
+        h = re.match(r"^(#{1,6})\s+(.*)$", ln)
+        if h:
+            lvl = len(h.group(1))
+            out.append(f"<h{lvl}>{inline(h.group(2))}</h{lvl}>"); i += 1; continue
+        # table: header row then a |---| separator
+        if "|" in ln and i + 1 < len(lines) and re.match(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", lines[i + 1] or ""):
+            rows = []
+            header = [c.strip() for c in ln.strip().strip("|").split("|")]
+            i += 2
+            while i < len(lines) and "|" in lines[i] and lines[i].strip():
+                rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
+                i += 1
+            th = "".join(f"<th>{inline(c)}</th>" for c in header)
+            out.append(f"<table><thead><tr>{th}</tr></thead><tbody>")
+            for r in rows:
+                out.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in r) + "</tr>")
+            out.append("</tbody></table>")
+            continue
+        m_ol = re.match(r"^\s*(\d+)\.\s+(.*)$", ln)
+        if m_ol:
+            items = []
+            while i < len(lines) and re.match(r"^\s*\d+\.\s+", lines[i]):
+                items.append(re.sub(r"^\s*\d+\.\s+", "", lines[i])); i += 1
+            out.append("<ol>" + "".join(f"<li>{inline(x)}</li>" for x in items) + "</ol>")
+            continue
+        m_ul = re.match(r"^\s*[-*]\s+(.*)$", ln)
+        if m_ul:
+            items = []
+            while i < len(lines) and re.match(r"^\s*[-*]\s+", lines[i]):
+                items.append(re.sub(r"^\s*[-*]\s+", "", lines[i])); i += 1
+            out.append("<ul>" + "".join(f"<li>{inline(x)}</li>" for x in items) + "</ul>")
+            continue
+        if ln.startswith(">"):
+            quote = []
+            while i < len(lines) and lines[i].startswith(">"):
+                quote.append(lines[i].lstrip("> ").rstrip()); i += 1
+            out.append(f"<blockquote>{inline(' '.join(quote))}</blockquote>")
+            continue
+        if ln.strip():
+            para = [ln]
+            while i + 1 < len(lines) and lines[i + 1].strip() and not re.match(r"^(#|\||\s*[-*]\s|\s*\d+\.\s|>|```|\s*---)", lines[i + 1]):
+                i += 1; para.append(lines[i])
+            out.append(f"<p>{inline(' '.join(p.strip() for p in para))}</p>")
+        i += 1
+    html_out = "\n".join(out)
+    for n, b in enumerate(blocks):
+        html_out = html_out.replace(f"\x00FENCE{n}\x00", b)
+    return html_out
+
+
+def write_report_pages(reports: list) -> None:
+    """Render each report markdown file as a styled HTML page under docs/reports/."""
+    base = REPO / "docs" / "reports"
+    for r in reports:
+        src = REPO / r["rel_path"]
+        rel_html = Path(r["rel_path"]).with_suffix(".html")
+        dst = base / Path(*rel_html.parts[1:])  # strip leading reports/
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        body = md_to_html(src.read_text())
+        title = html.escape(r["title"])
+        page = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{title} — Daily News</title>
+  <style>
+{REPORT_CSS}
+  </style>
+{PREPAINT_JS}
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Daily News
+    </div>
+    <div class="header-links">
+      <a href="../daily-news.html">All reports</a>
+      <a href="{GH}/blob/main/{r['rel_path']}" target="_blank">Markdown source</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <article>
+{body}
+  </article>
+</main>
+
+<footer>
+  <p>
+    <a href="../daily-news.html">← All reports</a> &nbsp;·&nbsp;
+    Filed by the writing-reports skill &nbsp;·&nbsp;
+    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+{TOGGLE_JS}
+</body>
+</html>
+"""
+        dst.write_text(page)
+
+
+REPORT_CSS = """
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
+            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
+            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
+            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
+            --accent:#0969da; --green:#1a7f37; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
+    header { border-bottom:1px solid var(--border); background:var(--bg); }
+    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
+                    display:flex; justify-content:space-between; align-items:center; }
+    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
+    .header-links { display:flex; gap:16px; align-items:center; }
+    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .header-links a:hover { color:var(--text); }
+    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
+                    padding:4px 8px; cursor:pointer; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
+    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
+                 border-bottom:1px solid var(--border); }
+    article h3 { font-size:16px; margin:24px 0 8px; }
+    article p, article li { color:var(--text); }
+    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
+                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                  padding:14px; overflow-x:auto; }
+    article pre code { background:none; border:none; padding:0; }
+    article table { border-collapse:collapse; width:100%; margin:16px 0; font-size:14px; }
+    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
+    article th { background:var(--bg2); font-weight:600; }
+    article tr:nth-child(even) td { background:var(--bg2); }
+    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
+                         color:var(--text-muted); }
+    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+    article a { color:var(--accent); }
+    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
+             color:var(--text-dim); font-size:12px; }
+    footer a { color:var(--text-dim); }
+    footer a:hover { color:var(--text-muted); }
+"""
+
+
 def write_daily_news(reports: list) -> None:
     """Generate docs/daily-news.html — a dedicated tab page for dated reports."""
     out = REPO / "docs" / "daily-news.html"
@@ -707,6 +902,7 @@ def main() -> int:
         return 1
 
     reports = find_reports()
+    write_report_pages(reports)
     write_daily_news(reports)
 
     if "--json" in sys.argv:
