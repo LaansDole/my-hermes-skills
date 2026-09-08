@@ -14,6 +14,7 @@ import html
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parent.parent
@@ -161,6 +162,14 @@ def inline_md(text: str) -> str:
     s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     return s
+
+
+def month_label(ym: str) -> str:
+    """'2026-09' -> 'September 2026'; passthrough for the undated bucket."""
+    try:
+        return datetime.strptime(ym, "%Y-%m").strftime("%B %Y")
+    except ValueError:
+        return ym
 
 
 def report_card_html(r: dict) -> str:
@@ -471,9 +480,23 @@ CSS = """    :root {
     .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
     .card-name .card-title-link strong { color: inherit; }
     /* whole-card link (Daily News report cards) */
-    a.card { text-decoration: none; display: block; color: inherit; }
-    a.card:hover { border-color: var(--accent); }
+    a.card { text-decoration: none; display: block; color: inherit;
+             transition: transform .15s ease, box-shadow .15s ease, border-color .15s; }
+    a.card:hover { border-color: var(--accent); transform: translateY(-1px);
+                   box-shadow: 0 2px 12px rgba(0, 0, 0, .25); }
     a.card:hover .card-name { text-decoration: underline; }
+    a.card .card-name { color: var(--accent); }
+    :root[data-theme="light"] a.card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, .08); }
+    /* month dividers on the Daily News card list */
+    .news-month-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 28px 4px 12px;
+    }
+    .cards .news-month-title:first-child { margin-top: 0; }
     .card-version {
       font-family: var(--mono);
       font-size: 11px;
@@ -855,7 +878,15 @@ def write_daily_news(reports: list) -> None:
     if not reports:
         cards = "    <p class=\"card-desc\" style=\"padding:0 4px\">No reports filed yet.</p>\n"
     else:
-        cards = "\n".join(report_card_html(r) for r in reports)
+        # newest month first; the undated bucket sorts last
+        groups: dict[str, list] = {}
+        for r in reports:
+            groups.setdefault(r["date"][:7] if r["date"] else "no-date", []).append(r)
+        cards = "\n\n".join(
+            f'      <h3 class="news-month-title" data-month="{ym}">{month_label(ym)}</h3>\n'
+            + "\n".join(report_card_html(r) for r in groups[ym])
+            for ym in sorted(groups, key=lambda k: (k != "no-date", k), reverse=True)
+        )
     n = len(reports)
     count = "1 report" if n == 1 else f"{n} reports"
     page = f"""<!DOCTYPE html>
