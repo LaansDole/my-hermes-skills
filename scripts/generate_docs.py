@@ -164,22 +164,20 @@ def inline_md(text: str) -> str:
 
 
 def report_card_html(r: dict) -> str:
-    """One report card for the Daily News page. Title = link to rendered page."""
+    """One report card for the Daily News page. The WHOLE card links to the
+    rendered report page (no separate button)."""
     date = html.escape(r["date"]) if r["date"] else "undated"
     title_html = inline_md(r["title"])
     verdict = ""
     if r["verdict"]:
-        verdict = f"""\n        <p class=\"card-desc\">\n          <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280])}\n        </p>"""
+        verdict = f"""\n          <p class=\"card-desc\">\n            <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280])}\n          </p>"""
     page_href = "../reports/" + r["rel_path"][len("reports/"):-3] + ".html"  # rendered page lives under docs/reports/
-    return f"""      <div class="card">
+    return f"""      <a class="card card-report" href="{page_href}">
         <div class="card-top">
-          <span class="card-name"><a class="card-title-link" href="{page_href}">{title_html}</a></span>
+          <span class="card-name">{title_html}</span>
           <span class="card-version">{date}</span>
-          <div class="card-links">
-            <a class="card-link" href="{GH}/blob/main/{r['rel_path']}" target="_blank">.md</a>
-          </div>
         </div>{verdict}
-      </div>"""
+      </a>"""
 
 
 def sections_html(skills: list) -> str:
@@ -470,6 +468,10 @@ CSS = """    :root {
     .card-name .card-title-link { color: inherit; text-decoration: none; }
     .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
     .card-name .card-title-link strong { color: inherit; }
+    /* whole-card link (Daily News report cards) */
+    a.card { text-decoration: none; display: block; color: inherit; }
+    a.card:hover { border-color: var(--accent); }
+    a.card:hover .card-name { text-decoration: underline; }
     .card-version {
       font-family: var(--mono);
       font-size: 11px;
