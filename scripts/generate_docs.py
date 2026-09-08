@@ -171,7 +171,9 @@ def report_card_html(r: dict) -> str:
     verdict = ""
     if r["verdict"]:
         verdict = f"""\n          <p class=\"card-desc\">\n            <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280])}\n          </p>"""
-    page_href = "../reports/" + r["rel_path"][len("reports/"):-3] + ".html"  # rendered page lives under docs/reports/
+    # Site root = docs/ => site path /my-hermes-skills/... Use repo-relative
+    # links WITHOUT ".." so the project-site base path is never escaped.
+    page_href = "reports/" + r["rel_path"][len("reports/"):-3] + ".html"
     return f"""      <a class="card card-report" href="{page_href}">
         <div class="card-top">
           <span class="card-name">{title_html}</span>
@@ -742,7 +744,7 @@ def write_report_pages(reports: list) -> None:
       Daily News
     </div>
     <div class="header-links">
-      <a href="../daily-news.html">All reports</a>
+      <a href="daily-news.html">All reports</a>
       <a href="{GH}/blob/main/{r['rel_path']}" target="_blank">Markdown source</a>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
     </div>
@@ -757,7 +759,7 @@ def write_report_pages(reports: list) -> None:
 
 <footer>
   <p>
-    <a href="../daily-news.html">← All reports</a> &nbsp;·&nbsp;
+    <a href="daily-news.html">← All reports</a> &nbsp;·&nbsp;
     Filed by the writing-reports skill &nbsp;·&nbsp;
     <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a>
   </p>
