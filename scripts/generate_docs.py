@@ -157,7 +157,7 @@ def card_html(s: dict, child: bool = False) -> str:
 def inline_md(text: str) -> str:
     """Render inline markdown (bold/italic/code/links) to HTML."""
     s = html.escape(text, quote=False)
-    s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
     s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     return s
@@ -665,7 +665,7 @@ def md_to_html(text: str) -> str:
         # markdown autolink <URL> -> anchor (before other substitutions)
         s = re.sub(r"&lt;(https?://[^&\s]+)&gt;",
                    rf'<a href="\1" target="_blank">\1</a>', s)
-        s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+        s = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", s)
         s = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"<em>\1</em>", s)
         s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
                    rf'<a href="\2" target="_blank">\1</a>', s)
