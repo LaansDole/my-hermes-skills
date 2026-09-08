@@ -37,5 +37,6 @@
 
 ## References
 
-1. <Title> — <Publisher> — <Date> — <URL>
-2. <Title> — <Publisher> — <Date> — <URL>
+- Artificial Analysis — GLM-5.3-Flash (Intelligence, Performance & Price): <https://artificialanalysis.ai/models/glm-5-3-flash>
+- Artificial Analysis — GLM-5.3: <https://artificialanalysis.ai/models/glm-5-3>
+- Ampere.sh — GLM 5.3 vs GLM 5.3 Flash (Aug 27, 2026): <https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash>

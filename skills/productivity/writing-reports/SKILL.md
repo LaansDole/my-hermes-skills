@@ -39,7 +39,7 @@ Not for: one-line answers, PR descriptions (pr skills), Covidence verdicts (own 
 - **Verdict in the first sentence of prose.** The metadata block comes first in the file (template order); the Verdict section opens with the decision — no "Executive summary" preamble, no restating the request.
 - **Every number has a source or a formula.** Measured vs vendor-claimed vs derived — say which. Caller-supplied figures are labeled `caller-supplied` (not vendor-claimed).
 - **Assumptions are labeled `ASSUMPTION:` inline** where used, never hidden in a footer.
-- **References are numbered**: title — publisher — date — URL. Bare URLs are a defect. If a source is an unfetched URL with no known title, use `[unfetched — <url>]` as the title; never invent a plausible title.
+- **References are bullet points, one per source**: `- Title: <URL>` — title (with publisher and date when useful), then the URL in angle brackets. No numbered lists, no bare URLs, no invented titles for unfetched URLs (use `[unfetched — <URL>]`).
 - **No invented scenarios.** Illustrative math (e.g. monthly cost) must be flagged as an estimate with its basis.
 - Chat lead follows ADHD shape: answer first, tables over prose, no preamble/recap (skill i-have-adhd).
 - **Filing is the default.** Skip the file only when the caller explicitly forbids writing files; then say in the reply that the report is chat-only and unfiled.
@@ -61,7 +61,7 @@ Every report file lands in `~/Projects/auto-learn-for-me/reports/YYYY-MM/` as `Y
 | Mistake | Fix |
 | --- | --- |
 | "Executive summary" heading before the verdict | Verdict IS the first line |
-| Bare URL in references | Numbered: title — publisher — date — URL |
+| Bare URL in references | Bullet `- Title: <URL>` per source |
 | Metric column with no formula | Formula beside the column header or footnote |
 | Unlabeled invented usage scenario | `ASSUMPTION:` inline + basis |
 | Full report dumped into chat | File + short lead; chat table ≤ 10 rows |

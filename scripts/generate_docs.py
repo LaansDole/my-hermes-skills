@@ -643,8 +643,11 @@ def md_to_html(text: str) -> str:
     def inline(s: str) -> str:
         s = html.escape(s, quote=False)
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+        # markdown autolink <URL> -> anchor (before other substitutions)
+        s = re.sub(r"&lt;(https?://[^&\s]+)&gt;",
+                   rf'<a href="\1" target="_blank">\1</a>', s)
         s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
-        s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", s)
+        s = re.sub(r"(?<!\*)\*([^*\n]+?)\*(?!\*)", r"<em>\1</em>", s)
         s = re.sub(r"\[([^\]]+)\]\(([^)]+)\)",
                    rf'<a href="\2" target="_blank">\1</a>', s)
         # autolink bare URLs not already inside an href
