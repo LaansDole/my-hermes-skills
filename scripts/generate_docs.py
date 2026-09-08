@@ -154,20 +154,28 @@ def card_html(s: dict, child: bool = False) -> str:
       </div>"""
 
 
+def inline_md(text: str) -> str:
+    """Render inline markdown (bold/italic/code/links) to HTML."""
+    s = html.escape(text, quote=False)
+    s = re.sub(r"\*\*([^*]+)\*\*", r"<strong>\1</strong>", s)
+    s = re.sub(r"(?<!\*)\*([^*\n]+)\*(?!\*)", r"<em>\1</em>", s)
+    s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
+    return s
+
+
 def report_card_html(r: dict) -> str:
-    """One report card for the Daily News page."""
+    """One report card for the Daily News page. Title = link to rendered page."""
     date = html.escape(r["date"]) if r["date"] else "undated"
-    title = html.escape(r["title"])
+    title_html = inline_md(r["title"])
     verdict = ""
     if r["verdict"]:
-        verdict = f"""\n        <p class=\"card-desc\">\n          <strong style=\"color:var(--green)\">Verdict:</strong> {html.escape(r['verdict'][:280])}\n        </p>"""
+        verdict = f"""\n        <p class=\"card-desc\">\n          <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280])}\n        </p>"""
     page_href = "../reports/" + r["rel_path"][len("reports/"):-3] + ".html"  # rendered page lives under docs/reports/
     return f"""      <div class="card">
         <div class="card-top">
-          <span class="card-name">{title}</span>
+          <span class="card-name"><a class="card-title-link" href="{page_href}">{title_html}</a></span>
           <span class="card-version">{date}</span>
           <div class="card-links">
-            <a class="card-link" href="{page_href}">read</a>
             <a class="card-link" href="{GH}/blob/main/{r['rel_path']}" target="_blank">.md</a>
           </div>
         </div>{verdict}
@@ -459,6 +467,9 @@ CSS = """    :root {
       flex: 1;
       min-width: 0;
     }
+    .card-name .card-title-link { color: inherit; text-decoration: none; }
+    .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
+    .card-name .card-title-link strong { color: inherit; }
     .card-version {
       font-family: var(--mono);
       font-size: 11px;

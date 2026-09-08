@@ -208,6 +208,9 @@
       flex: 1;
       min-width: 0;
     }
+    .card-name .card-title-link { color: inherit; text-decoration: none; }
+    .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
+    .card-name .card-title-link strong { color: inherit; }
     .card-version {
       font-family: var(--mono);
       font-size: 11px;
@@ -375,15 +378,14 @@
 
       <div class="card">
         <div class="card-top">
-          <span class="card-name">CommandCode Model Efficiency Report</span>
+          <span class="card-name"><a class="card-title-link" href="../reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">CommandCode Model Efficiency Report</a></span>
           <span class="card-version">2026-09-08</span>
           <div class="card-links">
-            <a class="card-link" href="../reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">read</a>
             <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/reports/2026-09/2026-09-08-commandcode-cost-efficiency.md" target="_blank">.md</a>
           </div>
         </div>
         <p class="card-desc">
-          <strong style="color:var(--green)">Verdict:</strong> **Keep GLM-5.3-Flash as the daily driver.** It is already the most cost-efficient model on the CommandCode catalog — by a wide margin, not a marginal one. No switch recommended.
+          <strong style="color:var(--green)">Verdict:</strong> <strong>Keep GLM-5.3-Flash as the daily driver.</strong> It is already the most cost-efficient model on the CommandCode catalog — by a wide margin, not a marginal one. No switch recommended.
         </p>
       </div>
 
