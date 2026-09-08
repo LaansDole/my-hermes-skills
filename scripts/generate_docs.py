@@ -640,6 +640,25 @@ def md_to_html(text: str) -> str:
 
     text = re.sub(r"```[^\n]*\n(.*?)```", _fence, text, flags=re.S)
 
+    # footnotes: [^n]: definitions are collected out of the flow, inline [^n]
+    # markers become sup backlinks. The marker pass runs inside inline() so the
+    # generated HTML is not escaped by the per-line/per-cell escaping there.
+    fndefs: dict[str, str] = {}
+
+    def _fndef(m: re.Match) -> str:
+        fndefs[m.group(1)] = m.group(2).strip()
+        return ""
+
+    text = re.sub(r"^\[\^([a-z0-9]+)\]:\s*(.+)$", _fndef, text, flags=re.MULTILINE)
+    fnseen: set[str] = set()
+
+    def _fnref(m: re.Match) -> str:
+        k = m.group(1)
+        # only the first mention carries the id, so backlinks stay unique
+        ref = "" if k in fnseen else f' id="fnref-{k}"'
+        fnseen.add(k)
+        return f'<sup class="fn"{ref}><a href="#fn-{k}">{k}</a></sup>'
+
     def inline(s: str) -> str:
         s = html.escape(s, quote=False)
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
@@ -653,6 +672,7 @@ def md_to_html(text: str) -> str:
         # autolink bare URLs not already inside an href
         s = re.sub(r'(?<!href=")(?<!">)(https?://[^\s<)"]+)',
                    rf'<a href="\1" target="_blank">\1</a>', s)
+        s = re.sub(r"\[\^([a-z0-9]+)\]", _fnref, s)
         return s
 
     lines = text.split("\n")
@@ -711,6 +731,12 @@ def md_to_html(text: str) -> str:
     html_out = "\n".join(out)
     for n, b in enumerate(blocks):
         html_out = html_out.replace(f"\x00FENCE{n}\x00", b)
+    if fndefs:
+        items = "".join(
+            f'<li id="fn-{k}">{inline(v)} <a href="#fnref-{k}">&#8617;</a></li>'
+            for k, v in fndefs.items()
+        )
+        html_out += f'<section class="footnotes"><hr><ol>{items}</ol></section>'
     return html_out
 
 
@@ -813,6 +839,9 @@ REPORT_CSS = """
                          color:var(--text-muted); }
     article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
     article a { color:var(--accent); }
+    article sup.fn a { text-decoration:none; color:var(--accent); font-size:11px; }
+    article .footnotes { font-size:13px; color:var(--text-muted); }
+    article .footnotes li { margin-bottom:6px; }
     footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
              color:var(--text-dim); font-size:12px; }
     footer a { color:var(--text-dim); }
