@@ -43,6 +43,9 @@
                          color:var(--text-muted); }
     article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
     article a { color:var(--accent); }
+    article sup.fn a { text-decoration:none; color:var(--accent); font-size:11px; }
+    article .footnotes { font-size:13px; color:var(--text-muted); }
+    article .footnotes li { margin-bottom:6px; }
     footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
              color:var(--text-dim); font-size:12px; }
     footer a { color:var(--text-dim); }
@@ -90,7 +93,7 @@
 <hr>
 <h2>Efficiency Table</h2>
 <p>Sorted by Artificial Analysis' full Intelligence Index evaluation suite cost per Index point (their apples-to-apples efficiency measure). All prices are list prices per 1M tokens as tracked by Artificial Analysis (first-party serving, Sep 2026).</p>
-<table><thead><tr><th>Model</th><th>II[^1]</th><th>In $/1M</th><th>Out $/1M</th><th>Blend $/1M[^2]</th><th>Suite cost per II pt (USD)</th><th>tok/s</th><th>Params (total / active)</th></tr></thead><tbody>
+<table><thead><tr><th>Model</th><th>II<sup class="fn" id="fnref-1"><a href="#fn-1">1</a></sup></th><th>In $/1M</th><th>Out $/1M</th><th>Blend $/1M<sup class="fn" id="fnref-2"><a href="#fn-2">2</a></sup></th><th>Suite cost per II pt (USD)</th><th>tok/s</th><th>Params (total / active)</th></tr></thead><tbody>
 <tr><td><strong>GLM-5.3-Flash</strong></td><td><strong>42</strong></td><td><strong>0.15</strong></td><td><strong>0.50</strong></td><td><strong>0.24</strong></td><td><strong>6.7</strong></td><td>60</td><td>320B / 18B</td></tr>
 <tr><td>DeepSeek V4 Flash</td><td>35</td><td>0.44</td><td>1.32</td><td>0.66</td><td>13.5</td><td>126</td><td>284B / 13B</td></tr>
 <tr><td>DeepSeek V4 Pro</td><td>36</td><td>1.32</td><td>3.96</td><td>1.98</td><td>31.2</td><td>77</td><td>1.6T / 49B</td></tr>
@@ -101,7 +104,6 @@
 <tr><td>GPT-5.5</td><td>39</td><td>5.00</td><td>30.00</td><td>11.25</td><td>135.8</td><td>90</td><td>n/a</td></tr>
 <tr><td>GLM-5.2</td><td>39</td><td>1.40</td><td>4.40</td><td>2.15</td><td>n/a</td><td>62</td><td>n/a</td></tr>
 </tbody></table>
-<p>[^1]: II = Artificial Analysis Intelligence Index v3.4.3-class score as published on each model page (higher is better; page-stated medians ranged 17–24 at fetch time). [^2]: Blend = 3:1 input:output token mix, a standard workload approximation.</p>
 <p>GLM-5.3-Flash is roughly <strong>8x cheaper per quality point than its own flagship</strong> (GLM-5.3) and ~20x cheaper per point than GPT-5.5.</p>
 <hr>
 <h2>Findings</h2>
@@ -134,7 +136,7 @@
 <hr>
 <h2>References</h2>
 <ul><li>Artificial Analysis — GLM-5.3-Flash (Intelligence, Performance &amp; Price): <a href="https://artificialanalysis.ai/models/glm-5-3-flash" target="_blank">https://artificialanalysis.ai/models/glm-5-3-flash</a></li><li>Artificial Analysis — GLM-5.3: <a href="https://artificialanalysis.ai/models/glm-5-3" target="_blank">https://artificialanalysis.ai/models/glm-5-3</a></li><li>Artificial Analysis — DeepSeek V4 Flash 0731 (Reasoning, Max Effort): <a href="https://artificialanalysis.ai/models/deepseek-v4-flash" target="_blank">https://artificialanalysis.ai/models/deepseek-v4-flash</a></li><li>Artificial Analysis — DeepSeek V4 Pro 0813 (Reasoning, Max Effort): <a href="https://artificialanalysis.ai/models/deepseek-v4-pro" target="_blank">https://artificialanalysis.ai/models/deepseek-v4-pro</a></li><li>Artificial Analysis — Qwen3.8 Max: <a href="https://artificialanalysis.ai/models/qwen3-8-max" target="_blank">https://artificialanalysis.ai/models/qwen3-8-max</a></li><li>Artificial Analysis — Kimi K3 (max): <a href="https://artificialanalysis.ai/models/kimi-k3" target="_blank">https://artificialanalysis.ai/models/kimi-k3</a></li><li>Artificial Analysis — GPT-5.5: <a href="https://artificialanalysis.ai/models/gpt-5-5" target="_blank">https://artificialanalysis.ai/models/gpt-5-5</a></li><li>Artificial Analysis — Gemini 3.5 Flash: <a href="https://artificialanalysis.ai/models/gemini-3-5-flash" target="_blank">https://artificialanalysis.ai/models/gemini-3-5-flash</a></li><li>Artificial Analysis — GLM-5.2: <a href="https://artificialanalysis.ai/models/glm-5-2" target="_blank">https://artificialanalysis.ai/models/glm-5-2</a></li><li>Ampere.sh — GLM 5.3 vs GLM 5.3 Flash: Benchmarks, Price &amp; Coding (Aug 27, 2026): <a href="https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash" target="_blank">https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash</a></li><li>Z.ai Developer Docs — GLM-5.3-Flash overview: <a href="https://docs.z.ai/guides/llm/glm-5.3-flash" target="_blank">https://docs.z.ai/guides/llm/glm-5.3-flash</a></li><li>Hugging Face — zai-org/GLM-5.3-Flash model card: <a href="https://huggingface.co/zai-org/GLM-5.3-Flash" target="_blank">https://huggingface.co/zai-org/GLM-5.3-Flash</a></li><li>OpenRouter — GLM-5.3 pricing cross-check: <a href="https://openrouter.ai/z-ai/glm-5.3" target="_blank">https://openrouter.ai/z-ai/glm-5.3</a></li><li>OpenRouter — Kimi K3 pricing cross-check: <a href="https://openrouter.ai/moonshotai/kimi-k3" target="_blank">https://openrouter.ai/moonshotai/kimi-k3</a></li><li>Ampere.sh — GLM 5.3 Flash vs GPT-5.4 Mini: <a href="https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini" target="_blank">https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini</a></li></ul>
-<p><em>Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) are in the session scratch files under <code>/tmp/aa-</em>.json</code>; the raw Artificial Analysis page text is preserved in <code>/tmp/aa-raw.json</code> for audit.*</p>
+<p><em>Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) are in the session scratch files under <code>/tmp/aa-</em>.json</code>; the raw Artificial Analysis page text is preserved in <code>/tmp/aa-raw.json</code> for audit.*</p><section class="footnotes"><hr><ol><li id="fn-1">II = Artificial Analysis Intelligence Index v3.4.3-class score as published on each model page (higher is better; page-stated medians ranged 17–24 at fetch time). <a href="#fnref-1">&#8617;</a></li><li id="fn-2">Blend = 3:1 input:output token mix, a standard workload approximation. <a href="#fnref-2">&#8617;</a></li></ol></section>
   </article>
 </main>
 
