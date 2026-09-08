@@ -32,7 +32,7 @@ Not for: one-line answers, PR descriptions (pr skills), Covidence verdicts (own 
 
 ## Report Structure
 
-verdict (first sentence) → metadata block (Date / Scope / Method) → tables → numbered findings → caveats → references. Fill the template; don't improvise structure.
+`# Title` → metadata bullet list (Date / Scope / Method — one `- **Label:** value` bullet each) → Verdict (first sentence of prose) → tables → numbered findings → caveats → references. Fill the template; don't improvise structure.
 
 ## Hard Rules
 

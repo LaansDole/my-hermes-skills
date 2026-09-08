@@ -1,8 +1,8 @@
 # CommandCode Model Efficiency Report
 
-**Date:** 2026-09-08
-**Scope:** Performance-per-cost analysis of the CommandCode Provider API model catalog, prompted by GLM-5.3-Flash being the daily-driver model in Hermes (and `@smol` role in omp).
-**Method:** SearXNG web search (self-hosted instance) → Artificial Analysis model pages (Intelligence Index v4.3, list prices, throughput) scraped via curl and parsed programmatically, supplemented by OpenRouter pricing pages, the Ampere.sh GLM-5.3-vs-Flash comparison, and vendor docs (Z.ai, Hugging Face).
+- **Date:** 2026-09-08
+- **Scope:** Performance-per-cost analysis of the CommandCode Provider API model catalog, prompted by GLM-5.3-Flash being the daily-driver model in Hermes (and `@smol` role in omp).
+- **Method:** SearXNG web search (self-hosted instance) → Artificial Analysis model pages (Intelligence Index v4.3, list prices, throughput) scraped via curl and parsed programmatically, supplemented by OpenRouter pricing pages, the Ampere.sh GLM-5.3-vs-Flash comparison, and vendor docs (Z.ai, Hugging Face).
 
 ---
 

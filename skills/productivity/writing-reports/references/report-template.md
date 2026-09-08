@@ -1,8 +1,8 @@
 # <Title>
 
-**Date:** YYYY-MM-DD
-**Scope:** <what question this answers, in one line>
-**Method:** <sources searched/scraped, cross-checks, fetch date>
+- **Date:** YYYY-MM-DD
+- **Scope:** <what question this answers, in one line>
+- **Method:** <sources searched/scraped, cross-checks, fetch date>
 
 ---
 
