@@ -93,35 +93,20 @@ Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
 
 ## References
 
-1. Artificial Analysis — GLM-5.3-Flash (Intelligence, Performance & Price):
-   <https://artificialanalysis.ai/models/glm-5-3-flash>
-2. Artificial Analysis — GLM-5.3:
-   <https://artificialanalysis.ai/models/glm-5-3>
-3. Artificial Analysis — DeepSeek V4 Flash 0713 (Reasoning, Max Effort):
-   <https://artificialanalysis.ai/models/deepseek-v4-flash>
-4. Artificial Analysis — DeepSeek V4 Pro 0813 (Reasoning, Max Effort):
-   <https://artificialanalysis.ai/models/deepseek-v4-pro>
-5. Artificial Analysis — Qwen3.8 Max:
-   <https://artificialanalysis.ai/models/qwen3-8-max>
-6. Artificial Analysis — Kimi K3 (max):
-   <https://artificialanalysis.ai/models/kimi-k3>
-7. Artificial Analysis — GPT-5.5:
-   <https://artificialanalysis.ai/models/gpt-5-5>
-8. Artificial Analysis — Gemini 3.5 Flash:
-   <https://artificialanalysis.ai/models/gemini-3-5-flash>
-9. Artificial Analysis — GLM-5.2:
-   <https://artificialanalysis.ai/models/glm-5-2>
-10. Ampere.sh — "GLM 5.3 vs GLM 5.3 Flash: Benchmarks, Price & Coding" (Aug 27, 2026):
-    <https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash>
-11. Z.ai Developer Docs — GLM-5.3-Flash overview (input modalities, context):
-    <https://docs.z.ai/guides/llm/glm-5.3-flash>
-12. Hugging Face — zai-org/GLM-5.3-Flash model card ("first natively multimodal model in the GLM-5 series", 320B/18B):
-    <https://huggingface.co/zai-org/GLM-5.3-Flash>
-13. OpenRouter — GLM-5.3 pricing cross-check:
-    <https://openrouter.ai/z-ai/glm-5.3>
-14. OpenRouter — Kimi K3 pricing cross-check ($2.50/$14 list):
-    <https://openrouter.ai/moonshotai/kimi-k3>
-15. Ampere.sh — "GLM 5.3 Flash vs GPT-5.4 Mini":
-    <https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini>
+- Artificial Analysis — GLM-5.3-Flash (Intelligence, Performance & Price): <https://artificialanalysis.ai/models/glm-5-3-flash>
+- Artificial Analysis — GLM-5.3: <https://artificialanalysis.ai/models/glm-5-3>
+- Artificial Analysis — DeepSeek V4 Flash 0731 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-flash>
+- Artificial Analysis — DeepSeek V4 Pro 0813 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-pro>
+- Artificial Analysis — Qwen3.8 Max: <https://artificialanalysis.ai/models/qwen3-8-max>
+- Artificial Analysis — Kimi K3 (max): <https://artificialanalysis.ai/models/kimi-k3>
+- Artificial Analysis — GPT-5.5: <https://artificialanalysis.ai/models/gpt-5-5>
+- Artificial Analysis — Gemini 3.5 Flash: <https://artificialanalysis.ai/models/gemini-3-5-flash>
+- Artificial Analysis — GLM-5.2: <https://artificialanalysis.ai/models/glm-5-2>
+- Ampere.sh — GLM 5.3 vs GLM 5.3 Flash: Benchmarks, Price & Coding (Aug 27, 2026): <https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash>
+- Z.ai Developer Docs — GLM-5.3-Flash overview: <https://docs.z.ai/guides/llm/glm-5.3-flash>
+- Hugging Face — zai-org/GLM-5.3-Flash model card: <https://huggingface.co/zai-org/GLM-5.3-Flash>
+- OpenRouter — GLM-5.3 pricing cross-check: <https://openrouter.ai/z-ai/glm-5.3>
+- OpenRouter — Kimi K3 pricing cross-check: <https://openrouter.ai/moonshotai/kimi-k3>
+- Ampere.sh — GLM 5.3 Flash vs GPT-5.4 Mini: <https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini>
 
 *Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) are in the session scratch files under `/tmp/aa-*.json`; the raw Artificial Analysis page text is preserved in `/tmp/aa-raw.json` for audit.*
