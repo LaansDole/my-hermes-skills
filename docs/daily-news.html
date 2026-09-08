@@ -212,9 +212,23 @@
     .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
     .card-name .card-title-link strong { color: inherit; }
     /* whole-card link (Daily News report cards) */
-    a.card { text-decoration: none; display: block; color: inherit; }
-    a.card:hover { border-color: var(--accent); }
+    a.card { text-decoration: none; display: block; color: inherit;
+             transition: transform .15s ease, box-shadow .15s ease, border-color .15s; }
+    a.card:hover { border-color: var(--accent); transform: translateY(-1px);
+                   box-shadow: 0 2px 12px rgba(0, 0, 0, .25); }
     a.card:hover .card-name { text-decoration: underline; }
+    a.card .card-name { color: var(--accent); }
+    :root[data-theme="light"] a.card:hover { box-shadow: 0 2px 12px rgba(0, 0, 0, .08); }
+    /* month dividers on the Daily News card list */
+    .news-month-title {
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      margin: 28px 4px 12px;
+    }
+    .cards .news-month-title:first-child { margin-top: 0; }
     .card-version {
       font-family: var(--mono);
       font-size: 11px;
@@ -380,6 +394,7 @@
     </div>
     <div class="cards">
 
+      <h3 class="news-month-title" data-month="2026-09">September 2026</h3>
       <a class="card card-report" href="reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">
         <div class="card-top">
           <span class="card-name">CommandCode Model Efficiency Report</span>
