@@ -109,4 +109,4 @@ Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
 - OpenRouter — Kimi K3 pricing cross-check: <https://openrouter.ai/moonshotai/kimi-k3>
 - Ampere.sh — GLM 5.3 Flash vs GPT-5.4 Mini: <https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini>
 
-*Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) are in the session scratch files under `/tmp/aa-*.json`; the raw Artificial Analysis page text is preserved in `/tmp/aa-raw.json` for audit.*
+*Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) were computed live during the session; re-derive with the method above rather than relying on session scratch files.*
