@@ -58,6 +58,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
     },
     {
+      "name": "oh-my-ghostty",
+      "version": "1.0.0",
+      "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
+      "category": "Productivity",
+      "path": "skills/productivity/oh-my-ghostty",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty"
+    },
+    {
       "name": "oh-my-pi",
       "version": "",
       "description": "Troubleshoot/operate the Oh-My-Pi (omp) coding agent.",
@@ -298,6 +306,14 @@
           "category": "Productivity",
           "path": "skills/productivity/memory-ui",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
+        },
+        {
+          "name": "oh-my-ghostty",
+          "version": "1.0.0",
+          "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
+          "category": "Productivity",
+          "path": "skills/productivity/oh-my-ghostty",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty"
         },
         {
           "name": "pbcopy-word-delivery",
