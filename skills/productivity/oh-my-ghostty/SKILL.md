@@ -14,12 +14,12 @@ Set up the [sudo-conner/oh-my-ghostty](https://github.com/sudo-conner/oh-my-ghos
 
 ## When to use
 
-- "Set up oh-my-ghostty", "make my terminal like oh-my-ghostty", "add fastfetch on startup", "replace cat/ls with bat/eza".
+- "Set up oh-my-ghostty", "make my terminal like oh-my-ghostty", "add fastfetch on startup", "replace cat/ls/cd with bat/eza/zoxide".
 - Refreshing any piece of the stack after a Ghostty upgrade or new machine.
 
 ## What the repo actually is
 
-The GitHub repo is a **blog-style guide**, not an installable framework — no script to run. It documents: Ghostty (brew cask), Oh My Zsh, p10k, fastfetch, zsh-syntax-highlighting + zsh-autosuggestions, and two aliases (`cat`→bat, `ls`→eza) plus a plain zoxide init (no `cd` alias). Apply it manually; everything is idempotent.
+The GitHub repo is a **blog-style guide**, not an installable framework — no script to run. It documents: Ghostty (brew cask), Oh My Zsh, p10k, fastfetch, zsh-syntax-highlighting + zsh-autosuggestions, and three aliases (`cat`→bat, `ls`→eza, `cd`→zoxide). Apply it manually; everything is idempotent.
 
 ## Setup (macOS, Homebrew)
 
@@ -59,6 +59,7 @@ The GitHub repo is a **blog-style guide**, not an installable framework — no s
    # Aliases
    alias cat="bat --paging=never"
    alias ls="eza -lao --git-repos --header --icons"
+   alias cd="z"
 
    # <<< END OH-MY-GHOSTTY <<<
    ```
@@ -82,8 +83,9 @@ The GitHub repo is a **blog-style guide**, not an installable framework — no s
 
 # aliases + zoxide actually loaded (SHLVL=0 simulates a top-level shell so the
 # fastfetch guard fires — proves startup behavior too)
-env SHLVL=0 zsh -i -c 'whence -v ls; whence -v cat'
+env SHLVL=0 zsh -i -c 'whence -v cd; whence -v ls; whence -v cat'
 # expect:
+# cd is an alias for z
 # ls is an alias for eza -lao --git-repos --header --icons
 # cat is an alias for bat --paging=never
 ```
