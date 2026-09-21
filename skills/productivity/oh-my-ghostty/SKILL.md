@@ -73,6 +73,7 @@ The GitHub repo is a **blog-style guide**, not an installable framework — no s
 - **zoxide init order**: must come after oh-my-zsh's `compinit` — end of `.zshrc` is safe. Before it, completions break.
 - **bat paging**: `alias cat="bat"` pager-ifies long output and breaks scripts expecting cat semantics; use `bat --paging=never`.
 - **Alias shadowing**: the block appends after any older alias sections, so eza wins over pre-existing `alias ls=...` — intended (mention it to the user, don't "fix" it).
+- **Never add oh-my-zsh's `z` plugin to the user's `plugins=(...)` list**: it aliases `z` to `zshz` (legacy `~/.z` frecency db) and shadows zoxide's `z` function, sending `z <dir>` to the wrong project. zoxide is initialized via `eval "$(zoxide init zsh)"` only.
 - **Non-tty test noise**: `zsh -i -c` in a pipe shows a gitstatus/p10k "failed to initialize" error — false alarm from the missing tty, not a config problem.
 
 ## Verification (real shell, not memory)
