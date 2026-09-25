@@ -68,6 +68,14 @@ Body text.
 
 Body text.
 
+```bash
+# Torch: CUDA, MPS, or explicit CPU
+pip install -e '.[test]'
+
+## not a heading either
+echo done
+```
+
 ### Notes
 
 First notes block.
@@ -157,6 +165,16 @@ class HelperTests(unittest.TestCase):
         # TOC sits after the lead-in and before the first H2 section
         self.assertLess(out.index('class="toc"'), out.index("<h2 "))
         self.assertLess(out.index("<h1"), out.index('class="toc"'))
+
+        # '#' lines inside a fence are shell comments, not headings: no id is
+        # minted for them, they stay verbatim in the <pre>, and the heading
+        # pass stays aligned with the rendered document.
+        self.assertEqual(out.count("<h1"), 1)
+        self.assertNotIn("torch-cuda-mps-or-explicit-cpu", out)
+        self.assertNotIn("not-a-heading-either", out)
+        self.assertIn("# Torch: CUDA, MPS, or explicit CPU", out)
+        self.assertEqual(len(re.findall(r'<h[123] id="', out)),
+                         len(re.findall(r"^#{1,3} ", LONG_REPORT, re.M)) - 2)
 
         short = gd.md_to_html(SHORT_REPORT)
         self.assertNotIn('class="toc"', short)
