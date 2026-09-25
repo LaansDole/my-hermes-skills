@@ -164,7 +164,7 @@ def inline_md(text: str) -> str:
 
 
 def report_card_html(r: dict) -> str:
-    """One report card for the Daily News page. The WHOLE card links to the
+    """One report card for the Reports page. The WHOLE card links to the
     rendered report page (no separate button)."""
     date = html.escape(r["date"]) if r["date"] else "undated"
     title_html = inline_md(r["title"])
@@ -470,7 +470,7 @@ CSS = """    :root {
     .card-name .card-title-link { color: inherit; text-decoration: none; }
     .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
     .card-name .card-title-link strong { color: inherit; }
-    /* whole-card link (Daily News report cards) */
+    /* whole-card link (report cards) */
     a.card { text-decoration: none; display: block; color: inherit; }
     a.card:hover { border-color: var(--accent); }
     a.card:hover .card-name { text-decoration: underline; }
@@ -624,12 +624,44 @@ TOGGLE_JS = """  <script>
   </script>"""
 
 
+def slugify(text: str) -> str:
+    """Heading text -> stable anchor id; inline markdown is stripped first."""
+    s = re.sub(r"`([^`]*)`", r"\1", text)
+    s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"[*_]+", "", s)
+    s = re.sub(r"[^a-z0-9]+", "-", s.lower()).strip("-")
+    return s or "section"
+
+
+def heading_index(lines: list) -> list:
+    """(level, text, id) per heading, in document order.
+
+    Repeated heading text gets -2, -3, … so every anchor target is unique.
+    """
+    out, seen = [], {}
+    for ln in lines:
+        h = re.match(r"^(#{1,6})\s+(.*)$", ln)
+        if not h:
+            continue
+        slug = slugify(h.group(2))
+        seen[slug] = n = seen.get(slug, 0) + 1
+        out.append((len(h.group(1)), h.group(2), slug if n == 1 else f"{slug}-{n}"))
+    return out
+
+
+# A table of contents only earns its space once a report has real sections.
+TOC_MIN_SECTIONS = 4
+
+
 def md_to_html(text: str) -> str:
     """Minimal zero-dependency markdown -> HTML for report files.
 
-    Handles the constructs the writing-reports template produces: headings,
-    bold/italic/inline code, fenced code blocks, GFM tables, ordered and
+    Handles the constructs the writing-reports template produces: headings
+    (with stable anchor ids), bold/italic/inline code, fenced code blocks,
+    GFM tables (wrapped so they scroll instead of overflowing), ordered and
     unordered lists, blockquotes, hr, and links. Escapes everything else.
+    Reports with several sections also get a table of contents, inserted
+    after the lead-in and before the first H2.
     """
     # fenced code blocks first (protect from other passes)
     blocks: list[str] = []
@@ -656,7 +688,19 @@ def md_to_html(text: str) -> str:
         return s
 
     lines = text.split("\n")
+    headings = heading_index(lines)
+    toc = ""
+    if sum(1 for lvl, _, _ in headings if lvl == 2) >= TOC_MIN_SECTIONS:
+        items = "".join(
+            f'<li class="toc-{"sub" if lvl == 3 else "top"}">'
+            f'<a href="#{hid}">{inline(txt)}</a></li>'
+            for lvl, txt, hid in headings if lvl in (2, 3))
+        toc = ('<nav class="toc" aria-label="On this page">'
+               '<p class="toc-title">On this page</p>'
+               f"<ul>{items}</ul></nav>")
+
     out: list[str] = []
+    hpos = 0
     i = 0
     while i < len(lines):
         ln = lines[i]
@@ -666,8 +710,11 @@ def md_to_html(text: str) -> str:
             out.append("<hr>"); i += 1; continue
         h = re.match(r"^(#{1,6})\s+(.*)$", ln)
         if h:
-            lvl = len(h.group(1))
-            out.append(f"<h{lvl}>{inline(h.group(2))}</h{lvl}>"); i += 1; continue
+            lvl, _, hid = headings[hpos]
+            hpos += 1
+            if toc and lvl == 2:
+                out.append(toc); toc = ""
+            out.append(f'<h{lvl} id="{hid}">{inline(h.group(2))}</h{lvl}>'); i += 1; continue
         # table: header row then a |---| separator
         if "|" in ln and i + 1 < len(lines) and re.match(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", lines[i + 1] or ""):
             rows = []
@@ -677,10 +724,10 @@ def md_to_html(text: str) -> str:
                 rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
                 i += 1
             th = "".join(f"<th>{inline(c)}</th>" for c in header)
-            out.append(f"<table><thead><tr>{th}</tr></thead><tbody>")
+            out.append(f'<div class="table-scroll"><table><thead><tr>{th}</tr></thead><tbody>')
             for r in rows:
                 out.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in r) + "</tr>")
-            out.append("</tbody></table>")
+            out.append("</tbody></table></div>")
             continue
         m_ol = re.match(r"^\s*(\d+)\.\s+(.*)$", ln)
         if m_ol:
@@ -714,9 +761,29 @@ def md_to_html(text: str) -> str:
     return html_out
 
 
+def prune_report_pages(reports: list) -> None:
+    """Delete generated report pages whose markdown source is gone.
+
+    Only *.html under docs/reports/ is touched; assets and anything outside
+    that generated tree are left alone.
+    """
+    base = REPO / "docs" / "reports"
+    if not base.is_dir():
+        return
+    keep = {base / Path(*Path(r["rel_path"]).with_suffix(".html").parts[1:])
+            for r in reports}
+    for p in sorted(base.rglob("*.html")):
+        if p not in keep:
+            p.unlink()
+    for d in sorted(base.rglob("*"), reverse=True):
+        if d.is_dir() and not any(d.iterdir()):
+            d.rmdir()
+
+
 def write_report_pages(reports: list) -> None:
     """Render each report markdown file as a styled HTML page under docs/reports/."""
     base = REPO / "docs" / "reports"
+    prune_report_pages(reports)
     for r in reports:
         src = REPO / r["rel_path"]
         rel_html = Path(r["rel_path"]).with_suffix(".html")
@@ -729,7 +796,7 @@ def write_report_pages(reports: list) -> None:
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} — Daily News</title>
+  <title>{title} — Reports</title>
   <style>
 {REPORT_CSS}
   </style>
@@ -744,10 +811,10 @@ def write_report_pages(reports: list) -> None:
         <rect width="20" height="20" rx="5" fill="#1f6feb"/>
         <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
-      Daily News
+      Reports
     </div>
     <div class="header-links">
-      <a href="daily-news.html">All reports</a>
+      <a href="../../reports.html">All reports</a>
       <a href="{GH}/blob/main/{r['rel_path']}" target="_blank">Markdown source</a>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
     </div>
@@ -762,7 +829,7 @@ def write_report_pages(reports: list) -> None:
 
 <footer>
   <p>
-    <a href="daily-news.html">← All reports</a> &nbsp;·&nbsp;
+    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
     Filed by the writing-reports skill &nbsp;·&nbsp;
     <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a>
   </p>
@@ -785,7 +852,9 @@ REPORT_CSS = """
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text);
            font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
-    header { border-bottom:1px solid var(--border); background:var(--bg); }
+    html { scroll-behavior:smooth; }
+    header { border-bottom:1px solid var(--border); background:var(--bg);
+             position:sticky; top:0; z-index:100; }
     .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
                     display:flex; justify-content:space-between; align-items:center; }
     .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
@@ -805,37 +874,68 @@ REPORT_CSS = """
     article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
                   padding:14px; overflow-x:auto; }
     article pre code { background:none; border:none; padding:0; }
-    article table { border-collapse:collapse; width:100%; margin:16px 0; font-size:14px; }
+    /* tables scroll sideways instead of blowing out narrow screens */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
+    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
     article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
     article th { background:var(--bg2); font-weight:600; }
     article tr:nth-child(even) td { background:var(--bg2); }
     article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
                          color:var(--text-muted); }
     article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
-    article a { color:var(--accent); }
+    article a { color:var(--accent); overflow-wrap:anywhere; }
+    article code { overflow-wrap:anywhere; }
+    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
+    /* table of contents (long reports only) */
+    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+           padding:14px 18px; margin:24px 0 8px; }
+    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
+                 text-transform:uppercase; color:var(--text-muted); }
+    .toc ul { list-style:none; margin:0; padding:0; }
+    .toc li { margin:0; }
+    .toc-sub { padding-left:16px; }
+    .toc a { display:block; padding:5px 0; font-size:14px; line-height:1.4;
+             text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .toc-sub a { font-size:13px; color:var(--text-muted); }
     footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
              color:var(--text-dim); font-size:12px; }
     footer a { color:var(--text-dim); }
     footer a:hover { color:var(--text-muted); }
+    @media (max-width:600px) {
+      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
+      .header-links { gap:12px; }
+      main { padding:24px 16px 48px; }
+      article h1 { font-size:23px; }
+      article h2 { font-size:18px; }
+    }
 """
 
 
-def write_daily_news(reports: list) -> None:
-    """Generate docs/daily-news.html — a dedicated tab page for dated reports."""
-    out = REPO / "docs" / "daily-news.html"
+REPORTS_CANONICAL = "https://laansdole.github.io/my-hermes-skills/reports.html"
+
+COMPAT_NOTE = """
+    <p class="hero-sub">
+      This page is kept so older links keep working. The canonical index is
+      <a href="reports.html">reports.html</a>.
+    </p>"""
+
+
+def reports_index_html(reports: list, note: str = "") -> str:
+    """The report catalog page; identical body for the canonical and compat routes."""
     if not reports:
         cards = "    <p class=\"card-desc\" style=\"padding:0 4px\">No reports filed yet.</p>\n"
     else:
         cards = "\n".join(report_card_html(r) for r in reports)
     n = len(reports)
     count = "1 report" if n == 1 else f"{n} reports"
-    page = f"""<!DOCTYPE html>
+    return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Daily News — my-hermes-skills</title>
-  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/daily-news.html" />
+  <title>Reports — my-hermes-skills</title>
+  <link rel="canonical" href="{REPORTS_CANONICAL}" />
   <style>
 {CSS}
   </style>
@@ -864,11 +964,11 @@ def write_daily_news(reports: list) -> None:
 
   <div class="hero">
     <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
-    <h1>Daily News</h1>
+    <h1>Reports</h1>
     <p class="hero-sub">
       Dated reports filed by the <a href="{GH}/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank">writing-reports</a> skill —
-      one card per report, newest first. Each card links to the full markdown report in the repo.
-    </p>
+      one card per report, newest first. Each card opens the full report.
+    </p>{note}
     <div class="hero-stats">
       <div class="stat">
         <span class="stat-num">{n}</span>
@@ -909,8 +1009,14 @@ def write_daily_news(reports: list) -> None:
 </body>
 </html>
 """
-    out.write_text(page)
-    print(f"wrote {out} ({n} reports)")
+
+
+def write_report_indexes(reports: list) -> None:
+    """Write canonical docs/reports.html plus the legacy docs/daily-news.html route."""
+    docs = REPO / "docs"
+    (docs / "reports.html").write_text(reports_index_html(reports))
+    (docs / "daily-news.html").write_text(reports_index_html(reports, COMPAT_NOTE))
+    print(f"wrote {docs / 'reports.html'} + daily-news.html ({len(reports)} reports)")
 
 
 def main() -> int:
@@ -921,7 +1027,7 @@ def main() -> int:
 
     reports = find_reports()
     write_report_pages(reports)
-    write_daily_news(reports)
+    write_report_indexes(reports)
 
     if "--json" in sys.argv:
         manifest = manifest_json(skills)
@@ -955,7 +1061,7 @@ def main() -> int:
       my-hermes-skills
     </div>
     <div class="header-links">
-      <a href="daily-news.html">Daily News</a>
+      <a href="reports.html">Reports</a>
       <a href="{GH}" target="_blank">GitHub</a>
       <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
       <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
