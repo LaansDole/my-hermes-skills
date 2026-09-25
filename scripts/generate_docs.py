@@ -636,16 +636,22 @@ def slugify(text: str) -> str:
 def heading_index(lines: list) -> list:
     """(level, text, id) per heading, in document order.
 
-    Repeated heading text gets -2, -3, … so every anchor target is unique.
+    Repeated heading text gets -2, -3, … so every anchor target is unique;
+    the counter skips ids a literal heading already took (a "Notes-2"
+    heading pushes the second "Notes" to notes-3).
     """
-    out, seen = [], {}
+    out, used = [], set()
     for ln in lines:
         h = re.match(r"^(#{1,6})\s+(.*)$", ln)
         if not h:
             continue
-        slug = slugify(h.group(2))
-        seen[slug] = n = seen.get(slug, 0) + 1
-        out.append((len(h.group(1)), h.group(2), slug if n == 1 else f"{slug}-{n}"))
+        slug = hid = slugify(h.group(2))
+        n = 1
+        while hid in used:
+            n += 1
+            hid = f"{slug}-{n}"
+        used.add(hid)
+        out.append((len(h.group(1)), h.group(2), hid))
     return out
 
 
