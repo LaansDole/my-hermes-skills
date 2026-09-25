@@ -81,12 +81,15 @@ def main() -> int:
     check(f"{len(pages)} generated report pages == {len(sources)} sources",
           len(pages) == len(sources))
 
-    back_ok = toc_ok = table_ok = theme_ok = True
+    back_ok = toc_ok = table_ok = theme_ok = css_ok = True
     for p in pages:
         t = p.read_text()
         back_ok &= 'href="../../reports.html"' in t
         table_ok &= t.count("<table>") == t.count('<div class="table-scroll"><table>')
         theme_ok &= 'id="theme-toggle"' in t and 'localStorage.getItem("theme")' in t
+        # an unclosed rule silently nests everything after it; nothing else catches this
+        style = re.search(r"<style>\n(.*?)\n  </style>", t, re.S)
+        css_ok &= bool(style) and style.group(1).count("{") == style.group(1).count("}")
         for target in re.findall(r'<a href="#([^"]+)"', t):
             hits = t.count('id="%s"' % target)
             if hits != 1:
@@ -95,6 +98,7 @@ def main() -> int:
     check("every report page links back to ../../reports.html", back_ok)
     check("every table wrapped in .table-scroll", table_ok)
     check("every TOC href resolves to exactly one heading id", toc_ok)
+    check("report page CSS braces balanced", css_ok)
     check("theme toggle present on every report page", theme_ok)
     check("theme toggle present on reports index",
           'id="theme-toggle"' in reports_page and ':root[data-theme="light"]' in reports_page)

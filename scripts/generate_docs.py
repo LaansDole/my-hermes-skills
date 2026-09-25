@@ -895,6 +895,7 @@ REPORT_CSS = """
     .toc-sub { padding-left:16px; }
     .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
              text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
     .toc-sub a { font-size:13px; color:var(--text-muted); }
     footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
              color:var(--text-dim); font-size:12px; }
