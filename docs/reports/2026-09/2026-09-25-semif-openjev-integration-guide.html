@@ -1,0 +1,551 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SemIf (formerly OpenJev): Integration and API Guide — Reports</title>
+  <style>
+
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
+            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
+            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
+            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
+            --accent:#0969da; --green:#1a7f37; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
+    header { border-bottom:1px solid var(--border); background:var(--bg);
+             position:sticky; top:0; z-index:100; }
+    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
+                    display:flex; justify-content:space-between; align-items:center; }
+    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
+    .header-links { display:flex; gap:16px; align-items:center; }
+    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .header-links a:hover { color:var(--text); }
+    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
+                    padding:4px 8px; cursor:pointer; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
+    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
+                 border-bottom:1px solid var(--border); }
+    article h3 { font-size:16px; margin:24px 0 8px; }
+    article p, article li { color:var(--text); }
+    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
+                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                  padding:14px; overflow-x:auto; }
+    article pre code { background:none; border:none; padding:0; }
+    /* tables scroll sideways instead of blowing out narrow screens */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
+    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
+    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
+    article th { background:var(--bg2); font-weight:600; }
+    article tr:nth-child(even) td { background:var(--bg2); }
+    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
+                         color:var(--text-muted); }
+    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+    article a { color:var(--accent); overflow-wrap:anywhere; }
+    article code { overflow-wrap:anywhere; }
+    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
+    /* table of contents (long reports only) */
+    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+           padding:14px 18px; margin:24px 0 8px; }
+    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
+                 text-transform:uppercase; color:var(--text-muted); }
+    .toc ul { list-style:none; margin:0; padding:0; }
+    .toc li { margin:0; }
+    .toc-sub { padding-left:16px; }
+    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
+             text-decoration:none; }
+    .toc-sub a { font-size:13px; color:var(--text-muted); }
+    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
+             color:var(--text-dim); font-size:12px; }
+    footer a { color:var(--text-dim); }
+    footer a:hover { color:var(--text-muted); }
+    @media (max-width:600px) {
+      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
+      .header-links { gap:12px; }
+      main { padding:24px 16px 48px; }
+      article h1 { font-size:23px; }
+      article h2 { font-size:18px; }
+    }
+
+  </style>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reports
+    </div>
+    <div class="header-links">
+      <a href="../../reports.html">All reports</a>
+      <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/reports/2026-09/2026-09-25-semif-openjev-integration-guide.md" target="_blank">Markdown source</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <article>
+<h1 id="semif-formerly-openjev-integration-and-api-guide">SemIf (formerly OpenJev): Integration and API Guide</h1>
+<ul><li><strong>Date:</strong> 2026-09-25</li><li><strong>Scope:</strong> How to install, run, integrate, and safely consume TheoLeeCJ/SemIf, formerly OpenJev.</li><li><strong>Method:</strong> Web search plus source inspection of repository commit <code>23cf1f39fc9534fe81437200959b6dfc7106e45a</code>, fetched 2026-09-25. Commands and schemas below were checked against that commit's implementation, not inferred from similarly named projects.</li></ul>
+<hr>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-top"><a href="#verdict">Verdict</a></li><li class="toc-top"><a href="#5-minute-overview">5-minute overview</a></li><li class="toc-top"><a href="#1-what-semif-does">1. What SemIf Does</a></li><li class="toc-top"><a href="#2-important-naming-boundary">2. Important Naming Boundary</a></li><li class="toc-top"><a href="#3-requirements">3. Requirements</a></li><li class="toc-top"><a href="#4-installation">4. Installation</a></li><li class="toc-top"><a href="#5-input-api-jsonl-decision-rows">5. Input API: JSONL Decision Rows</a></li><li class="toc-sub"><a href="#field-reference">Field reference</a></li><li class="toc-sub"><a href="#design-rules">Design rules</a></li><li class="toc-top"><a href="#6-cli-api">6. CLI API</a></li><li class="toc-sub"><a href="#full-command-shape">Full command shape</a></li><li class="toc-sub"><a href="#cuda-example">CUDA example</a></li><li class="toc-sub"><a href="#apple-silicon-mlx-example">Apple Silicon MLX example</a></li><li class="toc-sub"><a href="#apple-silicon-mps-example">Apple Silicon MPS example</a></li><li class="toc-sub"><a href="#cpu-llama-cpp-example">CPU llama.cpp example</a></li><li class="toc-top"><a href="#7-output-api">7. Output API</a></li><li class="toc-sub"><a href="#output-field-reference">Output field reference</a></li><li class="toc-sub"><a href="#safely-selecting-an-answer">Safely selecting an answer</a></li><li class="toc-top"><a href="#8-integration-pattern-a-batch-files">8. Integration Pattern A: Batch Files</a></li><li class="toc-top"><a href="#9-integration-pattern-b-long-lived-python-worker">9. Integration Pattern B: Long-Lived Python Worker</a></li><li class="toc-sub"><a href="#direct-scorer">Direct scorer</a></li><li class="toc-sub"><a href="#serial-prefix-reuse">Serial prefix reuse</a></li><li class="toc-sub"><a href="#shared-state-fan-out">Shared-state fan-out</a></li><li class="toc-sub"><a href="#concurrency">Concurrency</a></li><li class="toc-top"><a href="#10-integration-pattern-c-your-own-http-api">10. Integration Pattern C: Your Own HTTP API</a></li><li class="toc-top"><a href="#11-choosing-between-direct-serial-and-shared">11. Choosing Between <code>direct</code>, <code>serial</code>, and <code>shared</code></a></li><li class="toc-top"><a href="#12-confidence-calibration-and-thresholds">12. Confidence, Calibration, and Thresholds</a></li><li class="toc-top"><a href="#13-error-handling">13. Error Handling</a></li><li class="toc-top"><a href="#14-security-and-privacy">14. Security and Privacy</a></li><li class="toc-top"><a href="#15-testing-an-integration">15. Testing an Integration</a></li><li class="toc-sub"><a href="#schema-smoke-test">Schema smoke test</a></li><li class="toc-sub"><a href="#repository-tests">Repository tests</a></li><li class="toc-sub"><a href="#application-tests">Application tests</a></li><li class="toc-top"><a href="#16-observability">16. Observability</a></li><li class="toc-top"><a href="#17-deployment-checklist">17. Deployment Checklist</a></li><li class="toc-top"><a href="#18-known-limitations">18. Known Limitations</a></li><li class="toc-top"><a href="#sources">Sources</a></li></ul></nav>
+<h2 id="verdict">Verdict</h2>
+<p>SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through <code>semif-score</code> for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application needs HTTP, place a small service around that worker rather than expecting a built-in <code>/v1/systemone</code> endpoint.[1][4]</p>
+<p>The project was formerly named OpenJev, but it is independent of TypeSafe and does not reproduce TypeSafe's undisclosed Jev model or training.[2] This distinction also matters because other, newer projects use the OpenJev name and expose different APIs.</p>
+<hr>
+<h2 id="5-minute-overview">5-minute overview</h2>
+<p>You send three things: the <code>state</code> holding the evidence, one <code>question</code>, and 2-16 explicitly described options.[5] SemIf labels those options with answer-token letters, then reads the model's last-position logits for exactly those letters and applies softmax over them.[6] Nothing is written back: there is no decoding loop, no prose to parse, and no JSON to repair or retry.</p>
+<p>That is where the speed comes from. Scoring is a forward pass over the prompt instead of token-by-token generation, and <code>shared</code> mode prefills one long state once and reuses that prefix across every independent question asked about it.[8]</p>
+<p>Decision quality comes from the bounded, explicit option set — the model chooses among alternatives you wrote down, including an explicit insufficient-evidence option when you supply one — and from validating that set on your own workload. It does not come from typed output alone.</p>
+<p>The returned values are conditional scores over the options you supplied, not deployment confidence. They are relative to that option set and must be calibrated on representative labeled data before any action threshold is attached to them.[6][11]</p>
+<hr>
+<h2 id="1-what-semif-does">1. What SemIf Does</h2>
+<p>SemIf turns one item of state plus one runtime-defined question and 2-16 described options into a probability distribution over those options.[5] It reads the language model's next-token logits for letter slots (<code>A</code> through <code>P</code>) and applies softmax; it does not generate an answer sentence or JSON response.[6]</p>
+<p>Typical uses:</p>
+<ul><li>route a support request;</li><li>decide whether evidence supports a claim;</li><li>select an application action from an allowlist;</li><li>classify or rank a bounded set of alternatives;</li><li>run many independent judgments over one shared, long state.</li></ul>
+<p>SemIf provides four execution modes:</p>
+<div class="table-scroll"><table><thead><tr><th>Mode</th><th>Purpose</th><th>State reuse</th><th>Supported backends</th></tr></thead><tbody>
+<tr><td><code>direct</code></td><td>Score each row independently</td><td>None</td><td>Torch, MLX, llama.cpp</td></tr>
+<tr><td><code>serial</code></td><td>Process rows in order and reuse the immediately repeated state</td><td>One retained prefix cache</td><td>Torch, MLX, llama.cpp</td></tr>
+<tr><td><code>shared</code></td><td>Evaluate a batch whose rows all have exactly the same state</td><td>One prefill, multiple question suffixes</td><td>Torch, MLX, llama.cpp</td></tr>
+<tr><td><code>reranker</code></td><td>Alternative native reranker baseline</td><td>Backend-specific</td><td>Torch/CUDA only</td></tr>
+</tbody></table></div>
+<p>The CLI rejects MLX or llama.cpp with <code>reranker</code>; the Torch reranker is CUDA-only.[4]</p>
+<hr>
+<h2 id="2-important-naming-boundary">2. Important Naming Boundary</h2>
+<p>Use these identifiers to avoid integrating the wrong project:</p>
+<div class="table-scroll"><table><thead><tr><th>Name</th><th>Meaning in this guide</th></tr></thead><tbody>
+<tr><td>SemIf</td><td><code>github.com/TheoLeeCJ/SemIf</code>, package <code>semif-phase1</code>, CLI <code>semif-score</code></td></tr>
+<tr><td>Former OpenJev</td><td>The previous name of the same TheoLeeCJ/SemIf project</td></tr>
+<tr><td>TypeSafe Jev</td><td>A separate hosted commercial model and API</td></tr>
+<tr><td><code>openjev/openjev</code></td><td>A different open-weights project that now uses the OpenJev name</td></tr>
+<tr><td><code>api.openjev.sh</code></td><td>A separate hosted API, not the SemIf CLI documented here</td></tr>
+</tbody></table></div>
+<p>Do not point a SemIf client at an OpenJev or TypeSafe endpoint and assume semantic or calibration equivalence. SemIf's own output explicitly labels its probabilities as conditional option scores and uncalibrated decision confidence.[6]</p>
+<hr>
+<h2 id="3-requirements">3. Requirements</h2>
+<p>The researched package declares Python 3.10 or newer and pins Torch 2.10.0, Transformers 5.17.0, Accelerate 1.12.0, Safetensors 0.8.0, Hugging Face Hub 1.31.0, Tokenizers 0.23.2, NumPy 2.2.6, SentencePiece 0.2.1, and Protobuf 7.36.1.[3]</p>
+<p>Choose one runtime:</p>
+<div class="table-scroll"><table><thead><tr><th>Runtime</th><th>Recommended use</th><th>Notes</th></tr></thead><tbody>
+<tr><td>Torch + CUDA</td><td>Main GPU path</td><td>Expose exactly one CUDA GPU; Qwen3.5-4B BF16 must fit in memory.[2][5]</td></tr>
+<tr><td>MLX</td><td>Apple Silicon</td><td>Text scoring through Metal; direct, serial, and shared modes.[9][10]</td></tr>
+<tr><td>Torch + MPS</td><td>Apple Silicon fallback</td><td>Supported, but some Qwen3.5 kernels use slower fallback paths.[9]</td></tr>
+<tr><td>llama.cpp</td><td>CPU/local GGUF</td><td>Requires the <code>llamacpp</code> extra and a local GGUF checkpoint.[2][4]</td></tr>
+<tr><td>Torch + CPU</td><td>Full-precision reference</td><td>Explicitly pass <code>--device cpu --dtype float32</code>; expect it to be slow.[2][4]</td></tr>
+</tbody></table></div>
+<p>The default Qwen3.5-4B MLX source weights are about 9 GB on disk and require additional execution memory.[10]</p>
+<hr>
+<h2 id="4-installation">4. Installation</h2>
+<p>Clone the repository because SemIf is not presented as a stable PyPI SDK:</p>
+<pre><code>git clone https://github.com/TheoLeeCJ/SemIf.git
+cd SemIf
+git checkout 23cf1f39fc9534fe81437200959b6dfc7106e45a
+python3 -m venv .venv
+source .venv/bin/activate
+</code></pre>
+<p>Install the runtime you need:</p>
+<pre><code># Torch: CUDA, MPS, or explicit CPU
+pip install -e &#x27;.[test]&#x27;
+
+# Apple Silicon MLX
+pip install -e &#x27;.[test,mlx]&#x27;
+
+# llama.cpp with a local GGUF
+pip install -e &#x27;.[test,llamacpp]&#x27;
+</code></pre>
+<p>For a production integration, pin both the SemIf commit and model revision. Remote model revisions must be immutable 40-character commit IDs; local model directories require a nonempty revision or manifest label.[5]</p>
+<p>Optional: put Hugging Face downloads on a large drive before installation or first use:</p>
+<pre><code>export HF_HOME=/path/to/large-drive/huggingface
+</code></pre>
+<hr>
+<h2 id="5-input-api-jsonl-decision-rows">5. Input API: JSONL Decision Rows</h2>
+<p><code>semif-score</code> reads newline-delimited JSON. Each line is one independent decision:</p>
+<pre><code>{
+  &quot;id&quot;: &quot;route-1&quot;,
+  &quot;state&quot;: &quot;Customer cannot access an account after a password reset.&quot;,
+  &quot;question&quot;: &quot;Which queue should handle this request?&quot;,
+  &quot;options&quot;: [
+    {&quot;id&quot;: &quot;access&quot;, &quot;description&quot;: &quot;Account access support.&quot;},
+    {&quot;id&quot;: &quot;billing&quot;, &quot;description&quot;: &quot;Billing support.&quot;},
+    {&quot;id&quot;: &quot;insufficient&quot;, &quot;description&quot;: &quot;There is not enough evidence to decide.&quot;}
+  ]
+}
+</code></pre>
+<h3 id="field-reference">Field reference</h3>
+<div class="table-scroll"><table><thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Constraints and meaning</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td>string</td><td>Yes</td><td>Nonempty decision identifier; maps output back to application code. Must be unique within a <code>shared</code> batch.</td></tr>
+<tr><td><code>state</code></td><td>string, object, or array</td><td>Yes</td><td>Nonempty, finite JSON-compatible evidence and context. Objects and arrays retain structured JSON in direct modes.</td></tr>
+<tr><td><code>question</code></td><td>string</td><td>Yes</td><td>Nonempty criterion to apply to the state. It must be self-contained.</td></tr>
+<tr><td><code>options</code></td><td>array</td><td>Yes</td><td>2-16 entries. Order is mapped to answer-token letters, so preserve it when comparing runs.</td></tr>
+<tr><td><code>options[].id</code></td><td>string</td><td>Yes</td><td>Application-facing option ID; unique within the row.</td></tr>
+<tr><td><code>options[].description</code></td><td>string</td><td>Yes</td><td>Meaning the model judges. Descriptions may be empty under the current validator, but meaningful descriptions are required for useful behavior.</td></tr>
+</tbody></table></div>
+<p>These constraints come directly from <code>validate_row</code> in the researched source.[5]</p>
+<h3 id="design-rules">Design rules</h3>
+<ol><li>Put facts and evidence in <code>state</code>; put the single judgment in <code>question</code>.</li><li>Keep each question narrow and independently answerable.</li><li>Describe every option explicitly; IDs are for application code, not model semantics.</li><li>Include an <code>insufficient</code>, <code>unknown</code>, or <code>none</code> option when the evidence may not support any substantive answer.</li><li>Do not pass a URL and expect browsing. Fetch external content in your application and place the relevant content in <code>state</code>.</li><li>Keep policy and execution in code. SemIf should choose among allowed alternatives, not invent operations.</li></ol>
+<hr>
+<h2 id="6-cli-api">6. CLI API</h2>
+<p>The installed executable is <code>semif-score</code>.[3]</p>
+<h3 id="full-command-shape">Full command shape</h3>
+<pre><code>semif-score \
+  --mode direct|serial|shared|reranker \
+  --backend torch|mlx|llamacpp \
+  --model MODEL_OR_LOCAL_PATH \
+  --revision IMMUTABLE_REVISION_OR_LOCAL_LABEL \
+  --input INPUT.jsonl \
+  --output NEW_OUTPUT.jsonl \
+  [--max-tokens 4096] \
+  [--device auto|cuda|mps|cpu] \
+  [--dtype bfloat16|float16|float32] \
+  [--mlx-bits 4|8] \
+  [--mlx-cache-limit-mib N] \
+  [--gguf /path/to/model.gguf] \
+  [--llama-threads N]
+</code></pre>
+<p>The output path must not already exist. SemIf creates it exclusively and refuses to overwrite it. Input that exceeds <code>--max-tokens</code> fails rather than being truncated.[4][6]</p>
+<h3 id="cuda-example">CUDA example</h3>
+<pre><code>CUDA_VISIBLE_DEVICES=0 semif-score \
+  --mode direct \
+  --model Qwen/Qwen3.5-4B \
+  --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
+  --input decisions.jsonl \
+  --output results.jsonl
+</code></pre>
+<h3 id="apple-silicon-mlx-example">Apple Silicon MLX example</h3>
+<pre><code>semif-score \
+  --backend mlx \
+  --mode direct \
+  --model Qwen/Qwen3.5-4B \
+  --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
+  --input decisions.jsonl \
+  --output results-mlx.jsonl
+</code></pre>
+<p>Use <code>--mlx-bits 8</code> or <code>--mlx-bits 4</code> for in-memory affine quantization. Quantization changes probabilities and must be evaluated separately; it does not create another model artifact.[10]</p>
+<h3 id="apple-silicon-mps-example">Apple Silicon MPS example</h3>
+<pre><code>semif-score \
+  --mode direct \
+  --device mps \
+  --model Qwen/Qwen3.5-4B \
+  --revision 851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a \
+  --input decisions.jsonl \
+  --output results-mps.jsonl
+</code></pre>
+<h3 id="cpu-llama-cpp-example">CPU llama.cpp example</h3>
+<p>First obtain a compatible local GGUF, then run:</p>
+<pre><code>semif-score \
+  --backend llamacpp \
+  --mode direct \
+  --model Qwen/Qwen3.5-4B \
+  --revision local-gguf-manifest-v1 \
+  --gguf /models/Qwen_Qwen3.5-4B-Q4_K_M.gguf \
+  --llama-threads 8 \
+  --input decisions.jsonl \
+  --output results-cpu.jsonl
+</code></pre>
+<p>The <code>--model</code> value remains relevant because prompt construction uses the reference tokenizer; <code>--gguf</code> supplies the local scoring weights.[2][4]</p>
+<hr>
+<h2 id="7-output-api">7. Output API</h2>
+<p>A direct-mode output line has this logical shape:[6]</p>
+<pre><code>{
+  &quot;id&quot;: &quot;route-1&quot;,
+  &quot;option_ids&quot;: [&quot;access&quot;, &quot;billing&quot;, &quot;insufficient&quot;],
+  &quot;probabilities&quot;: [0.82, 0.06, 0.12],
+  &quot;option_logits&quot;: [8.1, 5.5, 6.2],
+  &quot;input_tokens&quot;: 137,
+  &quot;forward_seconds&quot;: 0.24,
+  &quot;total_seconds&quot;: 0.25,
+  &quot;prompt_sha256&quot;: &quot;...&quot;,
+  &quot;prompt_version&quot;: &quot;direct-options-v1&quot;,
+  &quot;model&quot;: {
+    &quot;source&quot;: &quot;Qwen/Qwen3.5-4B&quot;,
+    &quot;revision&quot;: &quot;851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a&quot;,
+    &quot;dtype&quot;: &quot;bfloat16&quot;,
+    &quot;device&quot;: &quot;...&quot;,
+    &quot;torch_version&quot;: &quot;...&quot;,
+    &quot;transformers_version&quot;: &quot;...&quot;
+  },
+  &quot;readout&quot;: &quot;native full-vocabulary last-position logits restricted to declared answer slots&quot;,
+  &quot;probability_status&quot;: &quot;conditional option score; uncalibrated as decision confidence&quot;
+}
+</code></pre>
+<p>The numeric values above are illustrative; the field shape is source-derived.</p>
+<h3 id="output-field-reference">Output field reference</h3>
+<div class="table-scroll"><table><thead><tr><th>Field</th><th>Meaning</th></tr></thead><tbody>
+<tr><td><code>id</code></td><td>Input row identifier.</td></tr>
+<tr><td><code>option_ids</code></td><td>IDs in the exact order corresponding to <code>probabilities</code> and <code>option_logits</code>.</td></tr>
+<tr><td><code>probabilities</code></td><td>Softmax over only the declared answer-slot logits; values sum approximately to 1.</td></tr>
+<tr><td><code>option_logits</code></td><td>Raw selected next-token logits. Preserve these if you plan to apply temperature calibration later.</td></tr>
+<tr><td><code>input_tokens</code></td><td>Prompt token count.</td></tr>
+<tr><td><code>forward_seconds</code></td><td>Timed model-forward work for the selected execution path.</td></tr>
+<tr><td><code>total_seconds</code></td><td>End-to-end row scoring time inside the scorer.</td></tr>
+<tr><td><code>prompt_sha256</code></td><td>Hash of the rendered prompt, useful for reproducibility and cache checks.</td></tr>
+<tr><td><code>prompt_version</code></td><td>Prompt contract identifier; currently <code>direct-options-v1</code>.</td></tr>
+<tr><td><code>model</code></td><td>Model source, revision, runtime, device, precision, and possibly serving configuration.</td></tr>
+<tr><td><code>readout</code></td><td>Description of the scoring path.</td></tr>
+<tr><td><code>probability_status</code></td><td>Explicit warning about interpretation.</td></tr>
+</tbody></table></div>
+<p>Serial output adds fields such as <code>cache_hit</code>, <code>prefix_tokens</code>, cache/prefix timing, answer token IDs, and vocabulary diagnostics.[7] Shared output adds the same <code>shared_timing</code> object to every output row, including batch size, prefix length, prefill time, replication time, and suffix-forward time.[4][8]</p>
+<h3 id="safely-selecting-an-answer">Safely selecting an answer</h3>
+<p>Never assume the highest probability is at the same array index across different row schemas. Pair the arrays from the same output object:</p>
+<pre><code>best_index = max(range(len(result[&quot;probabilities&quot;])),
+                 key=result[&quot;probabilities&quot;].__getitem__)
+best_option_id = result[&quot;option_ids&quot;][best_index]
+best_probability = result[&quot;probabilities&quot;][best_index]
+</code></pre>
+<p>Treat <code>best_probability</code> as a relative score among the supplied options until calibrated on your workload.</p>
+<hr>
+<h2 id="8-integration-pattern-a-batch-files">8. Integration Pattern A: Batch Files</h2>
+<p>Use the CLI directly when decisions can be prepared and consumed in batches.</p>
+<pre><code>import json
+import subprocess
+import tempfile
+from pathlib import Path
+
+MODEL = &quot;Qwen/Qwen3.5-4B&quot;
+REVISION = &quot;851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a&quot;
+
+
+def score_batch(rows: list[dict]) -&gt; list[dict]:
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        source = root / &quot;input.jsonl&quot;
+        destination = root / &quot;output.jsonl&quot;
+        source.write_text(
+            &quot;&quot;.join(json.dumps(row, ensure_ascii=False) + &quot;\n&quot; for row in rows),
+            encoding=&quot;utf-8&quot;,
+        )
+        subprocess.run(
+            [
+                &quot;semif-score&quot;,
+                &quot;--mode&quot;, &quot;direct&quot;,
+                &quot;--model&quot;, MODEL,
+                &quot;--revision&quot;, REVISION,
+                &quot;--input&quot;, str(source),
+                &quot;--output&quot;, str(destination),
+            ],
+            check=True,
+        )
+        return [
+            json.loads(line)
+            for line in destination.read_text(encoding=&quot;utf-8&quot;).splitlines()
+            if line.strip()
+        ]
+</code></pre>
+<p>This is simple but inefficient for request-per-decision serving because every process invocation reloads the model. Use it for offline pipelines, cron jobs, experiments, and reproducible evaluation—not a latency-sensitive HTTP route.</p>
+<hr>
+<h2 id="9-integration-pattern-b-long-lived-python-worker">9. Integration Pattern B: Long-Lived Python Worker</h2>
+<p>For an application service, load the model once and reuse it. The Python functions are implementation-level APIs, not a separately versioned public SDK, so pin the repository commit and place them behind your own adapter.</p>
+<h3 id="direct-scorer">Direct scorer</h3>
+<pre><code>from semif_phase1.core import load_causal_model, validate_row
+from semif_phase1.direct import score
+
+MODEL = &quot;Qwen/Qwen3.5-4B&quot;
+REVISION = &quot;851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a&quot;
+
+model, tokenizer, metadata = load_causal_model(
+    MODEL,
+    REVISION,
+    device=&quot;cuda&quot;,       # or &quot;mps&quot; / &quot;cpu&quot;
+    dtype=&quot;bfloat16&quot;,    # use float32 for explicit CPU reference work
+)
+
+
+def decide(row: dict) -&gt; dict:
+    validate_row(row)
+    return score(model, tokenizer, row, metadata, max_tokens=4096)
+</code></pre>
+<h3 id="serial-prefix-reuse">Serial prefix reuse</h3>
+<p>Use serial mode when consecutive requests often share the same exact state:</p>
+<pre><code>from semif_phase1.serial import SerialPrefixScorer
+
+scorer = SerialPrefixScorer(model, tokenizer, metadata, max_tokens=4096)
+result_a = scorer.score(row_a)
+result_b = scorer.score(row_b)  # cache hit only if state matches
+</code></pre>
+<p>The scorer retains one state's native prefix cache. A changed state invalidates it.[7]</p>
+<h3 id="shared-state-fan-out">Shared-state fan-out</h3>
+<p>Use shared scoring when many independent questions all see the exact same state:</p>
+<pre><code>from semif_phase1.shared import score_shared
+
+results, timing = score_shared(
+    model,
+    tokenizer,
+    rows_with_identical_state,
+    metadata,
+    max_tokens=4096,
+)
+</code></pre>
+<p>All rows must have exactly equal states and unique IDs. Questions are independent; one question cannot consume another question's result in the same call.[8]</p>
+<h3 id="concurrency">Concurrency</h3>
+<p>Do not call one mutable model/cache object concurrently without an explicit queue or lock. The llama.cpp backend owns one stateful scoring context, and serial/shared paths manipulate prefix caches.[2][7][8] A safe starting architecture is one worker queue per loaded model/device, with bounded input and application-level timeouts.</p>
+<hr>
+<h2 id="10-integration-pattern-c-your-own-http-api">10. Integration Pattern C: Your Own HTTP API</h2>
+<p>SemIf does not ship an HTTP server at the researched commit.[1][3][4] If you need one, expose a narrow adapter around the long-lived worker.</p>
+<p>Recommended contract:</p>
+<pre><code>POST /v1/decisions
+Content-Type: application/json
+
+{
+  &quot;mode&quot;: &quot;direct&quot;,
+  &quot;decisions&quot;: [&lt;SemIf decision row&gt;, ...]
+}
+</code></pre>
+<p>Recommended response:</p>
+<pre><code>200 OK
+
+{
+  &quot;results&quot;: [&lt;SemIf output row&gt;, ...],
+  &quot;model_revision&quot;: &quot;851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a&quot;
+}
+</code></pre>
+<p>Adapter requirements:</p>
+<ol><li>Validate every row with <code>validate_row</code> before enqueueing it.</li><li>Allow only configured model and revision values; do not accept arbitrary Hugging Face repositories from public callers.</li><li>Cap body size, decision count, and prompt tokens.</li><li>Serialize or bound GPU work to avoid out-of-memory failures.</li><li>Return <code>422</code> for invalid rows, <code>429</code> for queue saturation, and <code>503</code> for unavailable workers.</li><li>Do not expose raw traceback, filesystem paths, model cache paths, or unrestricted local model loading.</li><li>Preserve <code>option_ids</code>, <code>probabilities</code>, <code>option_logits</code>, model metadata, and prompt hash in internal logs, subject to data-retention policy.</li><li>Authenticate the endpoint and terminate TLS before exposing it outside localhost.</li></ol>
+<p>This wrapper contract is a recommended integration design, not a SemIf-provided API.</p>
+<hr>
+<h2 id="11-choosing-between-direct-serial-and-shared">11. Choosing Between <code>direct</code>, <code>serial</code>, and <code>shared</code></h2>
+<pre><code>Are all questions known now and based on the exact same state?
+  Yes -&gt; shared
+  No  -&gt; Will consecutive decisions often use the exact same state?
+           Yes -&gt; serial
+           No  -&gt; direct
+</code></pre>
+<p>Use a second scoring call when:</p>
+<ul><li>an earlier decision determines which evidence to retrieve;</li><li>an earlier answer changes the options or question;</li><li>application state changed after the first decision;</li><li>a decision must be confirmed against new evidence.</li></ul>
+<p>Shared mode is not a chain-of-thought or dependency mechanism; it is independent fan-out over a common prefix.[8]</p>
+<hr>
+<h2 id="12-confidence-calibration-and-thresholds">12. Confidence, Calibration, and Thresholds</h2>
+<p>Raw SemIf probabilities are conditional on the options supplied. They are not universally calibrated confidence values.[6][11]</p>
+<p>Consequences:</p>
+<ul><li>Adding or removing an option changes the probability distribution.</li><li>A high score does not prove that the state contains sufficient evidence unless an insufficient-evidence option was available.</li><li>A threshold copied from another workload is not justified.</li><li>Typed output guarantees the response shape, not semantic correctness.</li></ul>
+<p>SemIf includes an offline scalar temperature-calibration script. Given labeled results containing <code>option_logits</code>, it applies:</p>
+<pre><code>calibrated_probabilities = softmax(option_logits / T)
+</code></pre>
+<p>Because division by a positive temperature is monotonic, calibration changes confidence but not the selected argmax.[11]</p>
+<p>Example application of an already selected temperature:</p>
+<pre><code>python benchmarks/calibrate.py \
+  --predictions predictions.jsonl \
+  --temperature 1.23 \
+  --calibrated-out calibrated.jsonl
+</code></pre>
+<p>Fit and validate <code>T</code> on representative, labeled data from the actual deployment workload. Then choose thresholds based on consequences—for example, auto-route only above the measured review threshold and send other cases to a human or a stronger model.</p>
+<hr>
+<h2 id="13-error-handling">13. Error Handling</h2>
+<p>SemIf is a local program, so errors appear as Python exceptions or a nonzero subprocess exit—not HTTP statuses.</p>
+<div class="table-scroll"><table><thead><tr><th>Failure</th><th>Likely cause</th><th>Handling</th></tr></thead><tbody>
+<tr><td>Missing row fields</td><td>No <code>id</code>, <code>state</code>, <code>question</code>, or <code>options</code></td><td>Reject before inference.</td></tr>
+<tr><td>Invalid state</td><td>Empty, unsupported type, NaN, infinity, or non-JSON data</td><td>Normalize to finite JSON-compatible content.</td></tr>
+<tr><td>Invalid options</td><td>Fewer than 2, more than 16, duplicate IDs, or malformed entries</td><td>Fix the schema.</td></tr>
+<tr><td>Token limit exceeded</td><td>Rendered prompt is larger than <code>--max-tokens</code></td><td>Reduce state intentionally; SemIf will not truncate it.</td></tr>
+<tr><td>Remote revision rejected</td><td>Revision is not a 40-character commit hash</td><td>Resolve and pin an immutable model commit.</td></tr>
+<tr><td>CUDA device error</td><td>Zero or multiple visible GPUs</td><td>Set <code>CUDA_VISIBLE_DEVICES</code> to exactly one GPU.</td></tr>
+<tr><td>Existing output file</td><td>CLI is create-only</td><td>Choose a new output path or remove an abandoned file deliberately.</td></tr>
+<tr><td>Unsupported mode/backend</td><td>Reranker selected with MLX, llama.cpp, MPS, or CPU</td><td>Use direct/serial/shared or Torch/CUDA reranker.</td></tr>
+<tr><td>Out of memory</td><td>Model, batch, or suffix fan-out is too large</td><td>Reduce batch size, use serial mode, quantize where supported, or use a smaller model.</td></tr>
+</tbody></table></div>
+<p>For subprocess integration, capture <code>stderr</code>, set a timeout, check the exit status, and treat partial output as incomplete. The CLI flushes rows as it writes, so an interrupted run can leave a partial file.[4]</p>
+<hr>
+<h2 id="14-security-and-privacy">14. Security and Privacy</h2>
+<p>Local execution means decision state does not need to be sent to TypeSafe or another hosted inference API, but model downloads still contact Hugging Face unless weights are already local.[2][10]</p>
+<p>Production checklist:</p>
+<ul><li>pin SemIf and model commits;</li><li>review upstream model licenses separately from SemIf's MIT code license;</li><li>keep the scorer on a private host or network;</li><li>never let untrusted callers select arbitrary model paths or revisions;</li><li>validate body size and token count before GPU admission;</li><li>redact sensitive state from logs while retaining non-sensitive reproducibility metadata;</li><li>isolate model caches with appropriate filesystem permissions;</li><li>apply timeouts and queue limits;</li><li>evaluate prompt-injection-like content because <code>state</code> is untrusted model input;</li><li>use application allowlists for downstream actions.</li></ul>
+<p>SemIf's repository code is MIT-licensed, while upstream models retain their own licenses.[2]</p>
+<hr>
+<h2 id="15-testing-an-integration">15. Testing an Integration</h2>
+<h3 id="schema-smoke-test">Schema smoke test</h3>
+<pre><code>PYTHONPATH=src python3 - &lt;&lt;&#x27;PY&#x27;
+import json
+from pathlib import Path
+from semif_phase1.core import validate_row
+
+rows = [
+    json.loads(line)
+    for line in Path(&quot;examples/decisions.jsonl&quot;).read_text().splitlines()
+    if line.strip()
+]
+for row in rows:
+    validate_row(row)
+print(f&quot;validated {len(rows)} rows&quot;)
+PY
+</code></pre>
+<h3 id="repository-tests">Repository tests</h3>
+<p>After installing the selected extras:</p>
+<pre><code>pytest -q
+</code></pre>
+<h3 id="application-tests">Application tests</h3>
+<p>Maintain a labeled suite that covers:</p>
+<ol><li>normal cases for every option;</li><li>insufficient-evidence cases;</li><li>ambiguous cases near review thresholds;</li><li>reordered options;</li><li>missing or adversarial evidence;</li><li>long inputs near the token limit;</li><li>repeated-state serial behavior;</li><li>shared batches with mixed states, which must fail;</li><li>model or runtime upgrades compared against the pinned baseline;</li><li>calibrated-threshold behavior, not only argmax accuracy.</li></ol>
+<p>Do not silently promote a new SemIf commit, Transformers version, model revision, quantization, prompt version, or backend. Compare choices, probability drift, calibration, latency, and memory before deployment.</p>
+<hr>
+<h2 id="16-observability">16. Observability</h2>
+<p>Keep these output fields where policy permits:</p>
+<ul><li><code>id</code>;</li><li><code>option_ids</code> and selected option;</li><li>raw and calibrated probabilities;</li><li><code>option_logits</code>;</li><li><code>prompt_sha256</code> and <code>prompt_version</code>;</li><li>model source, revision, backend, dtype, and runtime versions;</li><li>input token count;</li><li>forward and total timing;</li><li>cache hit and shared timing fields;</li><li>final application action and later observed outcome.</li></ul>
+<p>The state itself may contain sensitive data. Store it only when necessary and under an explicit retention policy.</p>
+<hr>
+<h2 id="17-deployment-checklist">17. Deployment Checklist</h2>
+<ul><li>[ ] Pin SemIf commit.</li><li>[ ] Pin model revision and tokenizer source.</li><li>[ ] Select backend and precision explicitly.</li><li>[ ] Validate rows before inference.</li><li>[ ] Add an insufficient-evidence option where appropriate.</li><li>[ ] Load the model once in a long-lived worker.</li><li>[ ] Serialize or bound device concurrency.</li><li>[ ] Set token, body, batch, queue, and time limits.</li><li>[ ] Preserve output-to-option alignment.</li><li>[ ] Fit calibration and action thresholds on deployment data.</li><li>[ ] Add a review or fallback path.</li><li>[ ] Log version and prompt metadata without leaking sensitive state.</li><li>[ ] Re-evaluate every model, runtime, backend, prompt, or quantization change.</li><li>[ ] Verify upstream model and application-use licenses.</li></ul>
+<hr>
+<h2 id="18-known-limitations">18. Known Limitations</h2>
+<ul><li>The Python imports are implementation-level APIs and may change without SDK-style compatibility guarantees.</li><li>The repository does not provide a built-in HTTP server at the researched commit.[1][3][4]</li><li>Direct decisions support at most 16 options because the implementation uses <code>A</code> through <code>P</code> answer slots.[5]</li><li>Inputs over the configured token limit fail; there is no automatic truncation.[6]</li><li>Raw probabilities are not portable confidence thresholds.[6][11]</li><li><code>shared</code> requires exact state equality and independent questions.[8]</li><li>MLX and MPS shared execution loops over independent suffixes rather than using CUDA's parallel suffix batch.[8][9]</li><li>Backend, precision, and quantization can change probabilities or choices.[2][10]</li><li>The project identifies itself as phase-one research code, not as a managed production service.[2][3]</li></ul>
+<hr>
+<h2 id="sources">Sources</h2>
+<p>[1] <a href="https://github.com/TheoLeeCJ/SemIf/tree/23cf1f39fc9534fe81437200959b6dfc7106e45a" target="_blank">https://github.com/TheoLeeCJ/SemIf/tree/23cf1f39fc9534fe81437200959b6dfc7106e45a</a> — TheoLeeCJ/SemIf repository at researched commit [2] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/README.md" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/README.md</a> — SemIf README [3] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/pyproject.toml" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/pyproject.toml</a> — SemIf package manifest [4] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/cli.py" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/cli.py</a> — SemIf CLI source [5] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/core.py" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/core.py</a> — SemIf core source [6] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/direct.py" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/direct.py</a> — SemIf direct scorer source [7] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/serial.py" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/serial.py</a> — SemIf serial scorer source [8] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/shared.py" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/shared.py</a> — SemIf shared scorer source [9] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/APPLE_SILICON.md" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/APPLE_SILICON.md</a> — SemIf Apple Silicon guide [10] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/MLX.md" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/MLX.md</a> — SemIf MLX guide [11] <a href="https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/CALIBRATION.md" target="_blank">https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/CALIBRATION.md</a> — SemIf calibration guide</p>
+  </article>
+</main>
+
+<footer>
+  <p>
+    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
+    Filed by the writing-reports skill &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn || !icon) return;
+      function paint() {
+        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
