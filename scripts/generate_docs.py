@@ -852,7 +852,6 @@ REPORT_CSS = """
     * { box-sizing:border-box; }
     body { margin:0; background:var(--bg); color:var(--text);
            font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
-    html { scroll-behavior:smooth; }
     header { border-bottom:1px solid var(--border); background:var(--bg);
              position:sticky; top:0; z-index:100; }
     .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
@@ -894,9 +893,8 @@ REPORT_CSS = """
     .toc ul { list-style:none; margin:0; padding:0; }
     .toc li { margin:0; }
     .toc-sub { padding-left:16px; }
-    .toc a { display:block; padding:5px 0; font-size:14px; line-height:1.4;
+    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
              text-decoration:none; }
-    .toc a:hover { text-decoration:underline; }
     .toc-sub a { font-size:13px; color:var(--text-muted); }
     footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
              color:var(--text-dim); font-size:12px; }
