@@ -153,6 +153,14 @@ class HelperTests(unittest.TestCase):
         # stable: same input renders byte-identically on a second call
         self.assertEqual(out, gd.md_to_html(md))
 
+    def test_natural_suffix_slug_cannot_collide_with_a_disambiguated_id(self):
+        # "Notes-2" slugifies to the id the second "Notes" would otherwise claim.
+        md = "## Notes\n\none\n\n## Notes-2\n\ntwo\n\n## Notes\n\nthree\n"
+        ids = [hid for _, _, hid in gd.heading_index(md.split("\n"))]
+        self.assertEqual(ids, ["notes", "notes-2", "notes-3"])
+        out = gd.md_to_html(md)
+        self.assertEqual(re.findall(r'<h2 id="([^"]+)"', out), ids)
+
     def test_long_report_toc_targets_generated_heading_ids(self):
         out = gd.md_to_html(LONG_REPORT)
         hrefs = re.findall(r'<a href="#([^"]+)"', out)
