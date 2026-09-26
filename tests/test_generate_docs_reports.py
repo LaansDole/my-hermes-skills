@@ -280,6 +280,24 @@ class FixtureRepoTests(unittest.TestCase):
         self.assertTrue(asset.is_file())
         self.assertTrue(outside.is_file())
 
+    def test_private_and_noncanonical_report_paths_are_not_published(self):
+        build_fixture_repo(self.root, {
+            "reports/2026-09/2026-09-25-long.md": LONG_REPORT,
+            "reports/2026-09/.private/2026-09-26-secret.md": SHORT_REPORT,
+            "reports/2026-09/nested/2026-09-27-scratch.md": SHORT_REPORT,
+            "reports/2026-09/session-notes.md": SHORT_REPORT,
+        })
+        generate(self.root)
+
+        reports_html = (self.root / "docs" / "reports.html").read_text()
+        self.assertIn("2026-09-25-long.html", reports_html)
+        self.assertNotIn("secret", reports_html)
+        self.assertNotIn("scratch", reports_html)
+        self.assertNotIn("session-notes", reports_html)
+        self.assertTrue((self.root / "docs/reports/2026-09/2026-09-25-long.html").is_file())
+        self.assertFalse((self.root / "docs/reports/2026-09/.private/2026-09-26-secret.html").exists())
+        self.assertFalse((self.root / "docs/reports/2026-09/nested/2026-09-27-scratch.html").exists())
+
     def test_report_generation_is_deterministic(self):
         build_fixture_repo(self.root, {
             "reports/2026-09/2026-09-25-long.md": LONG_REPORT,

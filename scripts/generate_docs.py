@@ -96,17 +96,26 @@ def find_skills() -> list:
 
 
 def find_reports() -> list:
-    """Return dicts for every report markdown file under reports/YYYY-MM/.
+    """Return dicts for report Markdown under reports/YYYY-MM/.
 
     Expected naming: YYYY-MM-DD-<slug>.md; the leading date becomes the card
-    date and the slug becomes the title. Files not matching the pattern still
-    render, keyed by filename.
+    date and the slug becomes the title. Hidden/private scratch and dot-prefixed
+    paths are never published, including nested report directories.
     """
     reports = []
     if not REPORTS.is_dir():
         return reports
     for p in sorted(REPORTS.rglob("*.md"), reverse=True):
         rel = p.relative_to(REPO)
+        # Personal report libraries may contain hidden session/task notes.
+        # Publish only dated, top-level month folders; private dot directories
+        # and nested scratch reports are excluded by default.
+        if any(part.startswith(".") for part in rel.parts) or len(rel.parts) != 3:
+            continue
+        if not re.fullmatch(r"\d{4}-\d{2}", rel.parts[1]):
+            continue
+        if not re.match(r"^\d{4}-\d{2}-\d{2}-.+\.md$", p.name):
+            continue
         stem = p.stem
         m = re.match(r"^(\d{4}-\d{2}-\d{2})-(.+)$", stem)
         date, slug = (m.group(1), m.group(2)) if m else ("", stem)
