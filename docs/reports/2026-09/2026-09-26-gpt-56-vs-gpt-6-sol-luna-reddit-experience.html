@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPT-5.6 vs GPT-6 Sol/Luna — Reddit Usage and Experience Report — Reports</title>
+  <style>
+
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
+            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
+            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
+            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
+            --accent:#0969da; --green:#1a7f37; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
+    header { border-bottom:1px solid var(--border); background:var(--bg);
+             position:sticky; top:0; z-index:100; }
+    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
+                    display:flex; justify-content:space-between; align-items:center; }
+    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
+    .header-links { display:flex; gap:16px; align-items:center; }
+    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .header-links a:hover { color:var(--text); }
+    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
+                    padding:4px 8px; cursor:pointer; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
+    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
+                 border-bottom:1px solid var(--border); }
+    article h3 { font-size:16px; margin:24px 0 8px; }
+    article p, article li { color:var(--text); }
+    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
+                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                  padding:14px; overflow-x:auto; }
+    article pre code { background:none; border:none; padding:0; }
+    /* tables scroll sideways instead of blowing out narrow screens */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
+    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
+    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
+    article th { background:var(--bg2); font-weight:600; }
+    article tr:nth-child(even) td { background:var(--bg2); }
+    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
+                         color:var(--text-muted); }
+    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+    article a { color:var(--accent); overflow-wrap:anywhere; }
+    article code { overflow-wrap:anywhere; }
+    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
+    /* table of contents (long reports only) */
+    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+           padding:14px 18px; margin:24px 0 8px; }
+    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
+                 text-transform:uppercase; color:var(--text-muted); }
+    .toc ul { list-style:none; margin:0; padding:0; }
+    .toc li { margin:0; }
+    .toc-sub { padding-left:16px; }
+    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
+             text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .toc-sub a { font-size:13px; color:var(--text-muted); }
+    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
+             color:var(--text-dim); font-size:12px; }
+    footer a { color:var(--text-dim); }
+    footer a:hover { color:var(--text-muted); }
+    @media (max-width:600px) {
+      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
+      .header-links { gap:12px; }
+      main { padding:24px 16px 48px; }
+      article h1 { font-size:23px; }
+      article h2 { font-size:18px; }
+    }
+
+  </style>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reports
+    </div>
+    <div class="header-links">
+      <a href="../../reports.html">All reports</a>
+      <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.md" target="_blank">Markdown source</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <article>
+<h1 id="gpt-5-6-vs-gpt-6-sol-luna-reddit-usage-and-experience-report">GPT-5.6 vs GPT-6 Sol/Luna — Reddit Usage and Experience Report</h1>
+<ul><li><strong>Date:</strong> 2026-09-26</li><li><strong>Scope:</strong> Compare reported real-world usage of GPT-5.6 Sol/Luna with GPT-6 Sol/Luna, with emphasis on coding and agent workflows.</li><li><strong>Method:</strong> Reviewed 10 Reddit discussions posted between 2026-09-23 and 2026-09-26, plus a July first-hand GPT-5.6 Luna/Hermes report for historical context. Read original posts and available top-level comments; prioritized commenters describing tasks they personally ran over headline claims and benchmark-only assertions. Qualitative, purposive sample—not a representative survey. Accessed 2026-09-26.</li><li><strong>User input:</strong> The user's experience is that reports are mixed and actual hands-on use is more trustworthy than the original post. Treated as caller-supplied context, not independently verified.</li></ul>
+<hr>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-top"><a href="#verdict">Verdict</a></li><li class="toc-top"><a href="#findings">Findings</a></li><li class="toc-top"><a href="#suggested-usage-and-comparison-protocol">Suggested usage and comparison protocol</a></li><li class="toc-top"><a href="#caveats">Caveats</a></li><li class="toc-top"><a href="#sources">Sources</a></li></ul></nav>
+<h2 id="verdict">Verdict</h2>
+<p>The Reddit evidence supports your read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed—especially for Luna. The most consistent practical distinction is a reported trade-off: GPT-6 Luna is attractive for cheaper, higher-volume work, while GPT-5.6 Luna is described by some users as more predictable; GPT-6 Sol draws more complaints about missed instructions, shortcuts, and weaker first-pass coding, although some users find it usable and report better throughput. These are user anecdotes, not controlled conclusions.[1][2][3][4][5]</p>
+<div class="table-scroll"><table><thead><tr><th>Model</th><th>Reported strengths</th><th>Reported risks</th><th>Practical use suggested by the reports</th></tr></thead><tbody>
+<tr><td>GPT-5.6 Sol</td><td>Several direct comparisons describe it as more thorough or more reliable on complex coding and debugging than GPT-6 Sol.[2][3]</td><td>Higher price/usage is a common concern; older-model results may also vary over time and by reasoning effort.[4][6]</td><td>Keep as the comparison point for consequential implementation or debugging where first-pass reliability matters.</td></tr>
+<tr><td>GPT-6 Sol</td><td>Some users say it is inexpensive and useful for bounded, detailed tasks, quick fixes, or routine CI/test work.[5][8]</td><td>Multiple hands-on reports describe instruction misses, shallow/unfinished fixes, odd shortcuts, or needing more steering than GPT-5.6 Sol.[2][3][5] Subscription quota reports do not consistently feel half as costly in practice.[4][10]</td><td>Try on scoped, reviewable tasks; inspect diffs and test results. Escalate complex work rather than trusting it as a drop-in Sol replacement.</td></tr>
+<tr><td>GPT-5.6 Luna</td><td>Some users valued it as a lower-cost daily model; the Hermes user report found it capable, though slow and prone to extra iterations and occasional direction-following misses.[6]</td><td>Slowness and multi-step/circular work are recurring drawbacks in that first-hand Hermes report; that is one user's workload, not a broad result.[6]</td><td>Use where its quality/cost suits routine work, but budget for iteration and validate instruction completion.</td></tr>
+<tr><td>GPT-6 Luna</td><td>Several users describe it as cheaper to run, adequate for precise, well-scoped tasks, or a useful volume model; one direct comparison calls it a sidegrade and recommends escalating failures.[1][7][8]</td><td>Others report lower benchmark-suite performance, weak instruction following, no meaningful improvement, or disappointing latency. These are conflicting individual observations and benchmarks with limited disclosed methods.[1][7][9]</td><td>A reasonable low-cost workhorse candidate for bounded tasks, with a clear review/escalation path. Do not assume it is faster or more reliable than 5.6 Luna.</td></tr>
+</tbody></table></div>
+<hr>
+<h2 id="findings">Findings</h2>
+<ol><li><strong>Sol: the sharpest negative signal is about reliability, not raw speed.</strong> In a recent r/codex thread, users describe GPT-6 Sol missing small errors, mishandling plans, or making shortcuts; several say they returned to GPT-5.6 Sol. Other commenters call GPT-6 Sol acceptable for the price or suitable for routine tasks, so the thread is not unanimous.[2][3][5][8]</li><li><strong>Luna: lower cost is promising, but experience is split.</strong> In a direct Luna 6 vs. Luna 5.6 discussion, users report everything from a self-run suite scoring 7/10 vs. 9.68/10, to no noticeable difference, to a positive view of Luna 6 on precise xhigh tasks. The thread also includes users who find Luna 6 cheap and useful for volume but less dependable on instructions.[1] Those scores are an individual's benchmark claim—not an independently validated result.</li><li><strong>“Half the API price” does not establish half the subscription usage.</strong> A GPT-6 Sol subscriber thread contains both reports of more days of usage and reports that quota burn felt similar to GPT-5.6 Sol. Replies correctly distinguish API price from subscription allowance; observed quota consumption depends on the plan, task, reasoning setting, retries, and usage accounting.[4][10]</li><li><strong>Latency claims conflict too.</strong> One Luna 6 user calls it slow and methodical but inexpensive; another says it is slower than expected even with a speed setting. The evidence does not support a blanket claim that Luna 6 is faster.[1][9]</li><li><strong>Original posts are not automatically stronger evidence than replies.</strong> I gave more weight to comments that state what the author personally did (for example, their project, task type, effort setting, and whether they switched back) than to broad post headlines. Even these first-hand accounts have selection, recall, and workload biases; votes measure reaction, not correctness.</li><li><strong>GPT-5.6 Luna's Hermes-specific evidence is useful but old.</strong> A July report from a Hermes user says 5.6 Luna was smart but slow, used multiple iterations, and sometimes missed explicit directions. It is relevant to agent use, but it predates GPT-6 by over two months and is only one person's experience.[6]</li><li><strong>Implication for your current Hermes default:</strong> GPT-6 Luna at high effort is a sensible candidate for a cost-conscious default, not a proven quality winner. Keep a known-good fallback for tasks where instruction adherence or first-pass reliability is important; compare completed work, not model labels or announced prices.</li></ol>
+<hr>
+<h2 id="suggested-usage-and-comparison-protocol">Suggested usage and comparison protocol</h2>
+<p>For a decision grounded in your own Hermes workload, run a small paired check before changing your defaults:</p>
+<ul><li>Select representative tasks you already perform: one scoped code change, one debugging task, and one non-coding multi-step task.</li><li>Give both versions the same prompt, repository/context, tools, acceptance criteria, and reasoning effort; run each task in a fresh session to reduce carry-over.</li><li>Record whether it followed all constraints, produced a correct and reviewable result, passed the same verification, required retries/steering, elapsed time, and actual metered usage if available.</li><li>Count a failed attempt plus its retries as one task outcome. A cheaper attempt that needs repeated correction may not be cheaper overall.</li><li>Keep GPT-6 Luna as default only if it performs acceptably on your recurring tasks; route difficult debugging or high-impact changes to whichever model wins your paired checks.</li></ul>
+<p>This protocol is a proposed local evaluation, not a result already measured in this report.</p>
+<hr>
+<h2 id="caveats">Caveats</h2>
+<ul><li>This is a purposive sample of 11 recent Reddit discussions plus one older Hermes post—not a random sample, formal sentiment analysis, or blinded evaluation. Reddit communities overrepresent people motivated to post, including dissatisfied users.</li><li>Comments are self-reported. Different model endpoints, account tiers, workloads, prompts, harnesses, reasoning efforts, and dates can produce different behavior. The reports do not isolate model capability from serving or harness effects.</li><li>Benchmark numbers quoted by Reddit users are retained only as attributed claims; benchmark task selection, sample size, and reproducibility were not independently checked here.</li><li>Subscription allowance is not interchangeable with API list pricing. Anecdotal quota impressions should not be generalized to all plans or usage patterns.</li><li>The user's mixed personal impression is caller-supplied and has not been converted into a measured result.</li></ul>
+<hr>
+<h2 id="sources">Sources</h2>
+<p>[1] <a href="https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56" target="_blank">https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56</a> — Luna 6 vs. Luna 5.6 (r/codex, accessed 2026-09-26) [2] <a href="https://www.reddit.com/r/codex/comments/1wp5x1a/gpt6_sol_is_not_good" target="_blank">https://www.reddit.com/r/codex/comments/1wp5x1a/gpt6_sol_is_not_good</a> — GPT-6 Sol is... not good (r/codex, accessed 2026-09-26) [3] <a href="https://www.reddit.com/r/OpenAI/comments/1wp5eqa/gpt6_sol_is_not_the_replacement_of_gpt56_sol" target="_blank">https://www.reddit.com/r/OpenAI/comments/1wp5eqa/gpt6_sol_is_not_the_replacement_of_gpt56_sol</a> — GPT-6 Sol is NOT the replacement of GPT-5.6 Sol (r/OpenAI, accessed 2026-09-26) [4] <a href="https://www.reddit.com/r/OpenaiCodex/comments/1woy7xl/gpt_6_sol_usage_vs_gpt_56_sol" target="_blank">https://www.reddit.com/r/OpenaiCodex/comments/1woy7xl/gpt_6_sol_usage_vs_gpt_56_sol</a> — GPT 6 Sol usage vs GPT 5.6 Sol (r/OpenaiCodex, accessed 2026-09-26) [5] <a href="https://www.reddit.com/r/GithubCopilot/comments/1wptkkq/how_does_gpt6_sol_feel_so_far" target="_blank">https://www.reddit.com/r/GithubCopilot/comments/1wptkkq/how_does_gpt6_sol_feel_so_far</a> — How does GPT-6 Sol feel so far? (r/GithubCopilot, accessed 2026-09-26) [6] <a href="https://www.reddit.com/r/hermesagent/comments/1uvk24n/thoughts_after_using_gpt_56_luna_for_48_hours" target="_blank">https://www.reddit.com/r/hermesagent/comments/1uvk24n/thoughts_after_using_gpt_56_luna_for_48_hours</a> — Thoughts after using GPT 5.6 (Luna) for 48 hours (r/hermesagent, 2026-07-13) [7] <a href="https://www.reddit.com/r/OpenAI/comments/1wo537k/gpt6_luna_seems_weaker_than_gpt56_luna_on_quite_a" target="_blank">https://www.reddit.com/r/OpenAI/comments/1wo537k/gpt6_luna_seems_weaker_than_gpt56_luna_on_quite_a</a> — GPT-6 Luna seems weaker than GPT-5.6 Luna on quite a few benchmarks? (r/OpenAI, 2026-09-23) [8] <a href="https://www.reddit.com/r/codex/comments/1wo64nj/gpt_6_luna_feels_like_a_solid_upgrade_but_6_sol" target="_blank">https://www.reddit.com/r/codex/comments/1wo64nj/gpt_6_luna_feels_like_a_solid_upgrade_but_6_sol</a> — GPT 6 Luna feels like a solid upgrade, but 6 Sol feels more like Terra than Sol (r/codex, 2026-09-23) [9] <a href="https://www.reddit.com/r/codex/comments/1woghxt/gpt6_luna_being_slower_despite_being_the_weakest" target="_blank">https://www.reddit.com/r/codex/comments/1woghxt/gpt6_luna_being_slower_despite_being_the_weakest</a> — GPT-6 Luna being slower despite being the weakest model in the tier is unacceptable (r/codex, 2026-09-23) [10] <a href="https://www.reddit.com/r/codex/comments/1wptixf/gpt6_feels_like_a_downgrade_for_codex_subscribers" target="_blank">https://www.reddit.com/r/codex/comments/1wptixf/gpt6_feels_like_a_downgrade_for_codex_subscribers</a> — GPT-6 feels like a downgrade for Codex subscribers (r/codex, 2026-09-25)</p>
+  </article>
+</main>
+
+<footer>
+  <p>
+    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
+    Filed by the writing-reports skill &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn || !icon) return;
+      function paint() {
+        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
