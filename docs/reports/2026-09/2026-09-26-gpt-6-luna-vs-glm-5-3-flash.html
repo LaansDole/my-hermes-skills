@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GPT-6 Luna vs GLM-5.3-Flash: external comparisons and firsthand reports — Reports</title>
+  <style>
+
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
+            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
+            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
+            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
+            --accent:#0969da; --green:#1a7f37; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
+    header { border-bottom:1px solid var(--border); background:var(--bg);
+             position:sticky; top:0; z-index:100; }
+    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
+                    display:flex; justify-content:space-between; align-items:center; }
+    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
+    .header-links { display:flex; gap:16px; align-items:center; }
+    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .header-links a:hover { color:var(--text); }
+    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
+                    padding:4px 8px; cursor:pointer; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
+    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
+                 border-bottom:1px solid var(--border); }
+    article h3 { font-size:16px; margin:24px 0 8px; }
+    article p, article li { color:var(--text); }
+    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
+                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                  padding:14px; overflow-x:auto; }
+    article pre code { background:none; border:none; padding:0; }
+    /* tables scroll sideways instead of blowing out narrow screens */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
+    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
+    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
+    article th { background:var(--bg2); font-weight:600; }
+    article tr:nth-child(even) td { background:var(--bg2); }
+    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
+                         color:var(--text-muted); }
+    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+    article a { color:var(--accent); overflow-wrap:anywhere; }
+    article code { overflow-wrap:anywhere; }
+    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
+    /* table of contents (long reports only) */
+    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+           padding:14px 18px; margin:24px 0 8px; }
+    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
+                 text-transform:uppercase; color:var(--text-muted); }
+    .toc ul { list-style:none; margin:0; padding:0; }
+    .toc li { margin:0; }
+    .toc-sub { padding-left:16px; }
+    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
+             text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .toc-sub a { font-size:13px; color:var(--text-muted); }
+    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
+             color:var(--text-dim); font-size:12px; }
+    footer a { color:var(--text-dim); }
+    footer a:hover { color:var(--text-muted); }
+    @media (max-width:600px) {
+      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
+      .header-links { gap:12px; }
+      main { padding:24px 16px 48px; }
+      article h1 { font-size:23px; }
+      article h2 { font-size:18px; }
+    }
+
+  </style>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reports
+    </div>
+    <div class="header-links">
+      <a href="../../reports.html">All reports</a>
+      <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.md" target="_blank">Markdown source</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <article>
+<h1 id="gpt-6-luna-vs-glm-5-3-flash-external-comparisons-and-firsthand-reports">GPT-6 Luna vs GLM-5.3-Flash: external comparisons and firsthand reports</h1>
+<ul><li><strong>Date:</strong> 2026-09-26</li><li><strong>Scope:</strong> usefulness for low-cost, fast coding and daily task coordination; comparison page, source benchmark profiles, provider pricing, and community posts.</li><li><strong>Method:</strong> inspected the supplied Gradually.ai comparison and model profiles; cross-checked benchmark table and rates against linked evaluator/vendor sources; searched Reddit for the direct matchup and qualitative operational reports. Reddit search snippets are used only as leads where thread bodies could not be fetched.</li></ul>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-top"><a href="#verdict">Verdict</a></li><li class="toc-top"><a href="#decision-relevant-comparison">Decision-relevant comparison</a></li><li class="toc-top"><a href="#what-the-matched-benchmarks-do-and-do-not-tell-us">What the matched benchmarks do and do not tell us</a></li><li class="toc-top"><a href="#related-posts-and-firsthand-signals">Related posts and firsthand signals</a></li><li class="toc-top"><a href="#recommendation">Recommendation</a></li><li class="toc-top"><a href="#sources">Sources</a></li></ul></nav>
+<h2 id="verdict">Verdict</h2>
+<p>There is evidence to compare the pair, but it does <strong>not</strong> show that GLM-5.3-Flash is the faster daily coordinator. Gradually.ai reports Luna ahead on most matched coding/agentic benchmarks, while listing lower-priced alternate-provider routes for both models.[1] Search snippets surfaced mixed GLM reports, including praise for value/coding utility and complaints about latency/timeouts.[12][13] No accessible firsthand head-to-head for this exact model pair surfaced; Gradually's direct prompting test did not evaluate Luna and could not access the GLM endpoint.[1]</p>
+<h2 id="decision-relevant-comparison">Decision-relevant comparison</h2>
+<div class="table-scroll"><table><thead><tr><th>Dimension</th><th>GPT-6 Luna</th><th>GLM-5.3-Flash</th><th>Reading for daily coordination</th></tr></thead><tbody>
+<tr><td>Direct API input / 1M tokens</td><td>$0.10 up to 272K context; $0.20 above[1]</td><td>$0.15[1]</td><td>Luna is cheaper on base input at standard context.</td></tr>
+<tr><td>Direct API output / 1M tokens</td><td>$0.50 up to 272K; $0.75 above[1]</td><td>$0.50[1]</td><td>Tie on base output at standard context.</td></tr>
+<tr><td>Matched Code Migration accuracy</td><td>42.554%[1]</td><td>20.515%[1]</td><td>Luna higher on this test.</td></tr>
+<tr><td>Matched Terminal-Bench 2.1 accuracy</td><td>73.034%[1]</td><td>62.921%[1]</td><td>Luna higher on terminal tasks.</td></tr>
+<tr><td>Vibe Code Bench v1.1 accuracy</td><td>81.649%[1]</td><td>30.759%[1]</td><td>Luna much higher; comparison lists OpenHands harness for this row.</td></tr>
+<tr><td>Overall matched benchmark families</td><td>Luna leads 9 of 12; GLM leads 3[1]</td><td>Mixed profile</td><td>Not a user-experience score, nor specifically a daily-coordinator evaluation.</td></tr>
+<tr><td>Throughput figure</td><td>Not listed on Gradually profile[8]</td><td>51.5 output tokens/s[7]</td><td>Different measurement/provider conditions; not a direct latency comparison.</td></tr>
+<tr><td>Direct same-prompt test</td><td>Not tested[1]</td><td>API unavailable; not evaluated[1]</td><td>No direct qualitative result from the site.</td></tr>
+</tbody></table></div>
+<p>The table gives standard per-million-token API rates and separately lists routed provider prices, so endpoints are not interchangeable: the comparison lists low tariffs of $0.045/$0.14 for GLM and $0.05/$0.25 for Luna input/output.[1] The prices do not establish equal latency or reliability, and this comparison does not report those figures.[1]</p>
+<h2 id="what-the-matched-benchmarks-do-and-do-not-tell-us">What the matched benchmarks do and do not tell us</h2>
+<p>Across the 12 shared benchmark families, Luna leads nine; GLM leads on Finance Agent, Harvey's Legal Agent, and MedScribe. The comparison links each family to its benchmark source and marks no setup difference in the paired rows.[1] Code Migration's harness-level records show $0.600876 and 3,023 seconds per Luna task versus $3.128822 and 12,332 seconds for GLM.[1] Those unusually long run times/costs belong to the benchmark setup, not normal single-call API latency or pricing.</p>
+<p>Terminal-Bench 2.1 is relevant to terminal-based agency but is still a sandbox benchmark, not everyday task coordination. Vals describes the methodology as Terminus 2, pass@1, with 89 tasks and a remote Daytona environment.[3] Benchmark scores should be read as a prior, not a deployment guarantee.</p>
+<h2 id="related-posts-and-firsthand-signals">Related posts and firsthand signals</h2>
+<p>An r/codex post asks whether Luna Max or GLM 5.3 Flash Max is better for an executor subagent; it is a question, not a measured comparison.[9] Another surfaced thread mentions GLM-5.3-Flash use for subagents, but the snippet alone does not establish full context or methodology.[10]</p>
+<p>For actual GLM operations, search snippets from r/opencode were mixed: one thread frames GLM as a budget option, while another compares it with DeepSeek; surfaced summaries include both value/coding praise and speed or timeout concerns.[12][13] These are qualitative discovery leads, not verified comment-level evidence. Reddit thread bodies returned 403 here, so no claim about full-thread context or precise counts is made.</p>
+<p>Gradually's profile reports 51.5 tokens/s for GLM, defining speed as output after the first chunk rather than total response time.[7] Its page notes no direct prompt test was completed because GLM API access was unavailable and Luna was not tested.[1] This is aggregator data, not a firsthand latency comparison.</p>
+<h2 id="recommendation">Recommendation</h2>
+<p>For a cheap daily driver, GLM-5.3-Flash remains plausible on a low-priced route, but the available snippet-level latency concerns make provider-specific measurement important.[12][13] The matched benchmark sample favors Luna for task execution; it does not establish which model works better on this user's Command Code route.[1]</p>
+<p>To decide for Command Code specifically, compare both models on the same route, tools, and tasks, tracking correctness, elapsed time, retries, interventions, and cost per successful task. The user's report of GLM running long there is local evidence, not a general latency claim.[unverified]</p>
+<h2 id="sources">Sources</h2>
+<p>[1] <a href="https://www.gradually.ai/en/llm-comparison/gpt-6-luna-vs-glm-5.3-flash" target="_blank">https://www.gradually.ai/en/llm-comparison/gpt-6-luna-vs-glm-5.3-flash</a> — Gradually.ai: GPT-6 Luna vs. GLM-5.3-Flash [3] <a href="https://www.vals.ai/benchmarks/terminal-bench-2-1" target="_blank">https://www.vals.ai/benchmarks/terminal-bench-2-1</a> [7] <a href="https://www.gradually.ai/en/ai-models/glm-5.3-flash" target="_blank">https://www.gradually.ai/en/ai-models/glm-5.3-flash</a> — GLM-5.3-Flash model profile — Gradually.ai [8] <a href="https://www.gradually.ai/en/ai-models/gpt-6-luna" target="_blank">https://www.gradually.ai/en/ai-models/gpt-6-luna</a> — GPT-6 Luna model profile — Gradually.ai [9] <a href="https://www.reddit.com/r/codex/comments/1w2tzvo/luna_max_vs_glm_53_flash_max_what_is_best_for" target="_blank">https://www.reddit.com/r/codex/comments/1w2tzvo/luna_max_vs_glm_53_flash_max_what_is_best_for</a> — Luna Max vs GLM executor subagent? — Reddit codex [10] <a href="https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56" target="_blank">https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56</a> — Luna 6 vs Luna 5.6 — Reddit codex [12] <a href="https://www.reddit.com/r/opencode/comments/1wa6umd/is_glm_53_flash_the_new_budget_king" target="_blank">https://www.reddit.com/r/opencode/comments/1wa6umd/is_glm_53_flash_the_new_budget_king</a> — GLM budget king discussion — Reddit OpenCode [13] <a href="https://www.reddit.com/r/opencode/comments/1wfqol6/glm_53_flash_vs_deepseek_v41_flash_which_one_do" target="_blank">https://www.reddit.com/r/opencode/comments/1wfqol6/glm_53_flash_vs_deepseek_v41_flash_which_one_do</a> — GLM vs DeepSeek — Reddit OpenCode</p>
+  </article>
+</main>
+
+<footer>
+  <p>
+    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
+    Filed by the writing-reports skill &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn || !icon) return;
+      function paint() {
+        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
