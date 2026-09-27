@@ -193,6 +193,16 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(out.count('<div class="table-scroll"><table>'), 1)
         self.assertEqual(out.count("</table></div>"), 1)
 
+    def test_numbered_sources_render_as_individual_linked_list_items(self):
+        md = "## Sources\n\n[1] https://example.com/one — First source\n[2] https://example.com/two — Second source\n"
+        out = gd.md_to_html(md)
+        self.assertIn("<ul>", out)
+        self.assertIn("<li>[1]", out)
+        self.assertIn("<li>[2]", out)
+        self.assertEqual(out.count("<li>"), 2)
+        self.assertIn('href="https://example.com/one"', out)
+        self.assertIn('href="https://example.com/two"', out)
+
 
 class FixtureRepoTests(unittest.TestCase):
     """Filesystem behaviour, exercised against a throwaway repo copy."""
