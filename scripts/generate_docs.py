@@ -179,7 +179,7 @@ def report_card_html(r: dict) -> str:
     title_html = inline_md(r["title"])
     verdict = ""
     if r["verdict"]:
-        verdict = f"""\n          <p class=\"card-desc\">\n            <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280])}\n          </p>"""
+        verdict = f"""\n          <p class=\"card-desc\">\n            <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280].rstrip())}\n          </p>"""
     # Site root = docs/ => site path /my-hermes-skills/... Use repo-relative
     # links WITHOUT ".." so the project-site base path is never escaped.
     page_href = "reports/" + r["rel_path"][len("reports/"):-3] + ".html"
@@ -702,6 +702,11 @@ def md_to_html(text: str) -> str:
                    rf'<a href="\1" target="_blank">\1</a>', s)
         return s
 
+    def flush_source_list(items: list[str]) -> None:
+        """Render grounded-citation source entries as separate list items."""
+        if items:
+            out.append("<ul>" + "".join(f"<li>{inline(item)}</li>" for item in items) + "</ul>")
+
     lines = text.split("\n")
     headings = heading_index(lines)
     toc = ""
@@ -715,10 +720,23 @@ def md_to_html(text: str) -> str:
                f"<ul>{items}</ul></nav>")
 
     out: list[str] = []
+    source_items: list[str] = []
+    in_sources = False
     hpos = 0
     i = 0
     while i < len(lines):
         ln = lines[i]
+        if re.match(r"^##\s+Sources\s*$", ln):
+            in_sources = True
+        elif re.match(r"^#{1,6}\s+", ln):
+            in_sources = False
+        if in_sources and re.match(r"^\[\d+\]\s+https?://", ln):
+            source_items.append(ln)
+            i += 1
+            continue
+        if source_items:
+            flush_source_list(source_items)
+            source_items = []
         if ln.startswith("\x00FENCE"):
             out.append(ln); i += 1; continue
         if re.match(r"^\s*(---+|\*\*\*+)\s*$", ln):
@@ -770,6 +788,7 @@ def md_to_html(text: str) -> str:
                 i += 1; para.append(lines[i])
             out.append(f"<p>{inline(' '.join(p.strip() for p in para))}</p>")
         i += 1
+    flush_source_list(source_items)
     html_out = "\n".join(out)
     for n, b in enumerate(blocks):
         html_out = html_out.replace(f"\x00FENCE{n}\x00", b)
