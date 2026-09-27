@@ -45,11 +45,11 @@ To decide for Command Code specifically, compare both models on the same route, 
 
 ## Sources
 
-[1] https://www.gradually.ai/en/llm-comparison/gpt-6-luna-vs-glm-5.3-flash — Gradually.ai: GPT-6 Luna vs. GLM-5.3-Flash
-[3] https://www.vals.ai/benchmarks/terminal-bench-2-1
-[7] https://www.gradually.ai/en/ai-models/glm-5.3-flash — GLM-5.3-Flash model profile — Gradually.ai
-[8] https://www.gradually.ai/en/ai-models/gpt-6-luna — GPT-6 Luna model profile — Gradually.ai
-[9] https://www.reddit.com/r/codex/comments/1w2tzvo/luna_max_vs_glm_53_flash_max_what_is_best_for — Luna Max vs GLM executor subagent? — Reddit codex
-[10] https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56 — Luna 6 vs Luna 5.6 — Reddit codex
-[12] https://www.reddit.com/r/opencode/comments/1wa6umd/is_glm_53_flash_the_new_budget_king — GLM budget king discussion — Reddit OpenCode
-[13] https://www.reddit.com/r/opencode/comments/1wfqol6/glm_53_flash_vs_deepseek_v41_flash_which_one_do — GLM vs DeepSeek — Reddit OpenCode
+- [1] https://www.gradually.ai/en/llm-comparison/gpt-6-luna-vs-glm-5.3-flash — Gradually.ai: GPT-6 Luna vs. GLM-5.3-Flash
+- [3] https://www.vals.ai/benchmarks/terminal-bench-2-1
+- [7] https://www.gradually.ai/en/ai-models/glm-5.3-flash — GLM-5.3-Flash model profile — Gradually.ai
+- [8] https://www.gradually.ai/en/ai-models/gpt-6-luna — GPT-6 Luna model profile — Gradually.ai
+- [9] https://www.reddit.com/r/codex/comments/1w2tzvo/luna_max_vs_glm_53_flash_max_what_is_best_for — Luna Max vs GLM executor subagent? — Reddit codex
+- [10] https://www.reddit.com/r/codex/comments/1wox48m/luna_6_vs_luna_56 — Luna 6 vs Luna 5.6 — Reddit codex
+- [12] https://www.reddit.com/r/opencode/comments/1wa6umd/is_glm_53_flash_the_new_budget_king — GLM budget king discussion — Reddit OpenCode
+- [13] https://www.reddit.com/r/opencode/comments/1wfqol6/glm_53_flash_vs_deepseek_v41_flash_which_one_do — GLM vs DeepSeek — Reddit OpenCode
