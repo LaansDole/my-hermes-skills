@@ -2,6 +2,14 @@
   "source_repo": "https://github.com/LaansDole/my-hermes-skills",
   "skills": [
     {
+      "name": "auditing-worktrees",
+      "version": "1.0.0",
+      "description": "Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos",
+      "category": "Productivity",
+      "path": "skills/productivity/auditing-worktrees",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
+    },
+    {
       "name": "covidence-full-text-retrieval",
       "version": "1.2.0",
       "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
@@ -104,6 +112,14 @@
       "category": "Slack",
       "path": "skills/slack-scan",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-scan"
+    },
+    {
+      "name": "summarizing-weekly-work",
+      "version": "1.0.0",
+      "description": "Use when asked what was done, left pending, in progress, blocked, or waiting for review over the past week or N days; for a weekly recap, wrap-up, or standup (including the weekly worktree cleanup); \"where did I leave off\", \"what should I continue\"; or instead of clicking through old sessions with /resume.",
+      "category": "Productivity",
+      "path": "skills/productivity/summarizing-weekly-work",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/summarizing-weekly-work"
     },
     {
       "name": "superpowers-brainstorming",
@@ -226,6 +242,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-writing-skills"
     },
     {
+      "name": "sweeping-merged-worktrees",
+      "version": "1.0.0",
+      "description": "Use when a repo has accumulated worktrees under .worktrees/ from finished PRs, when asked to clean up or prune worktrees whose branches were merged or deleted on the remote, or when `git worktree list` shows stale/prunable entries",
+      "category": "Productivity",
+      "path": "skills/productivity/sweeping-merged-worktrees",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/sweeping-merged-worktrees"
+    },
+    {
       "name": "tldr",
       "version": "1.0.0",
       "description": "Use when the user asks for a TL;DR or before/after summary.",
@@ -284,6 +308,14 @@
       "title": "Productivity",
       "skills": [
         {
+          "name": "auditing-worktrees",
+          "version": "1.0.0",
+          "description": "Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos",
+          "category": "Productivity",
+          "path": "skills/productivity/auditing-worktrees",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
+        },
+        {
           "name": "hermes-deepseek-cache",
           "version": "1.1.0",
           "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
@@ -330,6 +362,22 @@
           "category": "Productivity",
           "path": "skills/productivity/session-handoff",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/session-handoff"
+        },
+        {
+          "name": "summarizing-weekly-work",
+          "version": "1.0.0",
+          "description": "Use when asked what was done, left pending, in progress, blocked, or waiting for review over the past week or N days; for a weekly recap, wrap-up, or standup (including the weekly worktree cleanup); \"where did I leave off\", \"what should I continue\"; or instead of clicking through old sessions with /resume.",
+          "category": "Productivity",
+          "path": "skills/productivity/summarizing-weekly-work",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/summarizing-weekly-work"
+        },
+        {
+          "name": "sweeping-merged-worktrees",
+          "version": "1.0.0",
+          "description": "Use when a repo has accumulated worktrees under .worktrees/ from finished PRs, when asked to clean up or prune worktrees whose branches were merged or deleted on the remote, or when `git worktree list` shows stale/prunable entries",
+          "category": "Productivity",
+          "path": "skills/productivity/sweeping-merged-worktrees",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/sweeping-merged-worktrees"
         },
         {
           "name": "tldr",
