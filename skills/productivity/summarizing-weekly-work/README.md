@@ -10,7 +10,7 @@ Weekly recap for oh-my-pi users: what you did, what's pending or blocked, what's
 
 1. Requires `python3`, `git`, and an authenticated `gh` (or pass `--no-gh`).
 2. Symlink into your skills dir: `ln -s <repo>/skills/productivity/summarizing-weekly-work ~/.agents/skills/summarizing-weekly-work`
-3. Optional, for the worktree section: install the `auditing-worktrees` and `sweeping-merged-worktrees` skills as siblings in the same skills dir. Without them the report skips cleanup.
+3. Optional, for the worktree section: symlink `skills/productivity/auditing-worktrees` and `skills/productivity/sweeping-merged-worktrees` from this repo into the same skills dir. Without them the report skips cleanup.
 
 ## Usage
 
