@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TypeSafe Jev — First-Hands Evaluation Report — Reports</title>
+  <style>
+
+    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
+            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
+            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
+            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
+            --accent:#0969da; --green:#1a7f37; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--bg); color:var(--text);
+           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
+    header { border-bottom:1px solid var(--border); background:var(--bg);
+             position:sticky; top:0; z-index:100; }
+    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
+                    display:flex; justify-content:space-between; align-items:center; }
+    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
+    .header-links { display:flex; gap:16px; align-items:center; }
+    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
+    .header-links a:hover { color:var(--text); }
+    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
+                    padding:4px 8px; cursor:pointer; font-size:13px; }
+    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
+    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
+    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
+                 border-bottom:1px solid var(--border); }
+    article h3 { font-size:16px; margin:24px 0 8px; }
+    article p, article li { color:var(--text); }
+    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
+                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
+    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+                  padding:14px; overflow-x:auto; }
+    article pre code { background:none; border:none; padding:0; }
+    /* tables scroll sideways instead of blowing out narrow screens */
+    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
+    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
+    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
+    article th { background:var(--bg2); font-weight:600; }
+    article tr:nth-child(even) td { background:var(--bg2); }
+    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
+                         color:var(--text-muted); }
+    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
+    article a { color:var(--accent); overflow-wrap:anywhere; }
+    article code { overflow-wrap:anywhere; }
+    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
+    /* table of contents (long reports only) */
+    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
+           padding:14px 18px; margin:24px 0 8px; }
+    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
+                 text-transform:uppercase; color:var(--text-muted); }
+    .toc ul { list-style:none; margin:0; padding:0; }
+    .toc li { margin:0; }
+    .toc-sub { padding-left:16px; }
+    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
+             text-decoration:none; }
+    .toc a:hover { text-decoration:underline; }
+    .toc-sub a { font-size:13px; color:var(--text-muted); }
+    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
+             color:var(--text-dim); font-size:12px; }
+    footer a { color:var(--text-dim); }
+    footer a:hover { color:var(--text-muted); }
+    @media (max-width:600px) {
+      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
+      .header-links { gap:12px; }
+      main { padding:24px 16px 48px; }
+      article h1 { font-size:23px; }
+      article h2 { font-size:18px; }
+    }
+
+  </style>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="logo">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
+        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      Reports
+    </div>
+    <div class="header-links">
+      <a href="../../reports.html">All reports</a>
+      <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/reports/2026-09/2026-09-19-typesafe-jev-first-hands.md" target="_blank">Markdown source</a>
+      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <article>
+<h1 id="typesafe-jev-first-hands-evaluation-report">TypeSafe Jev — First-Hands Evaluation Report</h1>
+<ul><li><strong>Date:</strong> 2026-09-19</li><li><strong>Scope:</strong> What Jev is, live API behavior under the user's allowlisted key, measured latency/cost/calibration, error shapes, and where it fits the user's tooling</li><li><strong>Method:</strong> Vendor blog + live docs fetched 2026-09-19; 10 live API experiments (E1-E8) run against <code>POST <a href="https://api.typesafe.ai/v1/systemone" target="_blank">https://api.typesafe.ai/v1/systemone</a></code> with the user's key; latency = end-to-end wall clock from this machine (Vietnam, +07) incl. network; calibration probe n=10 (toy facts, NOT a domain benchmark)</li><li><strong>Artifacts:</strong> experiment script <code>/tmp/jev_experiments.py</code> (re-runnable); TypeSafe skill installed at <code>~/.hermes/skills/typesafe-ai</code></li></ul>
+<nav class="toc" aria-label="On this page"><p class="toc-title">On this page</p><ul><li class="toc-top"><a href="#verdict">Verdict</a></li><li class="toc-top"><a href="#what-jev-is">What Jev is</a></li><li class="toc-top"><a href="#measured-results-live-2026-09-19">Measured results (live, 2026-09-19)</a></li><li class="toc-top"><a href="#findings">Findings</a></li><li class="toc-top"><a href="#where-it-fits-the-user-s-stack">Where it fits the user's stack</a></li><li class="toc-top"><a href="#next-steps-proposed-not-started">Next steps (proposed, not started)</a></li><li class="toc-top"><a href="#caveats">Caveats</a></li><li class="toc-top"><a href="#references">References</a></li></ul></nav>
+<h2 id="verdict">Verdict</h2>
+<p>Jev is a decision-only model — send state + typed questions, get calibrated probabilities instead of generated text — and it does what it claims on first hands: ~0.9s end-to-end per call from Vietnam, ~$0.00004 for a 9-question fan-out (vendor price list, not metered on our side), perfect calibration on a 10-fact toy probe (MAE 0.018), clean typed errors (400/422), and fan-out batching that cut wall time 8.65x and tokens 4.29x vs sequential calls with no answer drift. It is not a chat model and cannot replace one; it is a fast structured-decision primitive to sit beside an LLM. The TypeSafe agent skill is installed and its two warnings (fan out, don't invent request fields) were both validated by the experiments.</p>
+<h2 id="what-jev-is">What Jev is</h2>
+<ul><li>TypeSafe AI: SF lab, out of stealth 2026-09-15, $40M seed. Founder Diogo Almeida (ex-OpenAI; RLHF co-inventor per InfoWorld). "System One" = Kahneman fast/automatic thinking; Jev named for economist W.S. Jevons (efficiency → more demand, not less).</li><li>Trained with RLCD (Reinforcement Learning for Calibrated Decisions): probabilities are meant to match real-world outcome frequencies. Calibrated = across many calls, answers given p=0.9 should be right ~90% of the time. Per-answer correctness is still not guaranteed.</li><li>Never generates prose. All answers in a request are sampled in parallel against the same state; questions cannot see each other's answers.</li><li>Current model: <code>jev-1.13.0</code> (what <code>jev-latest</code> resolved to in every response today). Aliases: <code>jev-latest</code>, <code>jev-preview</code> — <code>jev-preview</code> ALSO resolved to <code>jev-1.13.0</code> today (E7), i.e. no separate preview build live right now.</li><li>Pricing: $0.042/M input tokens, output free (vendor-claimed). Measured usage: a 9-question fan-out on a ~900-char state = 799 in / 232 out tokens → ~$0.00004/call at list price.</li><li>Limits (vendor docs): state + all questions ~64k tokens total; state + longest single question ~32k; Choice ≤255 options; Score 2-10 levels. Rate-limit errors return 429 + Retry-After (not hit today at our volume).</li></ul>
+<h2 id="measured-results-live-2026-09-19">Measured results (live, 2026-09-19)</h2>
+<div class="table-scroll"><table><thead><tr><th>#</th><th>Experiment</th><th>Result</th></tr></thead><tbody>
+<tr><td>E1</td><td>Fan-out: 1 call, 9 mixed questions (Noul/Choice/Score)</td><td>200 OK, 0.98s, 799 in / 232 out tok; sensible answers (urgent noul 0.99, department=billing conf 1.0, churn score 2.0 conf 1.0)</td></tr>
+<tr><td>E2</td><td>Same 9 questions as 9 sequential calls</td><td>8.478s total (mean 0.942s/call), 4428 tokens total → fan-out is 8.65x faster wall, 4.29x fewer tokens, answers equivalent</td></tr>
+<tr><td>E3</td><td>Calibration probe: 10 labeled yes/no facts, one call</td><td>MAE 0.018, Brier 0.001; all p within 0.05 of label. TOY probe (n=10, general facts) — says nothing about domain calibration</td></tr>
+<tr><td>E4</td><td>Confidence behavior</td><td>Clear question conf 1.0; ambiguous question still chose singapore conf 0.88 (wrong-ish: Quito is closer to the equator — real hallucination case caught, see findings); contextless score ("how happy is the writer?" with weather-only state) returned score 1.0 conf 0.99 — model fills defaults confidently when state lacks the dimension</td></tr>
+<tr><td>E5</td><td>Structured JSON state + backticked path refs (<code>ticket.messages[0].text</code>, <code>order.charges</code>)</td><td>All correct: refund_requested 0.99, policy_supports 0.99, n_charges=two conf 1.0</td></tr>
+<tr><td>E6</td><td>Error shapes</td><td>Unknown model → 400 <code>{"detail":{"error_type":"api_usage_error",...}}</code>; empty questions → 422 FastAPI validation (min_length 1); bad question type → 400 "Invalid request."</td></tr>
+<tr><td>E7</td><td><code>jev-preview</code> alias</td><td>Resolves to the SAME <code>jev-1.13.0</code> as <code>jev-latest</code> today</td></tr>
+<tr><td>E8</td><td>Response headers</td><td><code>server: istio-envoy</code>, <code>x-typesafe-request-id: req_...</code> — no rate-limit headers on non-throttled responses</td></tr>
+</tbody></table></div>
+<h2 id="findings">Findings</h2>
+<ol><li><strong>Fan-out is the idiomatic pattern and it delivers.</strong> One call with all independent questions was 8.65x faster and 4.29x cheaper than sequential single-question calls on identical state (measured). The docs' "speculative fan-out" advice is real: batch every independent question, including ones only relevant for some inputs, and let code pick which answers to consume.</li><li><strong>Calibration claim held on the toy probe</strong> (MAE 0.018, Brier 0.001, n=10). This is the product's core bet; a real calibration harness on YOUR domain data is the first serious experiment to build (see Next steps).</li><li><strong>Confidence ≠ probability, and both have blind spots.</strong> Confidence is derived from distribution shape. E4 caught two instructive cases: the model was wrong-but-confident on a geography comparison (0.88 on singapore over quito), and confidently defaulted (1.0) on a question whose state lacked the needed dimension. Calibrated ≠ correct per-call; never gate destructive actions on a single call.</li><li><strong>Noul has no confidence field</strong> — the probability IS the signal. Choice/Score carry confidence. Design question sets accordingly.</li><li><strong>Errors are typed and cheap to handle.</strong> 400 = api_usage_error with message, 422 = FastAPI validation detail. Empty <code>questions</code> is a 422, not "no-op" — fail fast in client code.</li><li><strong>Latency from Vietnam is ~0.9s/call end-to-end</strong> (vendor claims 70-500ms measured US West). Still 3-300x faster than LLM-roundtrip workflows. Plan network latency into UX budgets.</li><li><strong>Version pinning matters</strong>: <code>jev-latest</code> moved under us before (docs: jev-1.12 → 1.13). If tuning thresholds, pin the versioned ID (<code>jev-1.13.0</code>) — the response's <code>model</code> field always reports what answered, so log it.</li><li><strong>Token metering includes output tokens for structured answers</strong> (232 out on E1) even though pricing says output is "free" — usage is reported, cost is input-only.</li></ol>
+<h2 id="where-it-fits-the-user-s-stack">Where it fits the user's stack</h2>
+<ul><li><strong>Covidence screening (highest-leverage fit):</strong> per-abstract Noul votes against PCC criteria with confidence gates — auto-Yes/auto-No at high confidence, human review for the middle band. The 81-unique set has known ground truth to calibrate against. Cost: cents for hundreds of abstracts.</li><li><strong>Gate for coding agents:</strong> the community <code>pi-jev-auto-mode</code> / <code>jev-mcp</code> pattern — deterministic rules first, Jev judges unvouched commands, fail closed when undecidable. Directly applicable to omp/pi hooks.</li><li><strong>Not a fit:</strong> anything needing generation, reasoning chains, or open-ended answers — keep the LLM for that; Jev handles routing/scoring/verification/routing-policy decisions.</li></ul>
+<h2 id="next-steps-proposed-not-started">Next steps (proposed, not started)</h2>
+<ol><li>Real calibration harness on user-domain data (Covidence abstracts with known verdicts) — reliability bins + ECE, JSON + markdown report. This is the experiment that matters.</li><li>A small experiment CLI in a <code>~/Projects/jev-experiments</code> sibling repo (key in gitignored <code>.env</code>) — built via superpowers plan + <code>omp -p --model anthropic/claude-opus-5:xhigh</code> per standing workflow, when user says go.</li><li>If the harness holds up: wire a Jev gate into the Covidence full-text-review workflow as a first-pass sorter with confidence-gated escalation.</li></ol>
+<h2 id="caveats">Caveats</h2>
+<ul><li>Calibration probe is n=10 toy facts — directionally positive, statistically meaningless.</li><li>Latency measured from Vietnam incl. network; vendor's 70-500ms is US-West-side.</li><li>All cost figures are vendor list price; we cannot see actual metering from the response.</li><li>E4's wrong-confident geography answer is one sample — but it matches the docs' own warning that typed output guarantees the interface, not the truth.</li><li><code>jev-preview</code> == <code>jev-latest</code> today; that may change any day.</li></ul>
+<h2 id="references">References</h2>
+<ul><li>Introducing System One Models &amp; Jev (TypeSafe blog, 2026-09-15): <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev" target="_blank">https://typesafe.ai/blog/introducing-system-one-models-and-jev</a></li><li>TypeSafe docs index (fetched as llms.txt + .md pages, 2026-09-19): <a href="https://docs.typesafe.ai/llms.txt" target="_blank">https://docs.typesafe.ai/llms.txt</a></li><li>Quick start (API shapes, request/response bodies): <a href="https://docs.typesafe.ai/introduction/quickstart.md" target="_blank">https://docs.typesafe.ai/introduction/quickstart.md</a></li><li>Primitives (Noul/Choice/Score): <a href="https://docs.typesafe.ai/primitives.md" target="_blank">https://docs.typesafe.ai/primitives.md</a></li><li>Confidence: <a href="https://docs.typesafe.ai/confidence.md" target="_blank">https://docs.typesafe.ai/confidence.md</a></li><li>Speculative fan-out: <a href="https://docs.typesafe.ai/patterns/fan-out.md" target="_blank">https://docs.typesafe.ai/patterns/fan-out.md</a></li><li>TypeSafe Python SDK: <a href="https://docs.typesafe.ai/sdk/python.md" target="_blank">https://docs.typesafe.ai/sdk/python.md</a> / <a href="https://pypi.org/project/typesafe-sdk/" target="_blank">https://pypi.org/project/typesafe-sdk/</a></li><li>typesafe-ai agent skill (installed to ~/.hermes/skills/typesafe-ai): <a href="https://github.com/typesafe-ai/skills/blob/main/skills/typesafe-ai/SKILL.md" target="_blank">https://github.com/typesafe-ai/skills/blob/main/skills/typesafe-ai/SKILL.md</a></li><li>Cloudflare AI docs — Jev (typesafe): <a href="https://developers.cloudflare.com/ai/models/typesafe/jev/" target="_blank">https://developers.cloudflare.com/ai/models/typesafe/jev/</a></li><li>Vercel AI Gateway — Jev: <a href="https://vercel.com/ai-gateway/models/jev" target="_blank">https://vercel.com/ai-gateway/models/jev</a></li><li>A deep dive into Jev (flaviocopes.com, 2026-09): <a href="https://flaviocopes.com/jev/" target="_blank">https://flaviocopes.com/jev/</a></li><li>How to Use Jev: a practical guide (DEV, 2026-09): <a href="https://dev.to/valyuai/how-to-use-jev-a-practical-guide-to-typesafes-system-one-model-g5e" target="_blank">https://dev.to/valyuai/how-to-use-jev-a-practical-guide-to-typesafes-system-one-model-g5e</a></li><li>TypeSafe AI's new models work with machines, not humans (InfoWorld, 2026-09): <a href="https://www.infoworld.com/article/4223468/typesafe-ais-new-models-work-with-machines-not-humans.html" target="_blank">https://www.infoworld.com/article/4223468/typesafe-ais-new-models-work-with-machines-not-humans.html</a></li><li>pi-jev-auto-mode (community gate for Pi coding agent): <a href="https://pi.dev/packages/pi-jev-auto-mode" target="_blank">https://pi.dev/packages/pi-jev-auto-mode</a></li><li>jev-mcp (MCP server for OpenCode/OMP/etc): <a href="https://glama.ai/mcp/servers/minhgv/jev-mcp" target="_blank">https://glama.ai/mcp/servers/minhgv/jev-mcp</a></li></ul>
+  </article>
+</main>
+
+<footer>
+  <p>
+    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
+    Filed by the writing-reports skill &nbsp;·&nbsp;
+    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a>
+  </p>
+</footer>
+
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var icon = document.getElementById("theme-icon");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn || !icon) return;
+      function paint() {
+        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>
