@@ -106,6 +106,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-scan"
     },
     {
+      "name": "summarizing-weekly-work",
+      "version": "1.0.0",
+      "description": "Use when asked what was done, left pending, in progress, blocked, or waiting for review over the past week or N days; for a weekly recap, wrap-up, or standup (including the weekly worktree cleanup); \"where did I leave off\", \"what should I continue\"; or instead of clicking through old sessions with /resume.",
+      "category": "Productivity",
+      "path": "skills/productivity/summarizing-weekly-work",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/summarizing-weekly-work"
+    },
+    {
       "name": "superpowers-brainstorming",
       "version": "1.0.0",
       "description": "You MUST use this before any creative work - creating features, building components, adding functionality, or modifying behavior. Explores user intent, requirements and design before implementation.",
@@ -330,6 +338,14 @@
           "category": "Productivity",
           "path": "skills/productivity/session-handoff",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/session-handoff"
+        },
+        {
+          "name": "summarizing-weekly-work",
+          "version": "1.0.0",
+          "description": "Use when asked what was done, left pending, in progress, blocked, or waiting for review over the past week or N days; for a weekly recap, wrap-up, or standup (including the weekly worktree cleanup); \"where did I leave off\", \"what should I continue\"; or instead of clicking through old sessions with /resume.",
+          "category": "Productivity",
+          "path": "skills/productivity/summarizing-weekly-work",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/summarizing-weekly-work"
         },
         {
           "name": "tldr",
