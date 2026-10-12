@@ -23,10 +23,14 @@ for each new mention while you're away. Python stdlib only.
   the LLM (snippet in `SKILL.md`).
 - Away alerts: a `hermes cron create "every 5m" ... --no-agent --deliver slack` job; silent when
   nothing is new (wrapper + command in `SKILL.md`).
+- Triage digest: instead of verbatim alerts, `watch_mentions.py --digest` feeds new mentions plus
+  their threads to an LLM cron agent that sorts them into no action / review / action plan; no
+  LLM run when nothing is new. Thread context needs the user scopes `channels:history`,
+  `groups:history`, `im:history`, `mpim:history` (wrapper, prompt and command in `SKILL.md`).
 
 ## Privacy
 
-Read-only: GET requests to a 7-method allowlist (search, history, user/permalink lookups). It never
+Read-only: GET requests to an 8-method allowlist (search, history, thread, user/permalink lookups). It never
 posts, reacts, marks read or joins channels. The only write is the cron alert, sent by Hermes to
 your own bot DM. State (`~/.hermes/scripts/.slack-mention-watch.json`, mode 600) holds timestamps
 and message keys, no message text.
