@@ -1,6 +1,6 @@
 ---
 name: slack-scan
-description: Summarize today's Slack activity on demand -- one channel or every channel/DM the bot is in.
+description: Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.
 version: 1.0.0
 metadata:
   hermes:
@@ -10,6 +10,12 @@ metadata:
 ---
 
 # Slack notification summary (on demand)
+
+> **"Who pinged me / any notifications / what did I miss / mentions of @you"?** Do NOT use
+> this skill -- load `slack-mention-watch` and run
+> `python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24`
+> (one terminal call, foreground, no notify/heartbeat args). It searches every channel and DM
+> the user can see; this skill only sees channels the bot was invited to.
 
 ## When to use this
 
@@ -24,7 +30,7 @@ that. Two shapes of request:
 
 ## Prerequisites
 
-- The bot must be a member of any channel it's asked to cover (`/invite @hermes_bot` in it).
+- The bot must be a member of any channel it's asked to cover (`/invite` your Hermes bot in it).
   Public channels the bot never joined, and private channels it wasn't invited to, are invisible
   to it -- there is no workaround.
 - `SLACK_BOT_TOKEN` is set in `~/.hermes/.env`.
@@ -132,7 +138,7 @@ Paginate if the workspace has more than 200 channels.
 
 | Response | Meaning | Action |
 | --- | --- | --- |
-| `not_in_channel` | Bot isn't a member | Tell the user to `/invite @hermes_bot` in that channel, skip it (don't fail the whole summary). |
+| `not_in_channel` | Bot isn't a member | Tell the user to `/invite` the Hermes bot in that channel, skip it (don't fail the whole summary). |
 | `missing_scope` | A history scope isn't granted | Point to `slack-todo-bot/README.md` step 2, stop. |
 | `channel_not_found` | Bad ID or private channel bot can't see | Ask the user to confirm the channel name/ID. |
 | `ratelimited` (HTTP 429) | Too many `conversations.history` calls | Sleep for the `Retry-After` header value, retry once, then skip that channel and note it in the reply. |
