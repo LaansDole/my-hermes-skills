@@ -23,7 +23,9 @@ subprocess env, so the file is the real source):
   SLACK_MENTION_STATE_FILE   default ~/.hermes/scripts/.slack-mention-watch.json
   HERMES_DOTENV              default ~/.hermes/.env
 
-Flags: --dry-run (don't save state), --check (diagnostics, no state).
+Flags: --dry-run (don't save state), --check (diagnostics, no state),
+       --recent [HOURS] (list all mentions in the last HOURS, default 24; ignores
+       and never writes state).
 """
 import argparse
 import json
@@ -49,6 +51,7 @@ OVERLAP_SECS = 600
 SEEN_MAX = 500
 TEXT_MAX = 400
 CHANNEL_SLEEP = 1.2
+RECENT_MAX = 50
 
 
 class SlackError(Exception):
@@ -129,21 +132,28 @@ def is_noise(m, uid):
             or bool(m.get("bot_id")))
 
 
-def search_mentions(token, uid, floor):
-    d = api("search.messages", token, query=f"<@{uid}>", sort="timestamp",
-            sort_dir="desc", count=50)
+def search_mentions(token, uid, floor, count=50, pages=1):
     out = []
-    for m in d.get("messages", {}).get("matches", []):
-        if float(m["ts"]) <= floor or is_noise(m, uid):
-            continue
-        ch = m.get("channel") or {}
-        out.append({
-            "channel_id": ch.get("id", ""),
-            "channel": "DM" if ch.get("is_im") else f"#{ch.get('name', '?')}",
-            "user": m.get("user"), "username": m.get("username"),
-            "ts": m["ts"], "text": m.get("text", ""),
-            "permalink": m.get("permalink", ""),
-        })
+    for page in range(1, pages + 1):
+        d = api("search.messages", token, query=f"<@{uid}>", sort="timestamp",
+                sort_dir="desc", count=count, page=page)
+        msgs = d.get("messages", {})
+        matches = msgs.get("matches", [])
+        for m in matches:
+            if float(m["ts"]) <= floor or is_noise(m, uid):
+                continue
+            ch = m.get("channel") or {}
+            out.append({
+                "channel_id": ch.get("id", ""),
+                "channel": "DM" if ch.get("is_im") else f"#{ch.get('name', '?')}",
+                "user": m.get("user"), "username": m.get("username"),
+                "ts": m["ts"], "text": m.get("text", ""),
+                "permalink": m.get("permalink", ""),
+            })
+        # newest first: once a page reaches the floor, older pages can't matter
+        if (not matches or float(matches[-1]["ts"]) <= floor
+                or page >= (msgs.get("paging") or {}).get("pages", 1)):
+            break
     return out
 
 
@@ -247,6 +257,19 @@ def config():
     return uid, "history", env("SLACK_BOT_TOKEN")
 
 
+def mentions(uid, mode, token, bot_tok, floor, recent=False):
+    if mode == "search":
+        found = search_mentions(token, uid, floor, *((100, 3) if recent else (50, 1)))
+    else:
+        found = history_mentions(token, uid, floor)
+    if found:
+        # Alerts are posted into SLACK_HOME_CHANNEL by the bot and quote the mention,
+        # so search would return them as new mentions forever. Drop both ways.
+        home, bots = env("SLACK_HOME_CHANNEL"), ignored_users(bot_tok)
+        found = [m for m in found if m["channel_id"] != home and m["user"] not in bots]
+    return found
+
+
 def run(dry_run=False):
     uid, mode, token = config()
     if not uid or not token:
@@ -256,12 +279,7 @@ def run(dry_run=False):
     state = load_state(state_path, float(env("SLACK_MENTION_LOOKBACK_MINS") or 60))
     started = time.time()
     floor = float(state["last_ts"]) - OVERLAP_SECS
-    found = (search_mentions if mode == "search" else history_mentions)(token, uid, floor)
-    if found:
-        # Alerts are posted into SLACK_HOME_CHANNEL by the bot and quote the mention,
-        # so search would return them as new mentions forever. Drop both ways.
-        home, bots = env("SLACK_HOME_CHANNEL"), ignored_users(bot_tok)
-        found = [m for m in found if m["channel_id"] != home and m["user"] not in bots]
+    found = mentions(uid, mode, token, bot_tok, floor)
     seen = set(state["seen"])
     new = []
     for m in sorted(found, key=lambda m: float(m["ts"])):
@@ -277,6 +295,21 @@ def run(dry_run=False):
         state["seen"] = state["seen"][-SEEN_MAX:]
         save_state(state_path, state)
     return out
+
+
+def recent(hours):
+    """Every mention in the last `hours`, newest first. Never reads or writes state."""
+    uid, mode, token = config()
+    if not uid or not token:
+        raise SlackError("missing SLACK_MENTION_USER_ID/SLACK_ALLOWED_USERS or token")
+    bot_tok = env("SLACK_BOT_TOKEN")
+    found = mentions(uid, mode, token, bot_tok, time.time() - hours * 3600, recent=True)
+    uniq = {f"{m['channel_id']}:{m['ts']}": m for m in found}  # pages can overlap
+    found = sorted(uniq.values(), key=lambda m: float(m["ts"]), reverse=True)[:RECENT_MAX]
+    name = Names(bot_tok or token, uid)
+    if not found:
+        return f"No @{name(uid)} mentions in the last {hours:g} h."
+    return "\n\n".join(fmt(m, name, token) for m in found)
 
 
 def check():
@@ -301,9 +334,16 @@ def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--dry-run", action="store_true", help="don't save state")
     ap.add_argument("--check", action="store_true", help="print diagnostics, no state")
+    ap.add_argument("--recent", nargs="?", const=24.0, type=float, metavar="HOURS",
+                    help="list all mentions in the last HOURS (default 24); no state")
     a = ap.parse_args(argv)
     try:
-        out = check() if a.check else run(a.dry_run)
+        if a.check:
+            out = check()
+        elif a.recent is not None:
+            out = recent(a.recent)
+        else:
+            out = run(a.dry_run)
     except RateLimited as e:
         print(f"{TAG} rate limited on {e}; skipping tick", file=sys.stderr)
         return 0

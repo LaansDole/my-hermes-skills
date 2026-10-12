@@ -305,5 +305,80 @@ class SelfAlertLoop(Base):
         self.assertEqual(search[0].headers["Authorization"], "Bearer xoxp-user")
 
 
+class Recent(Base):
+    NAMES = {"ok": True, "user": {"profile": {"display_name": "tony"}}}
+
+    def ts(self, hours_ago):
+        return f"{wm.time.time() - hours_ago * 3600:.6f}"
+
+    def test_ignores_seen_state_and_never_writes_it(self):
+        new, old = self.ts(1), self.ts(2)
+        self.write_state(f"{wm.time.time():.6f}", [f"C1:{new}", f"C1:{old}"])
+        before = (self.state.read_text(), self.state.stat().st_mtime_ns)
+        fake = FakeSlack({"search.messages": search_payload(match(new), match(old)),
+                          "users.info": self.NAMES})
+        code, out = self.run_main(fake, "--recent", "3")
+        self.assertEqual(code, 0)
+        self.assertEqual(out.count("Slack mention"), 2)
+        self.assertLess(out.index(f"p{new}"), out.index(f"p{old}"))  # newest first
+        self.assertEqual((self.state.read_text(), self.state.stat().st_mtime_ns), before)
+
+    def test_no_state_file_is_not_created(self):
+        self.state.unlink()
+        self.run_main(FakeSlack({"search.messages": search_payload(match(self.ts(1))),
+                                 "users.info": self.NAMES}), "--recent")
+        self.assertFalse(self.state.exists())
+
+    def test_cutoff_and_filters(self):
+        os.environ["SLACK_HOME_CHANNEL"] = "D0HOME"
+        fake = FakeSlack({"search.messages": search_payload(
+            match(self.ts(1)),
+            match(self.ts(1.1), channel={"id": "D0HOME", "is_im": True}),
+            match(self.ts(1.2), user=BOT_UID),
+            match(self.ts(5))), "users.info": self.NAMES})
+        _, out = self.run_main(fake, "--recent", "2.5")
+        self.assertEqual(out.count("Slack mention"), 1)
+
+    def test_empty_prints_no_mentions_line(self):
+        fake = FakeSlack({"search.messages": search_payload(match(self.ts(30))),
+                          "users.info": self.NAMES})
+        code, out = self.run_main(fake, "--recent", "1.5")
+        self.assertEqual((code, out), (0, "No @tony mentions in the last 1.5 h.\n"))
+
+    def test_pagination_stops_at_cutoff(self):
+        pages = {"1": [match(self.ts(1)), match(self.ts(2))],
+                 "2": [match(self.ts(3)), match(self.ts(30))],
+                 "3": [match(self.ts(40))]}
+
+        def route(req):
+            q = urllib.parse.parse_qs(urllib.parse.urlparse(req.full_url).query)
+            self.assertEqual(q["count"], ["100"])
+            return {"ok": True, "messages": {"matches": pages[q["page"][0]],
+                                             "paging": {"pages": 3}}}
+        fake = FakeSlack({"search.messages": route, "users.info": self.NAMES})
+        _, out = self.run_main(fake, "--recent", "24")
+        self.assertEqual(fake.methods().count("search.messages"), 2)
+        self.assertEqual(out.count("Slack mention"), 3)
+
+    def test_pagination_caps_at_three_pages(self):
+        fake = FakeSlack({"search.messages": lambda req: {"ok": True, "messages": {
+            "matches": [match(self.ts(0.1))], "paging": {"pages": 9}}},
+            "users.info": self.NAMES})
+        self.run_main(fake, "--recent")
+        self.assertEqual(fake.methods().count("search.messages"), 3)
+
+    def test_history_mode_uses_cutoff_as_oldest(self):
+        del os.environ["SLACK_USER_READ_TOKEN"]
+        fake = FakeSlack({
+            "conversations.list": {"ok": True, "channels": [{"id": "C1", "name": "g", "is_member": True}]},
+            "conversations.history": {"ok": True, "messages": []}, "users.info": self.NAMES})
+        before = wm.time.time()
+        _, out = self.run_main(fake, "--recent", "6")
+        hist = [r for r in fake.requests if "conversations.history" in r.full_url][0]
+        oldest = float(urllib.parse.parse_qs(urllib.parse.urlparse(hist.full_url).query)["oldest"][0])
+        self.assertAlmostEqual(oldest, before - 6 * 3600, delta=5)
+        self.assertEqual(out, "No @tony mentions in the last 6 h.\n")
+
+
 if __name__ == "__main__":
     unittest.main()

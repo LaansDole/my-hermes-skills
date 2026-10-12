@@ -1,17 +1,33 @@
 ---
 name: slack-mention-watch
-description: Use when monitoring Slack for new @tony mentions while away. Read-only poller + cron alert.
-version: 1.0.0
+description: Use when tony asks about Slack pings, notifications, mentions or what he missed, or to monitor @tony mentions while away. Read-only.
+version: 1.1.0
 metadata:
   hermes:
     tags: [slack, notifications, monitoring, cron]
-    category: messaging
+    category: slack
     requires_toolsets: [terminal]
 ---
 
 # Slack @tony mention watch
 
-## When to use this
+## On demand: what pinged me?
+
+When tony asks "any notifications?", "who pinged me?", "what did I miss?" or similar, run via the
+terminal tool:
+
+```bash
+python3 ~/Projects/auto-learn-for-me/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
+```
+
+Adjust the hours to the question (e.g. "today" = hours since local midnight, "this morning",
+"last hour" = `1`; floats are fine) and relay the output as-is. It lists every `@tony` mention in
+the window, newest first (max 50), regardless of whether the cron already alerted it, and never
+touches the cron's state. With none it prints `No @tony mentions in the last N h.`
+**Never claim you can't see Slack** -- this script is how you see it. The background alert job's id
+is listed by `hermes cron list` (name `slack-mention-watch`).
+
+## Background watch
 
 The user (Slack "tony", `U0BJAUSC83Y`, workspace "folktale") is away and wants to know when
 someone pings `@tony`. A cron job runs `scripts/watch_mentions.py` every 5 minutes with
