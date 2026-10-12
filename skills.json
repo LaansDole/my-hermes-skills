@@ -106,6 +106,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/session-handoff"
     },
     {
+      "name": "slack-mention-watch",
+      "version": "1.0.0",
+      "description": "Use when monitoring Slack for new @tony mentions while away. Read-only poller + cron alert.",
+      "category": "slack-mention-watch",
+      "path": "skills/slack-mention-watch",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-mention-watch"
+    },
+    {
       "name": "slack-scan",
       "version": "1.0.0",
       "description": "Summarize today's Slack activity on demand -- one channel or every channel/DM the bot is in.",
@@ -433,6 +441,19 @@
           "category": "ilearning-autoadvance",
           "path": "skills/ilearning-autoadvance",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance"
+        }
+      ]
+    },
+    {
+      "title": "slack-mention-watch",
+      "skills": [
+        {
+          "name": "slack-mention-watch",
+          "version": "1.0.0",
+          "description": "Use when monitoring Slack for new @tony mentions while away. Read-only poller + cron alert.",
+          "category": "slack-mention-watch",
+          "path": "skills/slack-mention-watch",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack-mention-watch"
         }
       ]
     },
