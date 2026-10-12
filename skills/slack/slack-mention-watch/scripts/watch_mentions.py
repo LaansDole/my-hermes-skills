@@ -15,7 +15,8 @@ GET to methods in READ_METHODS and raises on anything else.
 Env (process env first, then the dotenv file -- Hermes strips SLACK_* from
 subprocess env, so the file is the real source):
   SLACK_USER_READ_TOKEN, SLACK_BOT_TOKEN
-  SLACK_MENTION_USER_ID      default: first id of SLACK_ALLOWED_USERS
+  SLACK_MENTION_USER_ID      default: owner of SLACK_USER_READ_TOKEN (auth.test),
+                             else first id of SLACK_ALLOWED_USERS
   SLACK_MENTION_IGNORE_USERS extra author ids to drop (comma list); the bot's own
                              user id (auth.test on SLACK_BOT_TOKEN) is always dropped
   SLACK_HOME_CHANNEL         alert delivery channel; matches in it are dropped
@@ -160,7 +161,7 @@ def search_mentions(token, uid, floor, count=50, pages=1):
 def member_channels(token):
     chans, cursor = [], ""
     while True:
-        # ponytail: bot<->user IMs (no is_member flag) skipped; @tony in a DM to the bot is noise.
+        # ponytail: bot<->user IMs (no is_member flag) skipped; @you in a DM to the bot is noise.
         d = api("conversations.list", token, types="public_channel,private_channel,mpim",
                 exclude_archived="true", limit=200, cursor=cursor)
         chans += [c for c in d.get("channels", []) if c.get("is_member")]
@@ -250,8 +251,14 @@ def ignored_users(bot_tok):
 
 
 def config():
-    uid = env("SLACK_MENTION_USER_ID") or (env("SLACK_ALLOWED_USERS") or "").split(",")[0].strip()
+    uid = env("SLACK_MENTION_USER_ID")
     user_tok = env("SLACK_USER_READ_TOKEN")
+    if not uid and user_tok:
+        try:  # the user token's owner is the person to watch
+            uid = api("auth.test", user_tok).get("user_id")
+        except SlackError:
+            pass
+    uid = uid or (env("SLACK_ALLOWED_USERS") or "").split(",")[0].strip()
     if user_tok:
         return uid, "search", user_tok
     return uid, "history", env("SLACK_BOT_TOKEN")

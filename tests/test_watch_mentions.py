@@ -22,7 +22,7 @@ _spec = importlib.util.spec_from_file_location("watch_mentions_under_test", SCRI
 wm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(wm)
 
-UID = "U0BJAUSC83Y"
+UID = "U0TESTUSER"
 BOT_UID = "U0HERMESBOT"
 
 
@@ -42,8 +42,13 @@ class FakeSlack:
     """Routes requests by Slack method name; records every request."""
 
     def __init__(self, routes):
-        # bot identity lookup (auth.test on SLACK_BOT_TOKEN) happens whenever there are matches
-        self.routes, self.requests = {"auth.test": {"ok": True, "user_id": BOT_UID}, **routes}, []
+        # auth.test answers per token: the user token's owner is UID, the bot token's is BOT_UID
+        self.routes, self.requests = {"auth.test": self.whoami, **routes}, []
+
+    @staticmethod
+    def whoami(req):
+        bot = req.headers["Authorization"] == "Bearer xoxb-bot"
+        return {"ok": True, "user_id": BOT_UID if bot else UID}
 
     def __call__(self, req, timeout=None):
         self.requests.append(req)
@@ -57,13 +62,16 @@ class FakeSlack:
     def methods(self):
         return [urllib.parse.urlparse(r.full_url).path.rsplit("/", 1)[1] for r in self.requests]
 
+    def auth_tokens(self):
+        return [r.headers["Authorization"] for r in self.requests if "auth.test" in r.full_url]
+
 
 def search_payload(*matches):
     return {"ok": True, "messages": {"matches": list(matches)}}
 
 
-def match(ts, user="U1ALICE", text=f"hey <@{UID}> look", **kw):
-    m = {"ts": ts, "user": user, "username": "alice", "text": text,
+def match(ts, user="U1CAROL", text=f"hey <@{UID}> look", **kw):
+    m = {"ts": ts, "user": user, "username": "carol", "text": text,
          "channel": {"id": "C1", "name": "general"}, "permalink": f"https://x/p{ts}"}
     m.update(kw)
     return m
@@ -118,9 +126,9 @@ class ReadOnly(Base):
 
     def test_only_get_without_body(self):
         fake = FakeSlack({"search.messages": search_payload(match("2000.000100")),
-                          "users.info": {"ok": True, "user": {"name": "tony"}}})
+                          "users.info": {"ok": True, "user": {"name": "alice"}}})
         self.run_main(fake)
-        fake2 = FakeSlack({"auth.test": {"ok": True, "user": "tony"},
+        fake2 = FakeSlack({"auth.test": {"ok": True, "user": "alice"},
                            "search.messages": search_payload()})
         self.run_main(fake2, "--check")
         for req in fake.requests + fake2.requests:
@@ -133,10 +141,32 @@ class Modes(Base):
     def test_user_token_uses_search(self):
         fake = FakeSlack({"search.messages": search_payload()})
         self.run_main(fake)
-        self.assertEqual(fake.methods(), ["search.messages"])
-        q = urllib.parse.parse_qs(urllib.parse.urlparse(fake.requests[0].full_url).query)
+        self.assertEqual(fake.methods(), ["auth.test", "search.messages"])
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(fake.requests[1].full_url).query)
         self.assertEqual(q["query"], [f"<@{UID}>"])
-        self.assertEqual(fake.requests[0].headers["Authorization"], "Bearer xoxp-user")
+        self.assertEqual(fake.requests[1].headers["Authorization"], "Bearer xoxp-user")
+
+    def test_watched_user_precedence(self):
+        def query(fake):
+            req = [r for r in fake.requests if "search.messages" in r.full_url][0]
+            return urllib.parse.parse_qs(urllib.parse.urlparse(req.full_url).query)["query"]
+        # token owner beats SLACK_ALLOWED_USERS
+        Path(os.environ["HERMES_DOTENV"]).write_text("SLACK_ALLOWED_USERS=U9OTHER\n")
+        fake = FakeSlack({"search.messages": search_payload()})
+        self.run_main(fake)
+        self.assertEqual(query(fake), [f"<@{UID}>"])
+        self.assertEqual(fake.auth_tokens(), ["Bearer xoxp-user"])
+        # failed auth.test falls back to SLACK_ALLOWED_USERS
+        fake = FakeSlack({"auth.test": {"ok": False, "error": "invalid_auth"},
+                          "search.messages": search_payload()})
+        self.run_main(fake)
+        self.assertEqual(query(fake), ["<@U9OTHER>"])
+        # explicit SLACK_MENTION_USER_ID beats both, no identity lookup
+        os.environ["SLACK_MENTION_USER_ID"] = "U5EXPLICIT"
+        fake = FakeSlack({"search.messages": search_payload()})
+        self.run_main(fake)
+        self.assertEqual(query(fake), ["<@U5EXPLICIT>"])
+        self.assertNotIn("auth.test", fake.methods())
 
     def test_no_user_token_uses_history_with_bot_token(self):
         del os.environ["SLACK_USER_READ_TOKEN"]
@@ -145,9 +175,9 @@ class Modes(Base):
                 {"id": "C1", "name": "general", "is_member": True},
                 {"id": "C2", "name": "random", "is_member": False}]},
             "conversations.history": {"ok": True, "messages": [
-                {"ts": "2000.1", "user": "U1ALICE", "text": f"<@{UID}> ping"},
-                {"ts": "2000.2", "user": "U1ALICE", "text": "unrelated"}]},
-            "users.info": {"ok": True, "user": {"profile": {"display_name": "alice"}}},
+                {"ts": "2000.1", "user": "U1CAROL", "text": f"<@{UID}> ping"},
+                {"ts": "2000.2", "user": "U1CAROL", "text": "unrelated"}]},
+            "users.info": {"ok": True, "user": {"profile": {"display_name": "carol"}}},
             "chat.getPermalink": {"ok": True, "permalink": "https://x/perm"},
         })
         code, out = self.run_main(fake)
@@ -168,14 +198,14 @@ class Filtering(Base):
             match("2000.2", subtype="bot_message"),
             match("2000.3", bot_id="B1"),
             match("2000.4", text=f"real <@{UID}>"),
-        ), "users.info": {"ok": True, "user": {"name": "tony"}}})
+        ), "users.info": {"ok": True, "user": {"name": "alice"}}})
         _, out = self.run_main(fake)
         self.assertEqual(out.count("Slack mention"), 1)
-        self.assertIn("real @tony", out)
+        self.assertIn("real @alice", out)
 
     def test_dedupe_across_runs(self):
         routes = {"search.messages": search_payload(match("2000.1")),
-                  "users.info": {"ok": True, "user": {"name": "tony"}}}
+                  "users.info": {"ok": True, "user": {"name": "alice"}}}
         _, first = self.run_main(FakeSlack(routes))
         self.assertIn("Slack mention", first)
         # second run: same message still in search results (overlap window)
@@ -197,7 +227,7 @@ class State(Base):
     def test_dry_run_does_not_touch_state(self):
         before = self.state.read_text()
         fake = FakeSlack({"search.messages": search_payload(match("2000.1")),
-                          "users.info": {"ok": True, "user": {"name": "tony"}}})
+                          "users.info": {"ok": True, "user": {"name": "alice"}}})
         _, out = self.run_main(fake, "--dry-run")
         self.assertIn("Slack mention", out)
         self.assertEqual(self.state.read_text(), before)
@@ -207,7 +237,7 @@ class State(Base):
         fake = FakeSlack({"search.messages": lambda req: http_429()})
         code, out = self.run_main(fake)
         self.assertEqual((code, out), (0, ""))
-        self.assertEqual(fake.methods(), ["search.messages", "search.messages"])  # one retry
+        self.assertEqual(fake.methods(), ["auth.test", "search.messages", "search.messages"])  # one retry
         wm.time.sleep.assert_called_once_with(1)
         self.assertEqual(self.state.read_text(), before)
 
@@ -226,29 +256,29 @@ class State(Base):
 
 class Formatting(Base):
     def test_mentions_resolved_and_truncated(self):
-        names = {"U0BJAUSC83Y": "tony", "U2BOB": "bob"}
+        names = {UID: "alice", "U2BOB": "bob"}
         name = lambda uid: names[uid]
         self.assertEqual(wm.render_text(f"hi <@{UID}> and <@U2BOB|bobby> in <#C1|general> <!here>", name),
-                         "hi @tony and @bobby in #general @here")
+                         "hi @alice and @bobby in #general @here")
         self.assertEqual(wm.render_text(f"<@U2BOB> " + "x" * 1000, name)[:5], "@bob ")
         self.assertEqual(len(wm.render_text("x" * 1000, name)), wm.TEXT_MAX)
 
     def test_users_info_resolves_display_name(self):
         fake = FakeSlack({"search.messages": search_payload(match("2000.1", text=f"<@{UID}> yo")),
-                          "users.info": {"ok": True, "user": {"name": "t", "profile": {"display_name": "tony"}}}})
+                          "users.info": {"ok": True, "user": {"name": "a", "profile": {"display_name": "alice"}}}})
         _, out = self.run_main(fake)
-        self.assertIn("> @tony yo", out)
-        self.assertIn("#general from alice", out)
+        self.assertIn("> @alice yo", out)
+        self.assertIn("#general from carol", out)
         self.assertIn("https://x/p2000.1", out)
 
 
 class SelfAlertLoop(Base):
-    NAMES = {"ok": True, "user": {"profile": {"display_name": "tony"}}}
+    NAMES = {"ok": True, "user": {"profile": {"display_name": "alice"}}}
 
     def test_home_channel_matches_dropped(self):
         os.environ["SLACK_HOME_CHANNEL"] = "D0HOME"
         fake = FakeSlack({"search.messages": search_payload(
-            match("2000.1", user="U1ALICE", channel={"id": "D0HOME", "is_im": True}),
+            match("2000.1", user="U1CAROL", channel={"id": "D0HOME", "is_im": True}),
             match("2000.2")), "users.info": self.NAMES})
         _, out = self.run_main(fake)
         self.assertEqual(out.count("Slack mention"), 1)
@@ -271,23 +301,21 @@ class SelfAlertLoop(Base):
         _, out = self.run_main(fake)
         self.assertEqual(out.count("Slack mention"), 1)
         self.assertIn("p2000.4", out)
-        auth = [r for r in fake.requests if "auth.test" in r.full_url]
-        self.assertEqual(len(auth), 1)
-        self.assertEqual(auth[0].headers["Authorization"], "Bearer xoxb-bot")
+        self.assertEqual(fake.auth_tokens().count("Bearer xoxb-bot"), 1)
 
     def test_no_bot_token_skips_bot_check(self):
         Path(os.environ["HERMES_DOTENV"]).write_text(f"SLACK_ALLOWED_USERS={UID}\n")
         fake = FakeSlack({"search.messages": search_payload(match("2000.1")),
                           "users.info": self.NAMES})
         _, out = self.run_main(fake)
-        self.assertNotIn("auth.test", fake.methods())
+        self.assertNotIn("Bearer xoxb-bot", fake.auth_tokens())
         self.assertIn("Slack mention", out)
 
     def test_rendered_alert_has_no_mention_markup(self):
         for users_info in (self.NAMES, {"ok": False, "error": "missing_scope"}):
             self.write_state("1000.000000", [])
             fake = FakeSlack({"search.messages": search_payload(
-                match("2000.1", text=f"<@{UID}> and <@U2BOB> see <@{UID}|tony>")),
+                match("2000.1", text=f"<@{UID}> and <@U2BOB> see <@{UID}|alice>")),
                 "users.info": users_info})
             _, out = self.run_main(fake)
             self.assertIn("Slack mention", out)
@@ -306,7 +334,7 @@ class SelfAlertLoop(Base):
 
 
 class Recent(Base):
-    NAMES = {"ok": True, "user": {"profile": {"display_name": "tony"}}}
+    NAMES = {"ok": True, "user": {"profile": {"display_name": "alice"}}}
 
     def ts(self, hours_ago):
         return f"{wm.time.time() - hours_ago * 3600:.6f}"
@@ -343,7 +371,7 @@ class Recent(Base):
         fake = FakeSlack({"search.messages": search_payload(match(self.ts(30))),
                           "users.info": self.NAMES})
         code, out = self.run_main(fake, "--recent", "1.5")
-        self.assertEqual((code, out), (0, "No @tony mentions in the last 1.5 h.\n"))
+        self.assertEqual((code, out), (0, "No @alice mentions in the last 1.5 h.\n"))
 
     def test_pagination_stops_at_cutoff(self):
         pages = {"1": [match(self.ts(1)), match(self.ts(2))],
@@ -377,7 +405,7 @@ class Recent(Base):
         hist = [r for r in fake.requests if "conversations.history" in r.full_url][0]
         oldest = float(urllib.parse.parse_qs(urllib.parse.urlparse(hist.full_url).query)["oldest"][0])
         self.assertAlmostEqual(oldest, before - 6 * 3600, delta=5)
-        self.assertEqual(out, "No @tony mentions in the last 6 h.\n")
+        self.assertEqual(out, "No @alice mentions in the last 6 h.\n")
 
 
 if __name__ == "__main__":

@@ -1,23 +1,32 @@
 # slack-mention-watch
 
-Alerts tony in his Hermes DM when someone new `@tony`-mentions him on Slack. A Hermes cron job
-runs `scripts/watch_mentions.py` every 5 minutes with `--no-agent`; the script prints nothing when
-there's nothing new, so nothing is sent. Strictly read-only toward Slack (GET-only allowlist of
-read methods).
+A [Hermes Agent](https://hermes-agent.nousresearch.com/) skill for the Slack gateway: ask "who
+pinged me?" and get every Slack message that `@`-mentions you, or get a DM from your Hermes bot
+for each new mention while you're away. Python stdlib only.
 
-## Quick start
+## Setup
 
-1. Slack app -> OAuth & Permissions -> User Token Scopes -> add `search:read`, reinstall, put the
-   `xoxp-` token in `~/.hermes/.env` as `SLACK_USER_READ_TOKEN`.
-   Without it, the script falls back to the bot token and only sees channels the bot was
-   `/invite`d to (no DMs, no thread replies).
-2. `python3 scripts/watch_mentions.py --check` -- should say `mode: search`.
-3. Link into `~/.hermes/scripts/` and create the cron job (exact commands in `SKILL.md`).
+1. Copy or symlink this folder to `~/.hermes/skills/slack/slack-mention-watch`.
+2. https://api.slack.com/apps -> your Hermes bot's app -> OAuth & Permissions -> User Token
+   Scopes -> add `search:read`.
+3. Reinstall the app to the workspace, approving as yourself.
+4. Put the `xoxp-` User OAuth Token in `~/.hermes/.env` as `SLACK_USER_READ_TOKEN=xoxp-...`.
+   (Without it the script falls back to the bot token and only sees channels the bot was
+   `/invite`d to.)
+5. `python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --check` ->
+   expect `mode: search`.
 
-## Files
+## Use
 
-- `scripts/watch_mentions.py` -- the poller (python3 stdlib only). Flags: `--check`, `--dry-run`.
-- `SKILL.md` -- setup, config variables, troubleshooting.
-- `../../tests/test_watch_mentions.py` -- unit tests, no network.
+- Ask Hermes "any Slack pings today?" -- it runs `watch_mentions.py --recent 24`.
+- `/pings`: a `quick_commands` exec entry in `~/.hermes/config.yaml` that runs the script without
+  the LLM (snippet in `SKILL.md`).
+- Away alerts: a `hermes cron create "every 5m" ... --no-agent --deliver slack` job; silent when
+  nothing is new (wrapper + command in `SKILL.md`).
 
-State: `~/.hermes/scripts/.slack-mention-watch.json` (mode 600).
+## Privacy
+
+Read-only: GET requests to a 7-method allowlist (search, history, user/permalink lookups). It never
+posts, reacts, marks read or joins channels. The only write is the cron alert, sent by Hermes to
+your own bot DM. State (`~/.hermes/scripts/.slack-mention-watch.json`, mode 600) holds timestamps
+and message keys, no message text.

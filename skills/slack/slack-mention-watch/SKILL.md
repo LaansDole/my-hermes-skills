@@ -1,7 +1,9 @@
 ---
 name: slack-mention-watch
-description: Use when tony asks about Slack pings, notifications, mentions or what he missed, or to monitor @tony mentions while away. Read-only.
-version: 1.1.0
+description: Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.
+version: 2.0.0
+author: LaansDole
+license: MIT
 metadata:
   hermes:
     tags: [slack, notifications, monitoring, cron]
@@ -9,141 +11,126 @@ metadata:
     requires_toolsets: [terminal]
 ---
 
-# Slack @tony mention watch
+# Slack @mention watch
+
+Lists Slack messages that `@`-mention the user, on demand or as background alerts. Strictly
+read-only toward Slack. Not for: summarizing a day of Slack (use `slack-scan`), replying, keyword
+watches, or `@here`/`@channel` pings.
+
+The script lives at `~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py`. If the
+skill is installed elsewhere, `skill_view` returns its `skill_dir`; use `<skill_dir>/scripts/watch_mentions.py`.
 
 ## On demand: what pinged me?
 
-When tony asks "any notifications?", "who pinged me?", "what did I miss?" or similar, run via the
-terminal tool:
+When the user asks "any notifications?", "who pinged me?", "what did I miss?" or similar, run:
 
 ```bash
-python3 ~/Projects/auto-learn-for-me/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
+python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
 ```
 
-Adjust the hours to the question (e.g. "today" = hours since local midnight, "this morning",
-"last hour" = `1`; floats are fine) and relay the output as-is. It lists every `@tony` mention in
-the window, newest first (max 50), regardless of whether the cron already alerted it, and never
-touches the cron's state. With none it prints `No @tony mentions in the last N h.`
-**Never claim you can't see Slack** -- this script is how you see it. The background alert job's id
-is listed by `hermes cron list` (name `slack-mention-watch`).
+- Make it ONE foreground terminal call with only `command` set. Do NOT pass `notify`,
+  `heartbeat` or `pty`.
+- Hours match the question: "last hour" = `1`, floats are fine, "today" = `24` (don't compute
+  midnight with extra commands).
+- Relay the output as-is. It lists every mention in the window, newest first (max 50), and
+  never touches the background job's state. With none it prints `No @<name> mentions in the last N h.`
+- **Never claim you can't see Slack** -- this script is how you see it.
 
-## Background watch
+## Quick command `/pings`
 
-The user (Slack "tony", `U0BJAUSC83Y`, workspace "folktale") is away and wants to know when
-someone pings `@tony`. A cron job runs `scripts/watch_mentions.py` every 5 minutes with
-`--no-agent`: the script prints one block per NEW mention (channel, sender, local time, text with
-`<@U..>` resolved to `@name`, permalink) and prints **nothing** when there is nothing new, so the
-cron delivers nothing. No LLM is involved.
+Most reliable option: a quick command runs the script directly and bypasses the LLM. Add to
+`~/.hermes/config.yaml`, then `hermes gateway restart`:
 
-Not for: summarizing a day of Slack (use `slack-scan`), replying, keyword watches, or
-`@here`/`@channel` pings.
-
-## How it reads Slack
-
-The script auto-selects a mode:
-
-| Mode | Token | Coverage |
-| --- | --- | --- |
-| `search` (preferred) | `SLACK_USER_READ_TOKEN` (xoxp, user scope `search:read`) | Every public/private channel, DM and group DM tony can see. One `search.messages` call per tick. |
-| `history` (fallback) | `SLACK_BOT_TOKEN` (xoxb) | Only channels/group DMs the bot is a **member** of, top-level messages only (thread replies skipped -- each would cost an extra Tier-3 call). Never sees DMs between other people and tony. |
-
-The bot token has no `search:read`; `search.messages` with it returns `not_allowed_token_type`.
-`app_mentions:read` events only fire for `@hermes_bot`, never `@tony`, so the gateway can't do this.
-
-**Never rely on `$SLACK_BOT_TOKEN` from the shell environment -- it is always empty.** Hermes
-strips `SLACK_BOT_TOKEN` (and the other gateway-managed `SLACK_*` names) from every subprocess it
-spawns (see `slack-scan/SKILL.md` for the full explanation). The script therefore reads every
-setting from the process env first, then falls back to `~/.hermes/.env` directly.
+```yaml
+quick_commands:
+  pings:
+    type: exec
+    command: python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
+```
 
 ## Setup
 
-### A. User token (recommended)
+Install: copy or symlink this folder to `~/.hermes/skills/slack/slack-mention-watch`.
 
-1. https://api.slack.com/apps -> the Hermes app -> **OAuth & Permissions** -> **User Token Scopes**
-   -> add `search:read`. Names resolve via `users.info` on `SLACK_BOT_TOKEN` (which has
-   `users:read`), so no extra user scope is needed.
-2. **Reinstall to Workspace** (banner at the top of the page), approve as tony.
-3. Copy the **User OAuth Token** (`xoxp-...`) into `~/.hermes/.env`:
+1. https://api.slack.com/apps -> your Hermes bot's app -> **OAuth & Permissions** -> **User Token
+   Scopes** -> add `search:read`.
+2. **Reinstall to Workspace**, approving as the Slack user to watch.
+3. Put the **User OAuth Token** (`xoxp-...`) in `~/.hermes/.env`:
+   `SLACK_USER_READ_TOKEN=xoxp-...`
+4. Verify:
 
+   ```bash
+   python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --check
    ```
-   SLACK_USER_READ_TOKEN=xoxp-...
-   ```
 
-### B. Fallback: bot token only
+   Expect `mode: search` and `watching: <@U...>` = your Slack user. Touches no state.
 
-Nothing to add -- `SLACK_BOT_TOKEN` is already in `~/.hermes/.env`. In every channel to watch,
-run `/invite @hermes_bot`. Until then the bot is in 0 channels and history mode sees nothing.
+| Mode | Token | Coverage |
+| --- | --- | --- |
+| `search` (preferred) | `SLACK_USER_READ_TOKEN` (xoxp, `search:read`) | Every channel, DM and group DM the user can see, threads included. |
+| `history` (fallback) | `SLACK_BOT_TOKEN` (xoxb) | Only channels the bot was `/invite`d to; top-level messages only, no DMs. |
 
-### Verify
+Fallback without a user token: `/invite` your Hermes bot into each channel to watch.
 
-```bash
-python3 ~/Projects/auto-learn-for-me/skills/slack/slack-mention-watch/scripts/watch_mentions.py --check
-```
+Names resolve via `users.info` on `SLACK_BOT_TOKEN` (needs `users:read`), so no extra user scope.
 
-Prints mode, token type, `auth.test` identity, granted scopes, the watched user id, and either
-the indexed mention count (search) or member channel count (history). Touches no state.
-`--dry-run` runs a real tick and prints what would be delivered without saving state.
+## Background alerts
 
-### Cron
+A Hermes cron job runs the script every 5 minutes with `--no-agent`. It prints one block per NEW
+mention and nothing otherwise, so nothing is delivered when nothing is new. No LLM involved.
 
-`--script` must be a real file under `~/.hermes/scripts/`. A symlink pointing into this repo is
-rejected ("Script path escapes the scripts directory via traversal"), so install a tiny wrapper:
+`--script` must be a real file under `~/.hermes/scripts/` (symlinks are rejected as path
+traversal), so install a wrapper:
 
 ```bash
 cat > ~/.hermes/scripts/slack_mention_watch_cron.py <<'EOF'
 #!/usr/bin/env python3
 import os, runpy, sys
 TARGET = os.path.expanduser(
-    "~/Projects/auto-learn-for-me/skills/slack/slack-mention-watch/scripts/watch_mentions.py")
+    "~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py")
 sys.argv[0] = TARGET
 runpy.run_path(TARGET, run_name="__main__")
 EOF
+python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py  # set baseline once
 hermes cron create "every 5m" --name slack-mention-watch \
-  --script slack_mention_watch_cron.py --no-agent --deliver slack \
-  --paused --paused-reason "waiting for SLACK_USER_READ_TOKEN"
+  --script slack_mention_watch_cron.py --no-agent --deliver slack
 ```
 
-If the skill folder moves, update `TARGET` in the wrapper or the job errors every tick.
-
-Resume it once `--check` reports `mode: search`. Delivery goes to the Hermes home DM with tony
-(`SLACK_HOME_CHANNEL`) -- the only write in the whole flow, and it never touches a monitored
-channel. Because the alert quotes the mention, `search.messages` would find it again next tick;
-the script drops every match in `SLACK_HOME_CHANNEL`, every match authored by the bot user
-(`auth.test` on `SLACK_BOT_TOKEN`) or by `SLACK_MENTION_IGNORE_USERS`, and renders the watched
-user as plain `@name` text (never `<@U...>`).
-
-## Config
-
-| Variable | Default |
-| --- | --- |
-| `SLACK_MENTION_USER_ID` | first id in `SLACK_ALLOWED_USERS` |
-| `SLACK_MENTION_LOOKBACK_MINS` | `60` (first run only) |
-| `SLACK_MENTION_IGNORE_USERS` | empty; comma list of extra author ids to drop (bot user always dropped) |
-| `SLACK_HOME_CHANNEL` | read from `~/.hermes/.env`; matches in it are dropped |
-| `SLACK_MENTION_STATE_FILE` | `~/.hermes/scripts/.slack-mention-watch.json` (chmod 600) |
-| `HERMES_DOTENV` | `~/.hermes/.env` |
-
-State is `{"last_ts", "seen"}`. Each tick re-scans 10 minutes behind `last_ts` (search indexing
-lags) and dedupes by `channel:ts` against the last 500 `seen` keys.
+Alerts go to `SLACK_HOME_CHANNEL` (your Hermes bot's DM) -- the only write in the flow. `--dry-run`
+runs a real tick without saving state.
 
 ## Read-only guarantee
 
-Every request goes through `api()`, which issues HTTP GET only and raises `ValueError` for any
-method outside `READ_METHODS`: `auth.test`, `search.messages`, `conversations.list`,
-`conversations.history`, `conversations.info`, `users.info`, `chat.getPermalink`. It never posts,
-reacts, marks read, joins channels or replies. Covered by `tests/test_watch_mentions.py`
-(`python3 -m unittest -v tests.test_watch_mentions`).
+Every request goes through `api()`: HTTP GET only, and `ValueError` for any method outside
+`READ_METHODS` (`auth.test`, `search.messages`, `conversations.list`, `conversations.history`,
+`conversations.info`, `users.info`, `chat.getPermalink`). It never posts, reacts, marks read,
+joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
+
+## Config
+
+Settings come from the process env, then `~/.hermes/.env` directly.
+
+| Variable | Default |
+| --- | --- |
+| `SLACK_USER_READ_TOKEN` | unset -> history mode |
+| `SLACK_MENTION_USER_ID` | owner of `SLACK_USER_READ_TOKEN` (`auth.test`), else first id in `SLACK_ALLOWED_USERS` |
+| `SLACK_MENTION_LOOKBACK_MINS` | `60` (first background run only) |
+| `SLACK_MENTION_IGNORE_USERS` | empty; comma list of extra author ids to drop (bot user always dropped) |
+| `SLACK_HOME_CHANNEL` | alert channel; matches in it are dropped |
+| `SLACK_MENTION_STATE_FILE` | `~/.hermes/scripts/.slack-mention-watch.json` (chmod 600) |
+| `HERMES_DOTENV` | `~/.hermes/.env` |
 
 ## Troubleshooting
 
-| Symptom | Meaning | Action |
+| Symptom | Cause | Fix |
 | --- | --- | --- |
-| `[slack-mention-watch] ERROR: search.messages: not_allowed_token_type` | A bot token was put in `SLACK_USER_READ_TOKEN` | Use the `xoxp-` **User** OAuth Token. |
-| `ERROR: ...: missing_scope` | `search:read` not granted | Add the user scope, reinstall (setup A). |
+| `ERROR: search.messages: not_allowed_token_type` | An `xoxb-` bot token was pasted as `SLACK_USER_READ_TOKEN` | Use the `xoxp-` **User** OAuth Token. |
+| `ERROR: ...: missing_scope` | `search:read` not granted | Add the user scope, reinstall. |
 | `ERROR: ...: invalid_auth` / `token_revoked` | Token wrong or app reinstalled | Copy the current token into `~/.hermes/.env`. |
-| `--check` says `member channels: 0` | History mode, bot invited nowhere | Setup A, or `/invite @hermes_bot`. |
-| Sender shows as `U...` | `users.info` failed: no `SLACK_BOT_TOKEN`, or it lacks `users:read` | Check the bot token in `~/.hermes/.env`. |
-| Same mention re-alerts every tick / alert quotes its own alert (duplicate/self-alert loop) | Search returns the bot's alert DM as a new `@tony` mention (search matches carry no `bot_id`) | Ensure `SLACK_HOME_CHANNEL` and `SLACK_BOT_TOKEN` are in `~/.hermes/.env`; add any other relaying user/bot id to `SLACK_MENTION_IGNORE_USERS`. |
-| Mention in a thread never alerts | History mode skips thread replies | Use setup A (search covers threads). |
-| Nothing for a while, stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. Not delivered on purpose. |
-| Flood of old mentions on first run | No state yet -> `SLACK_MENTION_LOOKBACK_MINS` window | Run the script once by hand (no flags) before resuming the cron to set the baseline, or lower the lookback. |
+| `--check` says `member channels: 0` | History mode, bot invited nowhere | Add the user token, or `/invite` your bot. |
+| Same mention re-alerts every tick / alert quotes its own alert | Self-alert loop: search sees the bot's alert DM as a new mention | Set `SLACK_HOME_CHANNEL` and `SLACK_BOT_TOKEN` in `~/.hermes/.env`; add other relaying ids to `SLACK_MENTION_IGNORE_USERS`. |
+| `notify/heartbeat only apply to background commands`, then `identical_call_streak_halt` | The model passes background-only args on a foreground call and retries it | Use `/pings`, or a different model. |
+| Names show as `U...` | `users.info` failed: no `SLACK_BOT_TOKEN` or no `users:read` | Check the bot token in `~/.hermes/.env`. |
+| `$SLACK_BOT_TOKEN` empty in the terminal | Hermes strips gateway `SLACK_*` vars from subprocesses | Nothing; the script reads `~/.hermes/.env` itself. |
+| Mention in a thread never alerts | History mode skips thread replies | Use the user token. |
+| Stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. |

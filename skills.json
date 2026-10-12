@@ -107,8 +107,8 @@
     },
     {
       "name": "slack-mention-watch",
-      "version": "1.1.0",
-      "description": "Use when tony asks about Slack pings, notifications, mentions or what he missed, or to monitor @tony mentions while away. Read-only.",
+      "version": "2.0.0",
+      "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.",
       "category": "Slack",
       "path": "skills/slack/slack-mention-watch",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
@@ -116,7 +116,7 @@
     {
       "name": "slack-scan",
       "version": "1.0.0",
-      "description": "Summarize today's Slack activity on demand -- one channel or every channel/DM the bot is in.",
+      "description": "Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.",
       "category": "Slack",
       "path": "skills/slack/slack-scan",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan"
@@ -423,8 +423,8 @@
       "skills": [
         {
           "name": "slack-mention-watch",
-          "version": "1.1.0",
-          "description": "Use when tony asks about Slack pings, notifications, mentions or what he missed, or to monitor @tony mentions while away. Read-only.",
+          "version": "2.0.0",
+          "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.",
           "category": "Slack",
           "path": "skills/slack/slack-mention-watch",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
@@ -432,7 +432,7 @@
         {
           "name": "slack-scan",
           "version": "1.0.0",
-          "description": "Summarize today's Slack activity on demand -- one channel or every channel/DM the bot is in.",
+          "description": "Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.",
           "category": "Slack",
           "path": "skills/slack/slack-scan",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan"
