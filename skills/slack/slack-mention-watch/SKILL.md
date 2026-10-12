@@ -22,14 +22,23 @@ skill is installed elsewhere, `skill_view` returns its `skill_dir`; use `<skill_
 
 ## On demand: what pinged me?
 
-When the user asks "any notifications?", "who pinged me?", "what did I miss?" or similar, run:
+When the user asks "any notifications?", "who pinged me?", "what did I miss?" or similar, run the
+script with the **`execute_code` tool** (preferred -- it has no background/foreground options to
+get wrong, and returns the full output):
 
-```bash
-python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
+```python
+import os, subprocess
+r = subprocess.run(["python3", os.path.expanduser(
+    "~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py"), "--recent", "24"],
+    capture_output=True, text=True, timeout=120)
+print(r.stdout or r.stderr)
 ```
 
-- Make it ONE foreground terminal call with only `command` set. Do NOT pass `notify`,
-  `heartbeat` or `pty`.
+Only if `execute_code` is unavailable, use ONE `terminal` call with `command` only:
+`python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24`
+-- and if it returns "notify/heartbeat only apply to background commands", do NOT retry it
+unchanged; switch to `execute_code`.
+
 - Hours match the question: "last hour" = `1`, floats are fine, "today" = `24` (don't compute
   midnight with extra commands).
 - Relay the output as-is. It lists every mention in the window, newest first (max 50), and
@@ -47,6 +56,13 @@ quick_commands:
     type: exec
     command: python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
 ```
+
+On Slack, quick commands are NOT in the app manifest, so typing `/pings` makes Slack itself reply
+"not a valid command", and `!pings` is NOT rewritten either (the `!` prefix only maps built-in
+commands). Use **`/hermes /pings`** -- the `/hermes` slash command forwards `/pings` to the
+gateway, which runs the quick command (reply is ephemeral, "only visible to you"). Slack blocks
+slash commands inside threads, so send it from a DM or channel. Telegram/Discord/CLI accept
+`/pings` directly.
 
 ## Setup
 
