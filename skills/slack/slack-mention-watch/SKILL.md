@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
-description: Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.
-version: 2.0.0
+description: Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.
+version: 2.1.0
 author: LaansDole
 license: MIT
 metadata:
@@ -115,12 +115,87 @@ hermes cron create "every 5m" --name slack-mention-watch \
 Alerts go to `SLACK_HOME_CHANNEL` (your Hermes bot's DM) -- the only write in the flow. `--dry-run`
 runs a real tick without saving state.
 
+## Triage digest (LLM)
+
+Alternative to the verbatim alerts: an LLM cron agent sorts each new mention into no action /
+review / action plan, using the surrounding thread. Use it *instead of* the alert job, not beside
+it -- both advance the same state file, so whichever runs first would hide mentions from the other.
+
+`watch_mentions.py --digest` runs the same tick as the default mode (same filters, dedupe and state;
+`--dry-run` still saves nothing), then:
+
+- nothing new (or a rate-limited/offline tick) -> prints only `{"wakeAgent": false}`. Hermes treats
+  that last stdout line as a gate and skips the agent run: no LLM call, nothing delivered.
+- otherwise -> a plain-text context block, oldest mention first:
+
+  ```
+  NEW MENTIONS: N   (watched user: @name)
+  ### Mention 1 -- #channel -- from <sender> at <local time>
+  Permalink: <url>
+  Mention: <text>
+  Thread (k messages):
+  [HH:MM] sender: text
+  ```
+
+  The thread comes from `conversations.replies` (thread root + up to 19 latest replies, 600 chars
+  per message, ~12k chars total; oldest thread lines are dropped first, mentions always stay). If
+  the call fails the mention shows `(thread context unavailable: <error>)` and the tick goes on.
+
+Thread context needs these extra **User Token Scopes** on the same app (reinstall after adding):
+`channels:history`, `groups:history`, `im:history`, `mpim:history`. Without them the digest still
+works, each mention just shows the `missing_scope` note.
+
+Hermes runs cron scripts as `python <script>` with **no arguments** (`--script` takes a file path
+only), so `--digest` goes into a second wrapper:
+
+```bash
+cat > ~/.hermes/scripts/slack_mention_digest_cron.py <<'EOF'
+#!/usr/bin/env python3
+import os, runpy, sys
+TARGET = os.path.expanduser(
+    "~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py")
+sys.argv = [TARGET, "--digest", *sys.argv[1:]]  # extra args (e.g. --dry-run) pass through
+runpy.run_path(TARGET, run_name="__main__")
+EOF
+python3 ~/.hermes/scripts/slack_mention_digest_cron.py --dry-run  # preview, saves nothing
+hermes cron create "every 5m" "$(cat ~/.hermes/scripts/slack_mention_digest_prompt.txt)" \
+  --name slack-mention-digest --script slack_mention_digest_cron.py \
+  --model <model> --provider <provider> --reasoning-effort max --deliver slack
+```
+
+Save the prompt below as `~/.hermes/scripts/slack_mention_digest_prompt.txt` first (or paste it
+as the quoted prompt argument). The script output is injected into it on every run. No `--no-agent`:
+the agent writes the delivered message. If an alert job already exists, remove it
+(`hermes cron remove <id>`) once the digest job works.
+
+Cron agent prompt:
+
+```text
+You receive new Slack @mentions of the user, each with its thread context, in the script output
+above. Triage each mention into exactly one bucket and write a Slack-friendly digest (plain text,
+short):
+
+1. NO ACTION -- thanks, FYI, "approved", acknowledgements. One line each.
+2. REVIEW -- PR/link review requests. One line: what to review + links.
+3. ACTION PLAN -- requests needing work. For each:
+   - Goal (1 line)
+   - Context (problem, current workaround, concrete numbers from the thread)
+   - Questions to clarify (2-5, aimed at who to ask)
+   - Tasks (3-6 concrete steps)
+   - Where it could live (suggestion)
+   Never invent facts not in the thread; mark assumptions.
+
+Order: ACTION PLAN, REVIEW, NO ACTION. Include each item's permalink. Even if every item is
+NO ACTION, still send the one-line list so nothing is hidden. Reply exactly [SILENT] only if the
+script output contains no mentions. Read-only: never suggest posting on the user's behalf.
+```
+
 ## Read-only guarantee
 
 Every request goes through `api()`: HTTP GET only, and `ValueError` for any method outside
 `READ_METHODS` (`auth.test`, `search.messages`, `conversations.list`, `conversations.history`,
-`conversations.info`, `users.info`, `chat.getPermalink`). It never posts, reacts, marks read,
-joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
+`conversations.info`, `conversations.replies`, `users.info`, `chat.getPermalink`). It never posts,
+reacts, marks read, joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
 
 ## Config
 

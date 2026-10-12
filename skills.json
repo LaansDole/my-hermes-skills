@@ -107,8 +107,8 @@
     },
     {
       "name": "slack-mention-watch",
-      "version": "2.0.0",
-      "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.",
+      "version": "2.1.0",
+      "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.",
       "category": "Slack",
       "path": "skills/slack/slack-mention-watch",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
@@ -423,8 +423,8 @@
       "skills": [
         {
           "name": "slack-mention-watch",
-          "version": "2.0.0",
-          "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts while away. Read-only.",
+          "version": "2.1.0",
+          "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.",
           "category": "Slack",
           "path": "skills/slack/slack-mention-watch",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
