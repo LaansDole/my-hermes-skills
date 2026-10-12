@@ -14,7 +14,7 @@ Built on [Hermes Agent](https://hermes-agent.nousresearch.com/) (Nous Research, 
        |
        |-- per-chat AIAgent sessions (interactive DMs / channels)
        |       |
-       |       `-- on demand: skills/slack-scan  -->  "summarize today" / "what's in #x?"
+       |       `-- on demand: skills/slack/slack-scan  -->  "summarize today" / "what's in #x?"
        |                          |
        |                          v
        |            fetches today's history via Slack Web API, replies in chat
@@ -279,12 +279,12 @@ references them. Copy the skill across and restart the gateway so it's actually 
 
 ```bash
 mkdir -p ~/.hermes/skills/slack-scan
-cp ../skills/slack-scan/SKILL.md ~/.hermes/skills/slack-scan/SKILL.md
+cp ../skills/slack/slack-scan/SKILL.md ~/.hermes/skills/slack-scan/SKILL.md
 hermes skills list | grep slack-scan     # expect: local | enabled
 hermes gateway restart
 ```
 
-If you edit `skills/slack-scan/SKILL.md` in this repo later, re-run the `cp` and
+If you edit `skills/slack/slack-scan/SKILL.md` in this repo later, re-run the `cp` and
 `hermes gateway restart` -- the repo copy and the live copy under `~/.hermes/skills/` do not sync
 automatically; they're two separate files.
 
@@ -309,7 +309,7 @@ Once the gateway is connected and `~/.hermes/.env` is in place, the minimum to g
    if this happens after you thought you'd already done this).
 
 3. **DM it**: "summarize today's Slack" or "what's in #general today?" -- see
-   [`skills/slack-scan`](../skills/slack-scan/SKILL.md). That's it; no cron required.
+   [`skills/slack/slack-scan`](../skills/slack/slack-scan/SKILL.md). That's it; no cron required.
 
 The cron jobs below (hourly Slack/Jira/GitHub scan + 9 AM digest) are optional automation on top
 of that -- set them up whenever you want scheduled, unattended delivery instead of asking on
@@ -421,7 +421,7 @@ Open your DM with the bot in Slack. You should see the hourly summary and the 9 
 haven't set any up yet, the bot is still useful right now:
 
 - **Ask for today's summary any time**: "@hermes_bot summarize today's Slack" or "what did I miss
-  today?" -> the [`slack-scan`](../skills/slack-scan/SKILL.md) skill recaps every channel/DM the
+  today?" -> the [`slack-scan`](../skills/slack/slack-scan/SKILL.md) skill recaps every channel/DM the
   bot is in since midnight, in the reply, immediately. Name a channel ("what's in #eng-team
   today?") to scope it to just that one. No cron, no `SLACK_WATCH_CHANNELS`, nothing persisted.
 - **DM the bot** any time: "add TODO: buy milk" -> it appends to `~/tasks/inbox.md` using file tools in the live session.
@@ -467,7 +467,7 @@ slack-todo-bot/
     `-- today-digest.py            # 9 AM: run `today` CLI over ~/tasks/*.md
 ```
 
-Plus, one directory up: `../skills/slack-scan/SKILL.md` -- the on-demand summary skill. It must be
+Plus, one directory up: `../skills/slack/slack-scan/SKILL.md` -- the on-demand summary skill. It must be
 copied to `~/.hermes/skills/slack-scan/` (step 13); files under this repo path are never
 auto-discovered by Hermes.
 
@@ -520,7 +520,7 @@ The runtime copies live in `~/.hermes/scripts/`, outside this repo. Hermes cron 
 ## Design and implementation
 
 - **Architecture**: Hybrid multi-source -- hourly Slack/Jira/GitHub scans each extract action items to `~/tasks/inbox.md` with `[d:t]` + post a per-source summary; 9 AM `today` digest posts the combined priority plan. Jira/GitHub are additive and optional (graceful `NO_CHANGE` when unconfigured) so the original two-job Slack setup keeps working unmodified.
-- **`skills/slack-scan` is a real Hermes skill, not just a script**: unlike the cron jobs (which
+- **`skills/slack/slack-scan` is a real Hermes skill, not just a script**: unlike the cron jobs (which
   use plain Python scripts because the cron agent can't call Slack interactively), the on-demand
   "summarize today" ability is implemented as a `SKILL.md` loaded via Hermes's skills system --
   it must be installed under `~/.hermes/skills/` (step 13) to be discoverable at all.
