@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for skills/slack-mention-watch/scripts/watch_mentions.py (no network).
+"""Tests for skills/slack/slack-mention-watch/scripts/watch_mentions.py (no network).
 
 Run:  python3 -m unittest -v tests.test_watch_mentions
 """
@@ -17,7 +17,7 @@ from contextlib import redirect_stdout
 from pathlib import Path
 from unittest import mock
 
-SCRIPT = Path(__file__).resolve().parent.parent / "skills/slack-mention-watch/scripts/watch_mentions.py"
+SCRIPT = Path(__file__).resolve().parent.parent / "skills/slack/slack-mention-watch/scripts/watch_mentions.py"
 _spec = importlib.util.spec_from_file_location("watch_mentions_under_test", SCRIPT)
 wm = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(wm)
