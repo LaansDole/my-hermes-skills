@@ -3,3 +3,4 @@ __pycache__/
 .DS_Store
 # superpowers plans/specs stay local-only (never pushed)
 docs/superpowers/
+.pi/
