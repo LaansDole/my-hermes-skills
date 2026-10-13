@@ -91,12 +91,14 @@ class Base(unittest.TestCase):
         dotenv = d / ".env"
         dotenv.write_text(f"SLACK_ALLOWED_USERS={UID},U9OTHER\nSLACK_BOT_TOKEN=xoxb-bot\n")
         self.env = {"HERMES_DOTENV": str(dotenv), "SLACK_MENTION_STATE_FILE": str(self.state),
-                    "SLACK_USER_READ_TOKEN": "xoxp-user"}
+                    "SLACK_USER_READ_TOKEN": "xoxp-user", "TZ": "UTC"}
+        self.addCleanup(wm.time.tzset)  # runs after os.environ is restored
         patches = [mock.patch.dict(os.environ, self.env, clear=True),
                    mock.patch.object(wm.time, "sleep")]
         for p in patches:
             p.start()
             self.addCleanup(p.stop)
+        wm.time.tzset()
         self.addCleanup(self.tmp.cleanup)
         # last_ts well in the past so test fixtures count as new
         self.write_state("1000.000000", [])
@@ -270,6 +272,7 @@ class Formatting(Base):
         self.assertIn("> @alice yo", out)
         self.assertIn("#general from carol", out)
         self.assertIn("https://x/p2000.1", out)
+        self.assertIn("at Thu 1970-01-01 00:33", out)
 
 
 class SelfAlertLoop(Base):
@@ -406,6 +409,88 @@ class Recent(Base):
         oldest = float(urllib.parse.parse_qs(urllib.parse.urlparse(hist.full_url).query)["oldest"][0])
         self.assertAlmostEqual(oldest, before - 6 * 3600, delta=5)
         self.assertEqual(out, "No @alice mentions in the last 6 h.\n")
+
+
+class Digest(Base):
+    NAMES = {"ok": True, "user": {"profile": {"display_name": "alice"}}}
+
+    def replies(self, *msgs):
+        return {"ok": True, "messages": [{"ts": ts, "user": u, "text": t} for ts, u, t in msgs]}
+
+    def test_nothing_new_prints_only_wake_false(self):
+        _, out = self.run_main(FakeSlack({"search.messages": search_payload()}), "--digest")
+        self.assertEqual(out, '{"wakeAgent": false}\n')
+
+    def test_skipped_tick_does_not_wake_agent(self):
+        _, out = self.run_main(FakeSlack({"search.messages": lambda req: http_429()}), "--digest")
+        self.assertEqual(out, '{"wakeAgent": false}\n')
+
+    def test_thread_fetched_with_user_token_oldest_first(self):
+        m = match("2000.3", permalink="https://x/p2000.3?thread_ts=2000.1")
+        fake = FakeSlack({"search.messages": search_payload(m), "users.info": self.NAMES,
+                          "conversations.replies": self.replies(
+                              ("2000.3", "U1CAROL", f"<@{UID}> can you?"),
+                              ("2000.1", "U2BOB", "root: file is 700mb &amp; slow"))})
+        code, out = self.run_main(fake, "--digest")
+        self.assertEqual(code, 0)
+        req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
+        self.assertEqual(req.headers["Authorization"], "Bearer xoxp-user")
+        q = urllib.parse.parse_qs(urllib.parse.urlparse(req.full_url).query)
+        self.assertEqual((q["channel"], q["ts"]), (["C1"], ["2000.1"]))
+        self.assertRegex(out.splitlines()[0], r"^NEW MENTIONS: 1   \(watched user: @alice\)"
+                                              r"   now: \w{3} \d{4}-\d\d-\d\d \d\d:\d\d \+00$")
+        self.assertIn("Permalink: https://x/p2000.3?thread_ts=2000.1", out)
+        self.assertIn("Thread (2 messages):", out)
+        self.assertLess(out.index("700mb & slow"), out.index("can you?"))
+        self.assertNotIn("<@", out)
+
+    def test_thread_lines_show_weekday_across_midnight(self):
+        # Sun 2025-10-12 23:58 UTC root, Mon 2025-10-13 00:02 UTC mention reply
+        m = match("1760313720.0", permalink="https://x/p?thread_ts=1760313480.0")
+        fake = FakeSlack({"search.messages": search_payload(m), "users.info": self.NAMES,
+                          "conversations.replies": self.replies(
+                              ("1760313480.0", "U2BOB", "root"),
+                              ("1760313720.0", "U1CAROL", "reply"))})
+        _, out = self.run_main(fake, "--digest")
+        self.assertIn("from carol at Mon 2025-10-13 00:02", out)
+        self.assertIn("[Sun 10-12 23:58] alice: root", out)
+        self.assertIn("[Mon 10-13 00:02] alice: reply", out)
+
+    def test_thread_error_degrades_to_note(self):
+        fake = FakeSlack({"search.messages": search_payload(match("2000.1")), "users.info": self.NAMES,
+                          "conversations.replies": {"ok": False, "error": "missing_scope"}})
+        code, out = self.run_main(fake, "--digest")
+        self.assertEqual(code, 0)
+        self.assertIn("Mention: hey @alice look", out)
+        self.assertIn("(thread context unavailable: conversations.replies: missing_scope)", out)
+        self.assertGreater(float(self.read_state()["last_ts"]), 1000.0)
+
+    def test_truncation_drops_old_thread_lines_keeps_mention(self):
+        many = [(f"1990.{i:03d}", "U2BOB", f"line{i:03d} " + "x" * 700) for i in range(1, 60)]
+        fake = FakeSlack({"search.messages": search_payload(match("2000.1", text=f"<@{UID}> KEEPME")),
+                          "users.info": self.NAMES, "conversations.replies": self.replies(*many)})
+        _, out = self.run_main(fake, "--digest")
+        self.assertLessEqual(len(out), wm.DIGEST_MAX + 1)
+        self.assertIn("Mention: @alice KEEPME", out)
+        self.assertIn("line059", out)       # newest reply kept
+        self.assertNotIn("line001", out)    # root dropped first (oldest)
+        self.assertNotIn("x" * 600, out)    # per-message cap
+
+    def test_state_advanced_but_not_on_dry_run(self):
+        routes = {"search.messages": search_payload(match("2000.1")), "users.info": self.NAMES,
+                  "conversations.replies": self.replies(("2000.1", "U1CAROL", "hi"))}
+        before = self.state.read_text()
+        self.run_main(FakeSlack(routes), "--digest", "--dry-run")
+        self.assertEqual(self.state.read_text(), before)
+        self.run_main(FakeSlack(routes), "--digest")
+        self.assertEqual(self.read_state()["seen"], ["C1:2000.1"])
+        _, out = self.run_main(FakeSlack(routes), "--digest")
+        self.assertEqual(out, '{"wakeAgent": false}\n')
+
+    def test_allowlist_has_replies_and_rejects_writes(self):
+        self.assertIn("conversations.replies", wm.READ_METHODS)
+        with self.assertRaises(ValueError):
+            wm.api("chat.postMessage", "xoxp-user", channel="C1")
 
 
 if __name__ == "__main__":

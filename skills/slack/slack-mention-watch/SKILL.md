@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.
-version: 2.1.0
+version: 2.2.0
 author: LaansDole
 license: MIT
 metadata:
@@ -117,8 +117,8 @@ runs a real tick without saving state.
 
 ## Triage digest (LLM)
 
-Alternative to the verbatim alerts: an LLM cron agent sorts each new mention into no action /
-review / action plan, using the surrounding thread. Use it *instead of* the alert job, not beside
+Alternative to the verbatim alerts: an LLM cron agent sorts each new mention into action plan /
+review / reply / no action, using the surrounding thread. Use it *instead of* the alert job, not beside
 it -- both advance the same state file, so whichever runs first would hide mentions from the other.
 
 `watch_mentions.py --digest` runs the same tick as the default mode (same filters, dedupe and state;
@@ -129,13 +129,16 @@ it -- both advance the same state file, so whichever runs first would hide menti
 - otherwise -> a plain-text context block, oldest mention first:
 
   ```
-  NEW MENTIONS: N   (watched user: @name)
-  ### Mention 1 -- #channel -- from <sender> at <local time>
+  NEW MENTIONS: N   (watched user: @name)   now: Tue 2026-10-13 08:30 +07
+  ### Mention 1 -- #channel -- from <sender> at Mon 2026-10-12 14:49
   Permalink: <url>
   Mention: <text>
   Thread (k messages):
-  [HH:MM] sender: text
+  [Mon 10-12 14:39] sender: text
   ```
+
+  All times are local; every line carries its weekday and date, and `now:` gives the model
+  "today", so it never has to infer days.
 
   The thread comes from `conversations.replies` (thread root + up to 19 latest replies, 600 chars
   per message, ~12k chars total; oldest thread lines are dropped first, mentions always stay). If
@@ -163,6 +166,19 @@ hermes cron create "every 5m" "$(cat ~/.hermes/scripts/slack_mention_digest_prom
   --model <model> --provider <provider> --reasoning-effort max --deliver slack
 ```
 
+`--model <model> --provider <provider>` pin the job's model. Anthropic-family models on a gateway
+that exposes both OpenAI-chat and Anthropic-messages APIs may need the provider's Anthropic
+variant: e.g. Claude models via Command Code use `--provider commandcode-anthropic`; with plain
+`commandcode` they fail with HTTP 400 'must be called via /provider/v1/messages'.
+
+Restrict the job's tools: the agent only needs the script output it is given. `hermes cron
+create`/`edit` have no toolset flag, and a job without `enabled_toolsets` (or with an empty list)
+gets the default cron toolset -- including `terminal`, which can reach Slack with the bot token in
+`~/.hermes/.env` and post as the bot. Either create/update the job through the agent's cronjob tool
+(`cronjob_manage`) with `enabled_toolsets=["todo","no_mcp"]`, or set
+`"enabled_toolsets": ["todo", "no_mcp"]` on the job in `~/.hermes/cron/jobs.json`. (`no_mcp` keeps
+MCP servers from being merged back in.)
+
 Save the prompt below as `~/.hermes/scripts/slack_mention_digest_prompt.txt` first (or paste it
 as the quoted prompt argument). The script output is injected into it on every run. No `--no-agent`:
 the agent writes the delivered message. If an alert job already exists, remove it
@@ -172,22 +188,36 @@ Cron agent prompt:
 
 ```text
 You receive new Slack @mentions of the user, each with its thread context, in the script output
-above. Triage each mention into exactly one bucket and write a Slack-friendly digest (plain text,
-short):
+above. Triage them into a short Slack-friendly digest (plain text). Sort each thread into exactly
+one bucket:
 
-1. NO ACTION -- thanks, FYI, "approved", acknowledgements. One line each.
-2. REVIEW -- PR/link review requests. One line: what to review + links.
-3. ACTION PLAN -- requests needing work. For each:
+1. ACTION PLAN -- ONLY when the user is asked to do new work that needs planning (build, document,
+   investigate, decide) and the thread does not show it already done or in progress by the user.
+   For each:
    - Goal (1 line)
    - Context (problem, current workaround, concrete numbers from the thread)
    - Questions to clarify (2-5, aimed at who to ask)
    - Tasks (3-6 concrete steps)
    - Where it could live (suggestion)
-   Never invent facts not in the thread; mark assumptions.
+2. REVIEW -- review a PR or link, approve, check a fix or verify on staging; includes the user's own
+   open PRs waiting on someone. One line: what + links.
+3. REPLY -- a direct question that just needs an answer from the user (status, yes/no, "have you
+   tested X?"). One line: who asked, what; add a short suggested answer only if the thread makes
+   it obvious, marked "(suggestion)".
+4. NO ACTION -- thanks, FYI, "approved", resolved, or already handled by the user. One line each.
 
-Order: ACTION PLAN, REVIEW, NO ACTION. Include each item's permalink. Even if every item is
-NO ACTION, still send the one-line list so nothing is hidden. Reply exactly [SILENT] only if the
-script output contains no mentions. Read-only: never suggest posting on the user's behalf.
+Rules:
+- Use the dates and weekdays exactly as given in the input (the first line has "now"). Never
+  infer or compute a weekday.
+- If the user already replied in the thread with a commitment ("will do", "on it"), it is not
+  NO ACTION unless the thread shows it resolved.
+- At most one item per thread: merge mentions from the same thread into one item.
+- Order: ACTION PLAN, REVIEW, REPLY, NO ACTION. Include each item's permalink.
+- Never invent facts not in the thread; mark assumptions.
+- Output plain text only. Do not call tools.
+- Even if every item is NO ACTION, still send the one-line list so nothing is hidden. Reply
+  exactly [SILENT] only if the script output contains no mentions.
+- Read-only: never suggest posting on the user's behalf.
 ```
 
 ## Read-only guarantee

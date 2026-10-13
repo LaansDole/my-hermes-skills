@@ -24,9 +24,10 @@ for each new mention while you're away. Python stdlib only.
 - Away alerts: a `hermes cron create "every 5m" ... --no-agent --deliver slack` job; silent when
   nothing is new (wrapper + command in `SKILL.md`).
 - Triage digest: instead of verbatim alerts, `watch_mentions.py --digest` feeds new mentions plus
-  their threads to an LLM cron agent that sorts them into no action / review / action plan; no
-  LLM run when nothing is new. Thread context needs the user scopes `channels:history`,
-  `groups:history`, `im:history`, `mpim:history` (wrapper, prompt and command in `SKILL.md`).
+  their threads (each line dated with weekday) to an LLM cron agent that sorts them into action
+  plan / review / reply / no action; no LLM run when nothing is new. Thread context needs the user
+  scopes `channels:history`, `groups:history`, `im:history`, `mpim:history` (wrapper, prompt,
+  command, model/provider and tool-restriction notes in `SKILL.md`).
 
 ## Privacy
 

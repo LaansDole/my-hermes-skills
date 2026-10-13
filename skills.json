@@ -107,7 +107,7 @@
     },
     {
       "name": "slack-mention-watch",
-      "version": "2.1.0",
+      "version": "2.2.0",
       "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.",
       "category": "Slack",
       "path": "skills/slack/slack-mention-watch",
@@ -423,7 +423,7 @@
       "skills": [
         {
           "name": "slack-mention-watch",
-          "version": "2.1.0",
+          "version": "2.2.0",
           "description": "Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.",
           "category": "Slack",
           "path": "skills/slack/slack-mention-watch",

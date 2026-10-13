@@ -246,10 +246,14 @@ def permalink(m, token):
         return ""
 
 
+def when(ts, f="%a %Y-%m-%d %H:%M"):
+    """Local time with weekday, so readers (and the digest LLM) never guess the day."""
+    return datetime.fromtimestamp(float(ts)).strftime(f)
+
+
 def fmt(m, name, token):
-    when = datetime.fromtimestamp(float(m["ts"])).strftime("%Y-%m-%d %H:%M")
     link = permalink(m, token)
-    lines = [f"Slack mention in {m['channel']} from {sender_of(m, name)} at {when}",
+    lines = [f"Slack mention in {m['channel']} from {sender_of(m, name)} at {when(m['ts'])}",
              "> " + render_text(m["text"], name).replace("\n", "\n> ")]
     if link:
         lines.append(link)
@@ -273,8 +277,8 @@ def thread(m, token, name):
     for r in msgs:
         who = (r.get("user") and name(r["user"])) or r.get("username") \
             or (r.get("bot_profile") or {}).get("name") or "bot"
-        hhmm = datetime.fromtimestamp(float(r["ts"])).strftime("%H:%M")
-        out.append((float(r["ts"]), f"[{hhmm}] {who}: {digest_text(r.get('text', ''), name)}"))
+        out.append((float(r["ts"]),
+                    f"[{when(r['ts'], '%a %m-%d %H:%M')}] {who}: {digest_text(r.get('text', ''), name)}"))
     return out
 
 
@@ -286,17 +290,22 @@ def digest(new, name, token, uid):
     """Plain-text context block for the cron agent, oldest mention first."""
     items = []
     for m in new:
-        when = datetime.fromtimestamp(float(m["ts"])).strftime("%Y-%m-%d %H:%M")
         head = [f"### Mention {len(items) + 1} -- {m['channel']} -- from {sender_of(m, name)}"
-                f" at {when}"]
+                f" at {when(m['ts'])}"]
         link = permalink(m, token)
         if link:
             head.append(f"Permalink: {link}")
         head.append("Mention: " + digest_text(m["text"], name))
         items.append((head, thread(m, token, name)))
 
+    now = datetime.now().astimezone()
+    z = now.strftime("%z")
+    z = z[:-2] if z.endswith("00") else z  # +0700 -> +07, keep +0530
+    top = (f"NEW MENTIONS: {len(new)}   (watched user: @{name(uid)})"
+           f"   now: {now.strftime('%a %Y-%m-%d %H:%M')} {z}")
+
     def render():
-        blocks = [f"NEW MENTIONS: {len(new)}   (watched user: @{name(uid)})"]
+        blocks = [top]
         for head, t in items:
             tail = [t] if isinstance(t, str) else \
                 [f"Thread ({len(t)} messages):"] + [line for _, line in t]
