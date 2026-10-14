@@ -24,12 +24,6 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 
 - [`slack-todo-bot/`](slack-todo-bot/README.md) -- Hermes gateway bot (Slack Socket Mode) that answers "summarize today's Slack" on demand and can layer on optional hourly Slack/Jira/GitHub cron scans + a 9 AM digest to your private Slack DM. No public URL needed.
 
-## Plugins
-
-Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes plugins install <owner>/<repo>[/subdir]`.
-
-- [`plugins/chrome-profiles/`](plugins/chrome-profiles/README.md) -- Switches the agent's browser tools between multiple Chrome, Brave, or Edge instances via CDP. Each profile needs its own dedicated `data_dir` -- it launches a browser process, it does not select a named profile out of an already-running shared browser. Install: `hermes plugins install LaansDole/my-hermes-skills/plugins/chrome-profiles`.
-
 ## Shared config
 
 `.hermes-config/config-patch.yaml` -- example `approvals`/`browser` block for `~/.hermes/config.yaml` that auto-approves the browser tool calls a CDP-driven skill needs for unattended operation, plus pinning `browser.cloud_provider: local` (no cloud CDP provider). Referenced as a starting pattern by the browser-automation skills above; copy the relevant keys in, don't apply it wholesale if you don't want every browser call auto-approved.
@@ -63,15 +57,20 @@ Hermes auto-discovers plugins installed into `~/.hermes/plugins/` via `hermes pl
 |       |-- superpowers-writing-plans/
 |       `-- ...
 |-- scripts/
-|   `-- generate_docs.py       # builds docs/index.html from skills/** frontmatter
-|-- plugins/
-|   `-- chrome-profiles/
+|   |-- generate_docs.py       # builds docs/ (site, reports pages) + skills.json
+|   `-- verify_docs.py
+|-- reports/
+|   `-- YYYY-MM/YYYY-MM-DD-<slug>.md  # report sources (writing-reports skill)
 |-- slack-todo-bot/
-|-- docs/
-|   `-- index.html            # GitHub Pages documentation site
+|-- tests/
+|-- skills.json               # skill manifest (CI-refreshed)
+|-- docs/                     # GitHub Pages site
+|   |-- index.html, reports.html, daily-news.html
+|   `-- reports/              # generated from reports/, gitignored, built in CI
 `-- .github/
     `-- workflows/
-        `-- pages.yml         # auto-deploys docs/ to GitHub Pages on push
+        |-- pages.yml         # regenerates + deploys docs/ on push
+        `-- sync-manifest.yml # refreshes skills.json
 ```
 
 ## License
