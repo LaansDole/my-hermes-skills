@@ -1,7 +1,6 @@
 # Claude Haiku 5.5 vs GPT-6 Luna: effort-level benchmarks in omp
 
 - **Date:** 2026-10-14
-- **Scope:** A follow-up to [Haiku 5.5:max vs GPT-6 Luna:max speed in omp](2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.md). It compares both models at medium, high and max effort on four agent tasks, and checks the results against two public benchmarks.
 - **Verdict:** Haiku 5.5 is the stronger model, but `:max` is the wrong setting for omp's small-model agents. Haiku at medium or high scored as well as Haiku:max on these tasks, ran 10-20x faster, and cost a tenth as much. Luna's speed barely changes with effort level, but it gives up quality on harder work.
 
 ## Method
