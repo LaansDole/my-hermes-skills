@@ -61,6 +61,8 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 |   `-- verify_docs.py
 |-- reports/
 |   `-- YYYY-MM/YYYY-MM-DD-<slug>.md  # report sources (writing-reports skill)
+|-- benchmarks/
+|   `-- <name>/               # reproducible harnesses + raw data behind reports
 |-- slack-todo-bot/
 |-- tests/
 |-- skills.json               # skill manifest (CI-refreshed)

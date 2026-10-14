@@ -14,7 +14,9 @@ The harness ran each task through `omp -p --mode json` in a fresh session with a
 | fix | Edit `textutil.py` until 7 unit tests pass (6 fail at the start) | read, edit, bash | tests passing / 7; 0 if the tests were edited |
 | explore | Answer 3 factual questions about this repo | read only | facts correct / 3 |
 
-Grading was automatic: a regex match per planted defect, plus a real `unittest` run for the fix task. I read through the misses by hand. One grading-pattern bug was found in the trial run and fixed before the main run.
+Grading was automatic: a regex match per planted defect, plus a real `unittest` run for the fix task. I read through the misses by hand.
+
+To run it yourself, see [`benchmarks/haiku-vs-luna-omp/`](https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp).
 
 ## Results
 
@@ -90,7 +92,7 @@ This change is applied in `~/.omp/agent/config.yml` (`task.agentModelOverrides`)
 
 ## Sources
 
-- Local runs: harness `omp_bench2.py`, raw results `omp-bench2/results.jsonl` (48 rows), omp sessions with token usage per turn. All are kept in the Hermes scratch directory.
+- Local runs: harness, fixtures and the 48 raw results are in [`benchmarks/haiku-vs-luna-omp/`](https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp). Rerun with `python3 bench.py` (see its README).
 - [VulcanBench Frontier v4: Claude Haiku 5.5 vs frontier](https://vulcanbench.com/benchmarks/swe-v4-haiku55-vs-frontier.html)
 - [VulcanBench: Claude Haiku 5.5 effort ladder](https://vulcanbench.com/benchmarks/swe-v4-haiku55-v324.html)
 - [VulcanBench: GPT-6 Luna effort ladder](https://vulcanbench.com/benchmarks/swe-v4-gpt6-luna-v316.html)
