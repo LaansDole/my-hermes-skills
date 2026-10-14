@@ -362,7 +362,7 @@
     </p>
     <div class="hero-stats">
       <div class="stat">
-        <span class="stat-num">6</span>
+        <span class="stat-num">7</span>
         <span class="stat-label">reports</span>
       </div>
       <div class="stat">
@@ -376,10 +376,19 @@
     <div class="section-header">
       <div class="section-icon" style="background:#3a2a0f">📰</div>
       <span class="section-title">All reports</span>
-      <span class="section-count">6 reports</span>
+      <span class="section-count">7 reports</span>
     </div>
     <div class="cards">
 
+      <a class="card card-report" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.html">
+        <div class="card-top">
+          <span class="card-name">Claude Haiku 5.5 (max) vs GPT-6 Luna (max) in omp: why the small-model agents feel slower</span>
+          <span class="card-version">2026-10-14</span>
+        </div>
+          <p class="card-desc">
+            <strong style="color:var(--green)">Verdict:</strong> Yes, it is slower, and the cause is <code>:max</code> effort on Haiku, not the model itself: Haiku 5.5:max took 3.3x longer than Luna:max on the same review (456 s vs 139 s) because it wrote 10.6x more output tokens. Haiku 5.5:<strong>medium</strong> was the fastest of all four configs (31 s) and found
+          </p>
+      </a>
       <a class="card card-report" href="reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.html">
         <div class="card-top">
           <span class="card-name">OpenCode v2 vs v1: what changed, and how Go handles model routing</span>
