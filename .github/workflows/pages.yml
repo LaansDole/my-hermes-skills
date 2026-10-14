@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - "docs/**"
+      - "reports/**"
       - "skills/**"
       - "scripts/**"
       - ".github/workflows/pages.yml"
