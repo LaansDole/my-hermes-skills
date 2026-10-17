@@ -28,7 +28,7 @@ Not for: one-line answers, PR descriptions (pr skills), Covidence verdicts (own 
 1. **Gather.** SearXNG search first (if :8888 down → restart-first rule, skill selfhosted-search). Scrape sources with curl + parse programmatically. Never single-source a number — cross-check prices/benchmarks in ≥2 independent sources (waived only in Trusted-Input Mode). Date-stamp: fetched data gets its fetch date, computed-only data gets the compute date.
 2. **Compute.** All derived metrics (blends, ratios, per-point costs) calculated in Python, never mentally. State the formula next to the column (e.g. "blend = 3:1 in:out").
 3. **Write the file.** `~/Projects/auto-learn-for-me/reports/YYYY-MM/YYYY-MM-DD-<slug>.md` (see Report Filing) — skeleton in `references/report-template.md`.
-4. **Deliver.** Chat = verdict + the one key table + file path. If the user wants it in Word → pbcopy variant: plain text, ALL-CAPS headers, no markdown (skill pbcopy-word-delivery).
+4. **Deliver.** Chat = verdict + the one key table + file path. If the user wants it in Word → plain text, ALL-CAPS headers, no markdown, piped to `pbcopy`.
 
 ## Report Structure
 

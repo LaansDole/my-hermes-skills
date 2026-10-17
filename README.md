@@ -17,7 +17,7 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 - [`skills/slack/slack-mention-watch/`](skills/slack/slack-mention-watch/SKILL.md) -- Read-only Slack @mention watcher for any Hermes Slack gateway: ask "who pinged me?" (runs `watch_mentions.py --recent 24`), type `/pings` (a `quick_commands` exec, no LLM), or run it as an `every 5m` `--no-agent` cron job that DMs you each NEW mention and stays silent otherwise. Watches the owner of a `search:read` user token (covers every channel/DM you can see); falls back to bot-member channel history. GET-only 7-method allowlist; ignores its own alert DMs. Stdlib-only, unit-tested.
 - [`skills/oh-my-pi/`](skills/oh-my-pi/SKILL.md) -- Troubleshoot/operate the Oh-My-Pi (omp) coding agent: `hub` coordination, task agents & model routing, two-tier review, OAuth fallback diagnosis, extension/plugin mechanics, and user-authored task agents (the `tldr` and `pr` roles). Reference + RPC smoke script included.
 - [`skills/productivity/hermes-deepseek-cache/`](skills/productivity/hermes-deepseek-cache/SKILL.md) -- Hermes Agent's native DeepSeek prefix-cache feature (ported from ruanbw/pi-deepseek-cache): cache-hit telemetry, `/cache-stats` `/cache-graph` `/cache-reset`, prefix-break diagnostics, stable tool ordering, cache-friendly compaction. Active only for DeepSeek-family models, gated by `deepseek_cache.enabled` (default on).
-- [`skills/superpowers/`](skills/superpowers/superpowers-using-superpowers/SKILL.md) -- The [obra/superpowers](https://github.com/obra/superpowers) methodology converted to Hermes tool calls (derivative of [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)): 15 skills covering brainstorming, writing/executing plans, subagent-driven development, TDD, systematic debugging, code review, git worktrees, and verification-before-completion. Symlinked at `~/.hermes/skills/superpowers`; each skill is prefixed `superpowers-` so it never collides with native Hermes skills.
+- [`skills/superpowers/`](skills/superpowers/superpowers-using-superpowers/SKILL.md) -- `superpowers-using-superpowers` from the [obra/superpowers](https://github.com/obra/superpowers) methodology converted to Hermes tool calls (derivative of [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)): establishes how to find and load skills before responding. Symlinked at `~/.hermes/skills/superpowers`; prefixed `superpowers-` so it never collides with native Hermes skills.
 - [`skills/productivity/i-have-adhd/`](skills/productivity/i-have-adhd/SKILL.md) -- Output-shaping skill for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Vendored from [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) (MIT); symlinked at `~/.hermes/skills/productivity/i-have-adhd`. Activate by asking "use i-have-adhd mode"; turn off with "stop adhd mode".
 
 ## Bots
@@ -45,17 +45,13 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 |   |-- covidence-full-text-retrieval/
 |   |   `-- covidence-full-text-review/
 |   |-- productivity/
-|   |   |-- i-have-adhd/          # vendored from ayghri/i-have-adhd (MIT)
-|   |   |-- pbcopy-word-delivery/
-|   |   `-- session-handoff/
+|   |   `-- i-have-adhd/          # vendored from ayghri/i-have-adhd (MIT)
 |   |-- slack/
 |   |   |-- slack-scan/
 |   |   `-- slack-mention-watch/  # cron @mention watcher (read-only)
 |   |-- oh-my-pi/
-|   `-- superpowers/            # 15 skills, each in superpowers-<name>/
-|       |-- superpowers-brainstorming/
-|       |-- superpowers-writing-plans/
-|       `-- ...
+|   `-- superpowers/
+|       `-- superpowers-using-superpowers/
 |-- scripts/
 |   |-- generate_docs.py       # builds docs/ (site, reports pages) + skills.json
 |   `-- verify_docs.py

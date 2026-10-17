@@ -44,7 +44,7 @@ Pass the script's output through, in this order:
 ## Purging
 
 The audit only reports; it removes nothing. Remove worktrees only after the user asks:
-- Shipped rows → `~/.agents/skills/sweeping-merged-worktrees/sweep.py <repo> --apply` (salvages untracked files first).
+- Shipped rows → `git -C <repo> worktree remove <path>`; copy out any untracked files you want to keep first.
 - Idle, unshipped rows that are safe to remove → `git -C <repo> worktree remove <path>`. The branch ref survives, so no commits are lost.
 - Rows with uncommitted files → show the user what is dirty (`git -C <path> status`). Never use `--force`.
 
