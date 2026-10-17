@@ -7,7 +7,6 @@ license: MIT
 metadata:
   hermes:
     tags: [superpowers, skills, workflow]
-    related_skills: [superpowers-brainstorming, superpowers-writing-plans, superpowers-systematic-debugging, superpowers-test-driven-development, superpowers-finishing-a-development-branch]
 ---
 
 <SUBAGENT-STOP>
@@ -36,7 +35,7 @@ If AGENTS.md, CLAUDE.md, or .hermes.md says "don't use TDD" and a skill says "al
 
 Hermes auto-discovers skills from `~/.hermes/skills/` and matches them to the conversation by their descriptions. When a skill's trigger matches, load it with `skill_view(name="superpowers-<skill>")` and follow it directly — never rely on memory of what a skill says.
 
-- Skills trigger automatically from conversation context (e.g. "something's wrong" → superpowers-systematic-debugging; "let's plan this" → superpowers-writing-plans).
+- Skills trigger automatically from conversation context when a skill's description matches.
 - You can also load one explicitly: `/skill superpowers-<name>` in-session, or `hermes -s superpowers-<name>` at launch.
 - If a loaded skill turns out to be wrong for the situation, you don't need to use it.
 - Announce when a skill is active: "I'm using the <skill> skill to <purpose>."
