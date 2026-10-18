@@ -19,6 +19,7 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 - [`skills/productivity/hermes-deepseek-cache/`](skills/productivity/hermes-deepseek-cache/SKILL.md) -- Hermes Agent's native DeepSeek prefix-cache feature (ported from ruanbw/pi-deepseek-cache): cache-hit telemetry, `/cache-stats` `/cache-graph` `/cache-reset`, prefix-break diagnostics, stable tool ordering, cache-friendly compaction. Active only for DeepSeek-family models, gated by `deepseek_cache.enabled` (default on).
 - [`skills/superpowers/`](skills/superpowers/superpowers-using-superpowers/SKILL.md) -- `superpowers-using-superpowers` from the [obra/superpowers](https://github.com/obra/superpowers) methodology converted to Hermes tool calls (derivative of [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)): establishes how to find and load skills before responding. Symlinked at `~/.hermes/skills/superpowers`; prefixed `superpowers-` so it never collides with native Hermes skills.
 - [`skills/productivity/i-have-adhd/`](skills/productivity/i-have-adhd/SKILL.md) -- Output-shaping skill for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Vendored from [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) (MIT); symlinked at `~/.hermes/skills/productivity/i-have-adhd`. Activate by asking "use i-have-adhd mode"; turn off with "stop adhd mode".
+- [`skills/productivity/tldr/`](skills/productivity/tldr/SKILL.md) -- Triggered by "tldr" / "TL;DR" / "what changed": a one-line TL;DR, then a column-aligned (space-padded) `| Aspect | BEFORE | AFTER |` table with concrete facts per row, then open items. Terminal-friendly plain text; ~40-line cap. Symlinked at `~/.hermes/skills/productivity/tldr`.
 
 ## Plugins
 
@@ -51,7 +52,8 @@ Hermes loads plugins from `~/.hermes/plugins/`; symlink each one in and run `her
 |   |-- covidence-full-text-retrieval/
 |   |   `-- covidence-full-text-review/
 |   |-- productivity/
-|   |   `-- i-have-adhd/          # vendored from ayghri/i-have-adhd (MIT)
+|   |   |-- i-have-adhd/          # vendored from ayghri/i-have-adhd (MIT)
+|   |   `-- tldr/                 # TL;DR + aligned before/after table
 |   |-- slack/
 |   |   |-- slack-scan/
 |   |   `-- slack-mention-watch/  # cron @mention watcher (read-only)
