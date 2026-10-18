@@ -1,7 +1,7 @@
 ---
 name: tldr
-description: "Use when the user asks for a TL;DR or before/after summary."
-version: 1.0.0
+description: "Use when the user says tldr / TL;DR or asks for a before/after summary."
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -17,6 +17,7 @@ When the user asks "TL;DR", "summarize what you did", "what changed", "recap", o
 
 1. **One-line TL;DR** — the whole thing in a single sentence: what was done, on what, end state.
 2. **Before/After table** — one row per meaningful axis of change. Columns: `| Aspect | BEFORE | AFTER |`. Use concrete facts (endpoint names, test counts, branch SHAs), not vague labels. Rows: 6-12 for a multi-part task; 2-4 for a small change.
+   **Column-aligned (padded) pipe table — required.** The terminal doesn't render markdown, so pad every cell with spaces to its column's widest value, and make each dash run in the separator row span the full padded cell (cell width + 2). Every row must have the same total length. When cells are long, build the table in code (max width per column, `ljust`) instead of by eye.
 3. **Open items / follow-ups** (only if non-empty) — short bullet list of what's still pending, so the reader knows the edge.
 
 ## Rules
@@ -32,19 +33,20 @@ When the user asks "TL;DR", "summarize what you did", "what changed", "recap", o
 
 TL;DR: Closed the mobile-app gap — defined one API contract, implemented it on both ends, code-reviewed, fixed 3 security holes, pushed both branches.
 
-| Aspect | BEFORE | AFTER |
-|---|---|---|
-| Upload path | App -> GCS -> backend file_id | App POSTs multipart straight to backend |
-| API | 5 old endpoints | /recordings CRUD contract |
-| Tests | 197 unit | 229 unit + e2e integration |
-| Security | path traversal + arbitrary write | allowlist + containment (review-verified) |
-| Remote | nothing pushed | both feature branches pushed |
+| Aspect      | BEFORE                           | AFTER                                     |
+|-------------|----------------------------------|-------------------------------------------|
+| Upload path | App -> GCS -> backend file_id    | App POSTs multipart straight to backend   |
+| API         | 5 old endpoints                  | /recordings CRUD contract                 |
+| Tests       | 197 unit                         | 229 unit + e2e integration                |
+| Security    | path traversal + arbitrary write | allowlist + containment (review-verified) |
+| Remote      | nothing pushed                   | both feature branches pushed              |
 
 Open: HF_TOKEN for gated models; device UI verification (no Android SDK on this Mac).
 
 ## Common Mistakes
 
 - **Prose dump** — exactly what the user rejected. If you catch yourself writing paragraphs, restructure into the table.
+- **Unaligned table** — `|---|---|---|` separators and unpadded cells look ragged in a terminal. Always pad to column width.
 - **Too many rows** — every row must be a real axis of change; merge cosmetic rows.
 - **Vague cells** — "improved", "fixed stuff", "better" are forbidden; state what concretely.
 - **Inventing verification** — a test count or SHA you didn't confirm goes in the table only if actually run/verified.
