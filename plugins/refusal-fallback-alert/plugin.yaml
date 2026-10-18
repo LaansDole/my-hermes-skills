@@ -1,0 +1,4 @@
+name: refusal-fallback-alert
+version: 0.1.0
+description: "Logs and notifies when an Anthropic safety classifier (stop_reason=refusal, e.g. 'Refusal (cyber)') blocks a turn in the main agent or any delegated subagent. Hermes's fallback_providers chain (claude-opus-4-8 @ xhigh) does the actual retry."
+author: laansdole
