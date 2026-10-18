@@ -20,6 +20,12 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 - [`skills/superpowers/`](skills/superpowers/superpowers-using-superpowers/SKILL.md) -- `superpowers-using-superpowers` from the [obra/superpowers](https://github.com/obra/superpowers) methodology converted to Hermes tool calls (derivative of [Labhund/hermes-superpowers](https://github.com/Labhund/hermes-superpowers)): establishes how to find and load skills before responding. Symlinked at `~/.hermes/skills/superpowers`; prefixed `superpowers-` so it never collides with native Hermes skills.
 - [`skills/productivity/i-have-adhd/`](skills/productivity/i-have-adhd/SKILL.md) -- Output-shaping skill for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Vendored from [`ayghri/i-have-adhd`](https://github.com/ayghri/i-have-adhd) (MIT); symlinked at `~/.hermes/skills/productivity/i-have-adhd`. Activate by asking "use i-have-adhd mode"; turn off with "stop adhd mode".
 
+## Plugins
+
+Hermes loads plugins from `~/.hermes/plugins/`; symlink each one in and run `hermes plugins enable <name>` (see its README.md).
+
+- [`plugins/refusal-fallback-alert/`](plugins/refusal-fallback-alert/README.md) -- Logs (`~/.hermes/logs/refusal-fallback.log`) and macOS-notifies whenever an Anthropic safety classifier blocks a turn (`Refusal (cyber)` etc.) in the main agent or any subagent. Observe-only `api_request_error` hook; pair with `fallback_providers: claude-opus-4-8` + `reasoning_overrides: xhigh` so Hermes retries the refused turn on Opus 4.8.
+
 ## Bots
 
 - [`slack-todo-bot/`](slack-todo-bot/README.md) -- Hermes gateway bot (Slack Socket Mode) that answers "summarize today's Slack" on demand and can layer on optional hourly Slack/Jira/GitHub cron scans + a 9 AM digest to your private Slack DM. No public URL needed.
@@ -52,6 +58,8 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 |   |-- oh-my-pi/
 |   `-- superpowers/
 |       `-- superpowers-using-superpowers/
+|-- plugins/
+|   `-- refusal-fallback-alert/   # Hermes plugin: alert on classifier refusals
 |-- scripts/
 |   |-- generate_docs.py       # builds docs/ (site, reports pages) + skills.json
 |   `-- verify_docs.py
