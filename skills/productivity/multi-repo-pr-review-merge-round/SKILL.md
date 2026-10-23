@@ -168,9 +168,27 @@ When no open PRs remain, queue (in this order):
 4. Test-coverage and security audits of the most recently changed modules, one
    report file each.
 
-To auto-continue across windows, offer a local cron job at the reset time that
-reruns the lanes from the continuation briefs. Its output is local-only in the
-CLI, so the user must say "continue" or check `cronjob list`.
+## Auto-continue across windows (cron + monitor gate)
+
+Proven setup: one cron job runs every 30 minutes and is gated by
+`scripts/cron-monitor.sh`, copied to `~/.hermes/scripts/merge-round-monitor.sh`.
+Edit END_EPOCH to the month end. The gate prints deterministic state
+(`month-ended` | `busy` | `exhausted-until-<iso>` | `available`) parsed from the
+lane logs' "resets at" times, so the LLM wakes only on state changes. A
+reset that flips the state to `available` starts one coordinator round.
+- The ledger is `~/.hermes/cache/merge-round/STATE.md` (see
+  `templates/STATE.example.md`): repos in scope, exclusions, and a per-item table
+  (tag | where | status | next). The cron agent has no chat context, so the
+  ledger is its memory. Update it at the end of every round.
+- Cron prompt essentials: per-state actions; the round is verify+merge previous
+  work -> smoke test -> continuation briefs with a fresh round suffix
+  `<tag>-r<N>.md` -> 2 lanes. Launch the lanes with
+  `terminal(background=true, persist_on_release=true)` so they outlive the cron
+  session. Repeat the hard rules (never `--admin`, never push upstream-facing
+  branches, never touch the user's main checkouts).
+  `month-ended` means remove the job itself (list first, then remove).
+- Use `deliver=local` in the CLI. The user checks progress with
+  `cronjob action=list` or by reading STATE.md.
 
 ## Files
 
@@ -179,3 +197,5 @@ CLI, so the user must say "continue" or check `cronjob list`.
 - `scripts/watchdog.sh`: zsh composite watchdog (stall and quota).
 - `scripts/last-texts.py`: last assistant texts from omp sessions, per cwd.
 - `templates/review-brief.md`: the brief skeleton plus the HARD RULES block.
+- `scripts/cron-monitor.sh`: deterministic cron gate (month-ended/busy/exhausted/available).
+- `templates/STATE.example.md`: example ledger the cron coordinator reads and updates.
