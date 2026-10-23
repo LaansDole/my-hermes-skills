@@ -168,10 +168,14 @@ When no open PRs remain, queue (in this order):
 4. Test-coverage and security audits of the most recently changed modules, one
    report file each.
 
-## Auto-continue across windows (cron + monitor gate)
+## Auto-continue across windows (optional cron + monitor gate)
 
-Proven setup: one cron job runs every 30 minutes and is gated by
+Optional; the user dismissed it on first use. Offer it, don't install it by default.
+Shape: one cron job runs every 30 minutes and is gated by
 `scripts/cron-monitor.sh`, copied to `~/.hermes/scripts/merge-round-monitor.sh`.
+Command Code also has a WEEKLY usage limit ("You've reached your weekly usage
+limit ... resets at <iso>"), several days out. The 5-hour window is not the
+only cap, so report the weekly reset date when it appears.
 Edit END_EPOCH to the month end. The gate prints deterministic state
 (`month-ended` | `busy` | `exhausted-until-<iso>` | `available`) parsed from the
 lane logs' "resets at" times, so the LLM wakes only on state changes. A
