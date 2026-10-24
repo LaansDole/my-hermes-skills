@@ -156,7 +156,9 @@ first, or start a fresh session and put the state in the brief.
   example `required_approving_review_count: 2` (check with
   `gh api repos/<o>/<r>/branches/main/protection`). Do NOT use `--admin`: it
   overrides team policy. Report the PR as "verified, needs N approvals or your
-  --admin" and move on.
+  --admin" and move on. Exception: when the user explicitly says they are the admin and to
+  approve/merge, use `--admin`. GitHub refuses self-approval ("Can not approve your own pull
+  request"), so `--admin` is the only route for the user's own PRs.
 - research-harness (the user's fork) push is authorized. For upstream-facing
   branches, never push.
 
