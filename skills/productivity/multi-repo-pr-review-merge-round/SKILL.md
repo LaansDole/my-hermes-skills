@@ -111,6 +111,17 @@ until the end of the month".
   stalled. Kill the watchdog yourself when a lane exits early; queued jobs then
   never start.
 
+## Context cap: 40% per omp session
+
+The user caps every omp session at 40% of the model's context window. This is
+enforced globally by `compaction.thresholdPercent: 40` in `~/.omp/agent/config.yml`
+(with `compaction.midTurnEnabled: true`, so it also fires inside a long `-p` run).
+Before each round, check `omp config get compaction.thresholdPercent` = 40. Lanes
+resume the same session per worktree, so context accumulates across rounds. Check
+the last assistant `usage` (input + cacheRead + cacheWrite) in the session jsonl
+against the window (`omp models`). If it is over 40% before a continuation, compact
+first, or start a fresh session for that worktree and put the state in the brief.
+
 ## 5. Progress and verification
 
 - `omp -p` RESUMES the newest session in the same cwd. A re-run in the same
