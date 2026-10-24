@@ -4,6 +4,8 @@
 # Brief per job: <round_dir>/<tag>.md   Log: <round_dir>/<tag>.log
 # Events on stdout (for notify): JOB-DONE, LANE-DONE, USAGE-EXHAUSTED
 LANE=$1; D=$2; MODEL=$3; shift 3
+# Review lanes compact at 40% (global default is 27%) via a settings overlay.
+export PI_CONFIG_FILES="$(cd "$(dirname "$0")" && pwd)/review-compaction.yml"
 for spec in "$@"; do
   tag=${spec%%:*}; cwd=${spec#*:}
   echo "=== $LANE START $tag $(date +%H:%M:%S)"

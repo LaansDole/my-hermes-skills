@@ -111,16 +111,21 @@ until the end of the month".
   stalled. Kill the watchdog yourself when a lane exits early; queued jobs then
   never start.
 
-## Context cap: 40% per omp session
+## Context caps: 27% global, 40% for reviewers
 
-The user caps every omp session at 40% of the model's context window. This is
-enforced globally by `compaction.thresholdPercent: 40` in `~/.omp/agent/config.yml`
-(with `compaction.midTurnEnabled: true`, so it also fires inside a long `-p` run).
-Before each round, check `omp config get compaction.thresholdPercent` = 40. Lanes
-resume the same session per worktree, so context accumulates across rounds. Check
-the last assistant `usage` (input + cacheRead + cacheWrite) in the session jsonl
-against the window (`omp models`). If it is over 40% before a continuation, compact
-first, or start a fresh session for that worktree and put the state in the brief.
+- Global: `compaction.thresholdPercent: 27` in `~/.omp/agent/config.yml`
+  (`compaction.midTurnEnabled: true`, so it also fires inside a long `-p` run).
+- Reviewer task agents: `task.agentCompactionThresholdOverrides =
+  {"reviewer":"40%","reviewer-deep":"40%","security-reviewer":"40%"}` (whole-record
+  setting, entries are percentage strings or token counts).
+- Review lanes: `scripts/lane.sh` exports `PI_CONFIG_FILES=scripts/review-compaction.yml`
+  (`compaction.thresholdPercent: 40`). Check with
+  `PI_CONFIG_FILES=<that file> omp config get compaction.thresholdPercent` -> 40.
+  `omp --config <file> config get` does NOT show the overlay (it prints 27), so use the env var to check.
+Lanes resume the same session per worktree, so context accumulates across rounds.
+Before a continuation, compare the last assistant `usage` (input + cacheRead +
+cacheWrite) in the session jsonl with the window (`omp models`). Over 40%: compact
+first, or start a fresh session and put the state in the brief.
 
 ## 5. Progress and verification
 
