@@ -20,6 +20,10 @@ cases where you would otherwise reach for curl/wget/requests against a web page.
 - Interactive pages / logins -> browser_* tools (Camofox backend).
 - Scripted scraping -> Camofox REST (see Verify: POST /tabs, /evaluate, DELETE), not curl.
 curl stays fine only for localhost services and plain JSON APIs you are calling as an API client.
+If the user asks why searches go through DuckDuckGo: Camofox is a browser, not a search index, so it
+must load some engine's results page; DuckDuckGo (default) / Bing (fallback) are just the sites Camoufox
+visits - no external API. Google is skipped because its result links are opaque /goto tokens.
+Details: plugins/camofox-web/README.md in the my-hermes-skills repo.
 Also when: browsing hits Cloudflare / reCAPTCHA / bot walls, a site needs a saved login, or the
 browser tools fail because the Camofox server is down.
 
