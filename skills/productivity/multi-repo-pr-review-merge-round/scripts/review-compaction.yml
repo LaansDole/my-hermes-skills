@@ -1,0 +1,2 @@
+compaction:
+  thresholdPercent: 40
