@@ -1,0 +1,22 @@
+name: camofox-web
+label: Camofox Web
+kind: standalone
+version: 1.0.0
+author: LaansDole
+description: >
+  web_search and web_extract through a local camofox-browser server (Camoufox anti-fingerprint
+  Firefox). Search scrapes DuckDuckGo (HTML) with Bing as fallback; extract renders each URL in
+  Camoufox, waits out Cloudflare interstitials and returns the main text. Select with
+  `hermes config set web.backend camofox`.
+provides_web_providers:
+  - camofox
+requires_env:
+  - name: CAMOFOX_URL
+    description: "URL of your camofox-browser server (e.g. http://localhost:9377)"
+    url: "https://github.com/jo-inc/camofox-browser"
+optional_env:
+  - name: CAMOFOX_API_KEY
+    description: "Bearer token for a Camofox server started with CAMOFOX_API_KEY"
+    password: true
+  - name: CAMOFOX_SEARCH_ENGINES
+    description: "Comma-separated engine order (duckduckgo,bing). Default: duckduckgo,bing"
