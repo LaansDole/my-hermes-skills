@@ -10,6 +10,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
     },
     {
+      "name": "camofox-browser",
+      "version": "1.0.0",
+      "description": "Use when sites block bots. Start Camofox, saved logins.",
+      "category": "Productivity",
+      "path": "skills/productivity/camofox-browser",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
+    },
+    {
       "name": "covidence-full-text-retrieval",
       "version": "1.2.0",
       "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
@@ -186,6 +194,14 @@
           "category": "Productivity",
           "path": "skills/productivity/auditing-worktrees",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
+        },
+        {
+          "name": "camofox-browser",
+          "version": "1.0.0",
+          "description": "Use when sites block bots. Start Camofox, saved logins.",
+          "category": "Productivity",
+          "path": "skills/productivity/camofox-browser",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
         },
         {
           "name": "hermes-deepseek-cache",
