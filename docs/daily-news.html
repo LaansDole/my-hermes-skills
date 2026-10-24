@@ -366,7 +366,7 @@
     </p>
     <div class="hero-stats">
       <div class="stat">
-        <span class="stat-num">9</span>
+        <span class="stat-num">11</span>
         <span class="stat-label">reports</span>
       </div>
       <div class="stat">
@@ -380,10 +380,28 @@
     <div class="section-header">
       <div class="section-icon" style="background:#3a2a0f">📰</div>
       <span class="section-title">All reports</span>
-      <span class="section-count">9 reports</span>
+      <span class="section-count">11 reports</span>
     </div>
     <div class="cards">
 
+      <a class="card card-report" href="reports/2026-10/2026-10-24-mermaid-vs-reladraw.html">
+        <div class="card-top">
+          <span class="card-name">Mermaid vs Reladraw for README diagrams</span>
+          <span class="card-version">2026-10-24</span>
+        </div>
+          <p class="card-desc">
+            <strong style="color:var(--green)">Verdict:</strong> Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit (or show on a Pages site). GitHub renders only four fenced diagram syntaxes (mermaid
+          </p>
+      </a>
+      <a class="card card-report" href="reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.html">
+        <div class="card-top">
+          <span class="card-name">Hermes voice replies crackle on macOS: afplay cuts Ogg/Opus off after ~1s</span>
+          <span class="card-version">2026-10-24</span>
+        </div>
+          <p class="card-desc">
+            <strong style="color:var(--green)">Verdict:</strong> The audio files were fine. Playback was cutting them off. On macOS 15 and later, <code>afplay</code> opens an Ogg/Opus file, plays about the first second, and exits 0. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one sent
+          </p>
+      </a>
       <a class="card card-report" href="reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.html">
         <div class="card-top">
           <span class="card-name">Has oh-my-pi adopted Pi 1.0 and Pi Durable?</span>
