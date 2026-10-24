@@ -27,7 +27,7 @@ Hermes auto-discovers skills from `~/.hermes/skills/`; this repo is the source o
 
 Hermes loads plugins from `~/.hermes/plugins/`; symlink each one in and run `hermes plugins enable <name>` (see its README.md).
 
-- [`plugins/camofox-web/`](plugins/camofox-web/provider.py) -- Hermes `web_search` + `web_extract` provider backed by the local Camofox server (see `skills/productivity/camofox-browser/`): Camoufox opens DuckDuckGo (Bing fallback) and decodes redirect links to real URLs; extract renders each page, waits out Cloudflare interstitials and returns the main text. Replaces SearXNG. Enable: `ln -s` into `~/.hermes/plugins/`, `hermes plugins enable camofox-web`, `hermes config set web.backend camofox`.
+- [`plugins/camofox-web/`](plugins/camofox-web/README.md) -- Hermes `web_search` + `web_extract` provider backed by the local Camofox server (see `skills/productivity/camofox-browser/`): Camoufox opens DuckDuckGo (Bing fallback) and decodes redirect links to real URLs (Camofox is a browser, not a search index, so it searches by loading an engine's results page; no external API); extract renders each page, waits out Cloudflare interstitials and returns the main text. Replaces SearXNG. Enable: `ln -s` into `~/.hermes/plugins/`, `hermes plugins enable camofox-web`, `hermes config set web.backend camofox`.
 - [`plugins/refusal-fallback-alert/`](plugins/refusal-fallback-alert/README.md) -- Logs (`~/.hermes/logs/refusal-fallback.log`) and macOS-notifies whenever an Anthropic safety classifier blocks a turn (`Refusal (cyber)` etc.) in the main agent or any subagent. Observe-only `api_request_error` hook; pair with `fallback_providers: claude-opus-4-8` + `reasoning_overrides: xhigh` so Hermes retries the refused turn on Opus 4.8.
 
 ## Bots
