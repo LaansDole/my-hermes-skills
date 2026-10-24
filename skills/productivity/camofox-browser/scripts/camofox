@@ -1,0 +1,21 @@
+#!/bin/bash
+# camofox login     -> visible Camoufox window: sign in to your sites once
+# camofox headless  -> save logins + back to invisible (normal) mode
+# camofox status | save | restart | log
+L="gui/$(id -u)/com.laansdole.camofox"; D="$HOME/.camofox"
+save(){ set -a; source "$D/env"; set +a; curl -s -o /dev/null -w "save: HTTP %{http_code}\n" -X POST localhost:9377/stop -H "x-admin-key: $CAMOFOX_ADMIN_KEY"; }
+wait_up(){ for i in $(seq 1 40); do curl -s --max-time 2 localhost:9377/health >/dev/null && { echo "up (mode: $(cat $D/mode))"; return; }; sleep 1; done; echo "NOT up - see: camofox log"; }
+case "$1" in
+  login)    save; echo desktop > "$D/mode"; launchctl kickstart -k "$L"; wait_up
+            echo "Ask Hermes to open each site's login page, sign in in the window, then run: camofox headless";;
+  headless) save; echo off > "$D/mode"; launchctl kickstart -k "$L"; wait_up;;
+  save)     save;;
+  restart)  launchctl kickstart -k "$L"; wait_up;;
+  start)    curl -s --max-time 2 localhost:9377/health >/dev/null && { echo "already up (mode: $(cat $D/mode))"; exit 0; }
+            if launchctl print "$L" >/dev/null 2>&1; then launchctl kickstart "$L"; wait_up
+            else echo "launchd job not loaded. Run in your own terminal: launchctl bootstrap gui/\$(id -u) ~/Library/LaunchAgents/com.laansdole.camofox.plist"; exit 1; fi;;
+  log)      tail -n 40 "$D/server.log";;
+  *)        echo "mode: $(cat $D/mode)"; launchctl print "$L" 2>/dev/null | grep -m1 -E '^\s*state' || echo "launchd: not loaded"
+            for i in $(seq 1 15); do r=$(curl -s --max-time 2 localhost:9377/health) && [ -n "$r" ] && break; sleep 1; done
+            echo "${r:-server down}"; ls "$D/profiles" 2>/dev/null | sed 's/^/profile: /';;
+esac
