@@ -13,7 +13,14 @@ metadata:
 # Camofox (Camoufox) browser for Hermes - local setup
 
 ## When to Use
-Browsing hits Cloudflare / reCAPTCHA / bot walls, a site needs a saved login, or the
+ANY web search, URL fetch or scraping - the user's standing rule is Camofox for all of it, including
+cases where you would otherwise reach for curl/wget/requests against a web page.
+- Search -> `web_search` (served by the camofox-web plugin: Camoufox opens DuckDuckGo, Bing fallback).
+- Read a page -> `web_extract` (camofox-web renders it in Camoufox; Cloudflare interstitials waited out).
+- Interactive pages / logins -> browser_* tools (Camofox backend).
+- Scripted scraping -> Camofox REST (see Verify: POST /tabs, /evaluate, DELETE), not curl.
+curl stays fine only for localhost services and plain JSON APIs you are calling as an API client.
+Also when: browsing hits Cloudflare / reCAPTCHA / bot walls, a site needs a saved login, or the
 browser tools fail because the Camofox server is down.
 
 Hermes' browser tools (browser_navigate, browser_snapshot, browser_click, ...) are routed through a
