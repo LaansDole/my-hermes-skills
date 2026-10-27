@@ -1,0 +1,48 @@
+name: Deploy demo to GitHub Pages
+
+# Publishes ONE folder (runbook + demo page + media) of an app repo. Replace DEMO_DIR and the branches.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/<feature>/runbook/**"
+      - ".github/workflows/pages.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+env:
+  DEMO_DIR: docs/<feature>/runbook
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build site from the runbook folder
+        run: |
+          mkdir -p _site
+          cp "$DEMO_DIR/demo.html" _site/index.html
+          cp "$DEMO_DIR/demo.html" _site/demo.html
+          cp "$DEMO_DIR"/*.mp4 "$DEMO_DIR"/*.png _site/ 2>/dev/null || true
+          touch _site/.nojekyll
+      - name: Gate on the page and its video
+        run: |
+          grep -q "<title>" _site/index.html
+          ls _site/*.mp4 >/dev/null
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: "./_site"
+      - id: deployment
+        uses: actions/deploy-pages@v4

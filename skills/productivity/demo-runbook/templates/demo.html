@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}}</title>
+{{CANONICAL}}
+<style>
+  :root { --bg:#111116; --panel:#1b1b22; --line:#2b2b35; --text:#ececf1; --muted:#a3a3ad; --accent:#4285f4; }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:15px/1.5 -apple-system, "Helvetica Neue", Helvetica, Arial, sans-serif; }
+  header { padding:28px 36px 8px; }
+  h1 { margin:0 0 6px; font-size:28px; letter-spacing:-0.01em; }
+  .sub { color:var(--muted); }
+  .wrap { display:grid; grid-template-columns:minmax(0,1fr) 420px; gap:24px; padding:20px 36px 40px; }
+  video { width:100%; border-radius:10px; background:#000; border:1px solid var(--line); }
+  .panel { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:16px 18px; min-width:0; }
+  .panel h2 { margin:0 0 10px; font-size:13px; text-transform:uppercase; letter-spacing:0.08em; color:var(--muted); }
+  .steps { list-style:none; margin:0; padding:0; }
+  .steps li { padding:7px 10px; border-radius:7px; cursor:pointer; display:grid; grid-template-columns:44px 1fr; gap:6px; border-left:3px solid transparent; }
+  .steps li:hover { background:#24242d; }
+  .steps li.active { background:#22304a; border-left-color:var(--accent); }
+  .steps .t { color:var(--muted); font-variant-numeric:tabular-nums; }
+  .steps .chapter { margin-top:10px; padding:6px 10px 2px; cursor:pointer; font-weight:700; color:#fff; display:block; }
+  .tag { white-space:nowrap; display:inline-block; font-size:11px; font-weight:700; padding:1px 7px; border-radius:99px; margin-left:4px; vertical-align:1px; background:#1f2f4a; color:#9cc0ff; }
+  .tag.good, .tag.low { background:#1f3a2a; color:#8fd6a5; } .tag.warn, .tag.adv { background:#4a1f1f; color:#ffa49b; } .tag.collab { background:#1f2f4a; color:#9cc0ff; }
+  .table-wrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; margin-top:6px; font-size:14px; }
+  th, td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; }
+  td.nw, th.nw { white-space:nowrap; }
+  .below { padding:0 36px 48px; display:grid; grid-template-columns:minmax(0,3fr) minmax(0,2fr); gap:24px; }
+  code { white-space:nowrap; background:#24242d; padding:1px 5px; border-radius:4px; font-size:13px; }
+  pre { background:#0c0c10; border:1px solid var(--line); border-radius:8px; padding:12px 14px; overflow:auto; font-size:13px; max-width:100%; }
+  pre code { white-space:pre; background:none; padding:0; }
+  a { color:#8ab4ff; }
+  .note { color:var(--muted); font-size:13px; }
+  footer { padding:0 36px 36px; color:var(--muted); font-size:13px; }
+  @media (max-width: 1180px) { .wrap { grid-template-columns:1fr; } }
+  @media (max-width: 1400px) { .below { grid-template-columns:1fr; } }
+  @media (max-width: 600px) { header, .wrap, .below, footer { padding-left:16px; padding-right:16px; } h1 { font-size:24px; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>{{TITLE}}</h1>
+  <div class="sub">{{SUBTITLE}}</div>
+</header>
+
+<div class="wrap">
+  <div>
+    <video id="v" controls preload="metadata" src="{{VIDEO}}"></video>
+    <p class="note">{{VIDEO_NOTE}}</p>
+  </div>
+  <div class="panel">
+    <h2>{{STEPS_HEADING}}</h2>
+    <ul class="steps" id="steps">
+{{STEPS_HTML}}
+    </ul>
+  </div>
+</div>
+
+<div class="below">
+  <div class="panel">
+    <h2>{{EVIDENCE_HEADING}}</h2>
+{{EVIDENCE_HTML}}
+  </div>
+  <div class="panel">
+    <h2>Run it yourself</h2>
+    <pre><code>{{RUN_COMMANDS}}</code></pre>
+    <p>{{RUN_TEXT_HTML}}</p>
+  </div>
+</div>
+
+<footer>{{FOOTER_HTML}}</footer>
+
+<script>
+  const v = document.getElementById('v');
+  const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const items = [...document.querySelectorAll('#steps [data-t]')];
+  items.forEach(el => {
+    const t = parseFloat(el.dataset.t);
+    const slot = el.querySelector('.t'); if (slot) slot.textContent = fmt(t);
+    el.addEventListener('click', () => { v.currentTime = t; v.play(); });
+  });
+  const lis = items.filter(el => el.tagName === 'LI');
+  v.addEventListener('timeupdate', () => {
+    let cur = null;
+    for (const el of lis) if (parseFloat(el.dataset.t) <= v.currentTime + 0.2) cur = el;
+    lis.forEach(el => el.classList.toggle('active', el === cur));
+  });
+</script>
+</body>
+</html>
