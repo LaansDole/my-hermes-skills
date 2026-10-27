@@ -42,6 +42,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
     },
     {
+      "name": "demo-runbook",
+      "version": "0.1.0",
+      "description": "Use when asked for a runbook demo. Real runs, video, Pages.",
+      "category": "Productivity",
+      "path": "skills/productivity/demo-runbook",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook"
+    },
+    {
       "name": "hermes-deepseek-cache",
       "version": "1.1.0",
       "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
@@ -202,6 +210,14 @@
           "category": "Productivity",
           "path": "skills/productivity/camofox-browser",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
+        },
+        {
+          "name": "demo-runbook",
+          "version": "0.1.0",
+          "description": "Use when asked for a runbook demo. Real runs, video, Pages.",
+          "category": "Productivity",
+          "path": "skills/productivity/demo-runbook",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook"
         },
         {
           "name": "hermes-deepseek-cache",
