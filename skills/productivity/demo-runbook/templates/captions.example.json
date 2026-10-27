@@ -1,0 +1,206 @@
+{
+ "_comment": "Worked example: the DynaClinic 3D runbook demo. 'at' = wall-clock time on 'date' from the recording's steps.log / backend log. 'list' = short label for the demo page step list (HTML allowed). 'chapter' starts a chapter.",
+ "date": "2026-10-27",
+ "video": "dynaclinic-3d-runbook-demo.mp4",
+ "max_gap": 2.5,
+ "intro": {
+  "seconds": 6,
+  "chapter": "Intro",
+  "title": "DynaClinic in 3D: runbook demo",
+  "lines": [
+   "Dynamic architecture switching for clinical decision support",
+   "Meta-Controller triage -> Primary Care Agent or Integrated Care Team",
+   "Divergence above tau -> adversarial Clinical Critic -> Layer 4 safety gates",
+   "Real runs, recorded live. Model: OpenAI gpt-6-luna",
+   "Idle stretches longer than 2.5 s are shortened; nothing else is cut"
+  ]
+ },
+ "outro": {
+  "seconds": 7,
+  "title": "What you just saw",
+  "lines": [
+   "A  LOW      -> Primary Care Agent only                      -> A (correct)",
+   "B  HIGH     -> care team agrees, divergence 0.16           -> B (correct)",
+   "C  HIGH     -> care team disagrees, divergence 0.59        -> Critic -> C (correct)",
+   "Reproduce: docs/dynaclinic/runbook/README.md",
+   "Scenario C switched in 4 of 8 real runs (table in the runbook)"
+  ]
+ },
+ "captions": [
+  {
+   "at": "17:26:45",
+   "label": "Runbook 3.1",
+   "line1": "Open the 3D office",
+   "line2": "Fresh browser. Backend on :6400, office on :3100",
+   "chapter": "Load DynaClinic",
+   "list": "3.1 Open the 3D office"
+  },
+  {
+   "at": "17:26:55",
+   "label": "Runbook 3.2",
+   "line1": "Browse Workflows -> dynaclinic_mvp.yaml",
+   "line2": "The DevAll workflow that implements the proposal's MVP",
+   "list": "3.2 Import <code>dynaclinic_mvp.yaml</code>"
+  },
+  {
+   "at": "17:27:00",
+   "label": "Runbook 3.3",
+   "line1": "Reload: the 7 DynaClinic agents appear",
+   "line2": "Triage, Primary Care, Imaging, Pathology/Lab, Pharmacology, Critic, Synthesizer",
+   "list": "3.3 Reload: 7 agents appear"
+  },
+  {
+   "at": "17:27:08",
+   "label": "Runbook 3.4",
+   "line1": "Model: OPENAI gpt-6-luna",
+   "line2": "The badge shows the model the backend really uses",
+   "list": "3.4 Badge: OPENAI gpt-6-luna"
+  },
+  {
+   "at": "17:27:10",
+   "label": "Runbook 3.5",
+   "line1": "Design view: the team hierarchy",
+   "line2": "Triage (Meta-Controller) leads. Close with X or Escape",
+   "list": "3.5 Design view, close with Escape"
+  },
+  {
+   "at": "17:27:17",
+   "label": "Scenario A",
+   "line1": "syn-low-01: cellulitis, sulfonamide allergy",
+   "line2": "Expected: the Meta-Controller keeps one cheap agent",
+   "chapter": "Scenario A: low complexity"
+  },
+  {
+   "at": "17:27:19",
+   "label": "Runbook 4",
+   "line1": "Triage = Meta-Controller",
+   "line2": "Its card: OPENAI gpt-6-luna"
+  },
+  {
+   "at": "17:27:22",
+   "label": "Runbook 4.1",
+   "line1": "Getting Started -> START: CHAT WITH TRIAGE",
+   "line2": "No need to click a moving character",
+   "list": "4.1 START: CHAT WITH TRIAGE"
+  },
+  {
+   "at": "17:27:25",
+   "label": "Runbook 4.2",
+   "line1": "Paste one Case JSON line, press Enter",
+   "line2": "One backend run starts",
+   "list": "4.2 Paste the case, press Enter"
+  },
+  {
+   "at": "17:27:32",
+   "label": "Meta-Controller",
+   "line1": "ROUTE: LOW -> single Primary Care Agent",
+   "line2": "Informative model; the care team stays idle",
+   "list": "Route LOW: Primary Care only"
+  },
+  {
+   "at": "17:27:36",
+   "label": "Layer 4",
+   "line1": "Safety gates A_SAD and T_SAD pass",
+   "line2": "Run finished in 11 s"
+  },
+  {
+   "at": "17:27:41.6",
+   "label": "Result A",
+   "line1": "FINAL ANSWER: A (correct)",
+   "line2": "Oral cephalexin; the sulfonamide option is flagged against the allergy",
+   "list": "Report: answer A (correct)"
+  },
+  {
+   "at": "17:28:03",
+   "label": "Scenario B",
+   "line1": "demo-contested-01: subdural bleed + PE on apixaban",
+   "line2": "High complexity. Expected: the care team agrees",
+   "chapter": "Scenario B: collaborative care team"
+  },
+  {
+   "at": "17:28:08",
+   "label": "Runbook 4.1",
+   "line1": "START: CHAT WITH TRIAGE, paste the case, Enter"
+  },
+  {
+   "at": "17:28:18",
+   "label": "Meta-Controller",
+   "line1": "ROUTE: HIGH -> Integrated Care Team",
+   "line2": "Imaging, Pathology/Lab, Pharmacology write to the shared Blackboard",
+   "list": "Route HIGH: Integrated Care Team"
+  },
+  {
+   "at": "17:28:26",
+   "label": "Conflict-aware routing",
+   "line1": "Divergence 0.16 < tau 0.25 -> COLLABORATIVE",
+   "line2": "All three pick B (0.84 / 0.80 / 0.95). No Critic; straight to the Synthesizer",
+   "list": "Divergence 0.16 &lt; 0.25: collaborative"
+  },
+  {
+   "at": "17:28:29",
+   "label": "Layer 4",
+   "line1": "Safety gates A_SAD and T_SAD pass",
+   "line2": "Run finished in 17 s"
+  },
+  {
+   "at": "17:28:34.0",
+   "label": "Result B",
+   "line1": "FINAL ANSWER: B (correct)",
+   "line2": "Hold apixaban, reverse with andexanet, IVC filter. Gates pass",
+   "list": "Report: answer B (correct)"
+  },
+  {
+   "at": "17:28:55",
+   "label": "Scenario C",
+   "line1": "demo-contested-02: 30 weeks pregnant, suspected VTE",
+   "line2": "Contested case. Expected: the specialists may disagree",
+   "chapter": "Scenario C: adversarial switch"
+  },
+  {
+   "at": "17:29:00",
+   "label": "Runbook 4.1",
+   "line1": "START: CHAT WITH TRIAGE, paste the case, Enter"
+  },
+  {
+   "at": "17:29:09",
+   "label": "Meta-Controller",
+   "line1": "ROUTE: HIGH -> Integrated Care Team",
+   "line2": "Imaging: B 0.75 (V/Q scan). Pharmacology: C 0.82 (LMWH + leg ultrasound). Pathology abstains",
+   "list": "Route HIGH: Imaging B vs Pharmacology C"
+  },
+  {
+   "at": "17:29:15",
+   "label": "Conflict-aware routing",
+   "line1": "Divergence 0.59 > tau 0.25 -> ADVERSARIAL",
+   "line2": "Architecture switch: the Clinical Critic checks the atomic claims",
+   "list": "Divergence 0.59 &gt; 0.25: Clinical Critic"
+  },
+  {
+   "at": "17:29:21",
+   "label": "Synthesis",
+   "line1": "Synthesizer reconciles B vs C",
+   "line2": "Using the Critic-scored claims on the Blackboard",
+   "list": "Synthesizer reconciles B vs C"
+  },
+  {
+   "at": "17:29:29",
+   "label": "Layer 4",
+   "line1": "Safety gates A_SAD and T_SAD pass",
+   "line2": "Run finished in 23 s"
+  },
+  {
+   "at": "17:29:32.9",
+   "label": "Result C",
+   "line1": "FINAL ANSWER: C (correct)",
+   "line2": "LMWH now plus compression ultrasound; chest imaging only if it is negative",
+   "list": "Report: answer C (correct)"
+  },
+  {
+   "at": "17:29:44",
+   "label": "Done",
+   "line1": "3 real runs, 3 correct answers, all on OpenAI gpt-6-luna",
+   "line2": "Runbook: docs/dynaclinic/runbook/README.md",
+   "chapter": "Summary"
+  }
+ ]
+}
