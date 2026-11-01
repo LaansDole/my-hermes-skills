@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Regression tests for the report side of scripts/generate_docs.py.
+"""Regression tests for scripts/generate_docs.py (reports and the skills chart).
 
 Pure helpers are imported straight from the generator; anything touching the
 filesystem runs a *copy* of the generator inside a temporary fixture repo, so
-the live reports/ and docs/ trees are never written to.
+the live reports/, skills/ and docs/ trees are never written to.
 
 Run:  python3 -m unittest -v tests.test_generate_docs_reports
 """
 
 import importlib.util
+import json
 import re
 import shutil
 import subprocess
@@ -29,6 +30,7 @@ def _load_generator():
 
 
 gd = _load_generator()
+GH = gd.GH
 
 SKILL_MD = """---
 name: fixture-skill
@@ -39,6 +41,23 @@ tags: [fixture]
 
 # fixture-skill
 """
+
+
+def skill_md(name: str, version: str = "1.0.0") -> str:
+    ver = f"version: {version}\n" if version else ""
+    return f"---\nname: {name}\n{ver}description: Fixture {name}.\ntags: [fixture]\n---\n"
+
+
+# Two mapped families, a nested child, a symbol collision (Dr) and an
+# unmapped top-level dir that must land in Unfiled.
+CHART_SKILLS = {
+    "skills/productivity/demo-runbook/SKILL.md": skill_md("demo-runbook", "0.1.0"),
+    "skills/productivity/dev-runbook/SKILL.md": skill_md("dev-runbook", ""),
+    "skills/covidence-full-text-retrieval/SKILL.md": skill_md("covidence-full-text-retrieval"),
+    "skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md":
+        skill_md("covidence-full-text-review", "2.0.0"),
+    "skills/zz-unknown/SKILL.md": skill_md("zz-unknown"),
+}
 
 LONG_REPORT = """# Fixture Long Report
 
@@ -105,23 +124,22 @@ One section only.
 """
 
 
-def build_fixture_repo(root: Path, reports: dict) -> None:
-    """Minimal repo: a copy of the generator, one skill, docs/, given reports."""
+def build_fixture_repo(root: Path, reports: dict, skills: dict = None) -> None:
+    """Minimal repo: a copy of the generator, given skills, docs/, given reports."""
     (root / "scripts").mkdir(parents=True, exist_ok=True)
     shutil.copy2(GEN, root / "scripts" / "generate_docs.py")
-    skill = root / "skills" / "fixture-skill"
-    skill.mkdir(parents=True, exist_ok=True)
-    (skill / "SKILL.md").write_text(SKILL_MD)
     (root / "docs").mkdir(parents=True, exist_ok=True)
-    for rel, text in reports.items():
+    files = dict(skills or {"skills/fixture-skill/SKILL.md": SKILL_MD})
+    files.update(reports)
+    for rel, text in files.items():
         p = root / rel
         p.parent.mkdir(parents=True, exist_ok=True)
         p.write_text(text)
 
 
-def generate(root: Path) -> None:
+def generate(root: Path, *args: str) -> None:
     r = subprocess.run(
-        [sys.executable, str(root / "scripts" / "generate_docs.py")],
+        [sys.executable, str(root / "scripts" / "generate_docs.py"), *args],
         capture_output=True, text=True,
     )
     if r.returncode != 0:
@@ -187,6 +205,14 @@ class HelperTests(unittest.TestCase):
         short = gd.md_to_html(SHORT_REPORT)
         self.assertNotIn('class="toc"', short)
 
+    def test_lead_metadata_labels_drop_their_colon_only_under_the_title(self):
+        md = ("# Title\n\n- **Date:** 2026-09-25\n- **Scope**: Fixture.\n\n"
+              "## Body\n\n- **Hybrid:** keep it.\n")
+        out = gd.md_to_html(md)
+        self.assertIn("<li><strong>Date</strong> 2026-09-25</li>"
+                      "<li><strong>Scope</strong> Fixture.</li>", out)
+        self.assertIn("<li><strong>Hybrid:</strong> keep it.</li>", out)
+
     def test_tables_are_wrapped_for_horizontal_overflow(self):
         out = gd.md_to_html(LONG_REPORT)
         self.assertEqual(out.count("<table>"), 1)
@@ -202,6 +228,24 @@ class HelperTests(unittest.TestCase):
         self.assertEqual(out.count("<li>"), 2)
         self.assertIn('href="https://example.com/one"', out)
         self.assertIn('href="https://example.com/two"', out)
+
+    def test_symbols_are_unique_and_overrides_are_reserved_first(self):
+        names = ["demo-runbook", "dev-runbook", "data-run", "d", "dr"]
+        syms = gd.assign_symbols(names)
+        self.assertEqual(len(set(syms.values())), len(names))
+        self.assertEqual(syms["demo-runbook"], "Dr")
+        for name, sym in syms.items():
+            self.assertRegex(sym, r"^[A-Z][a-z0-9]$")
+            self.assertEqual(sym[0], name[0].upper())
+
+        # an override claims its symbol even when a later-derived name wants it
+        old = dict(gd.SYMBOL_OVERRIDES)
+        self.addCleanup(lambda: (gd.SYMBOL_OVERRIDES.clear(), gd.SYMBOL_OVERRIDES.update(old)))
+        gd.SYMBOL_OVERRIDES.clear()
+        gd.SYMBOL_OVERRIDES["dev-runbook"] = "Dr"
+        syms = gd.assign_symbols(["demo-runbook", "dev-runbook"])
+        self.assertEqual(syms["dev-runbook"], "Dr")
+        self.assertNotEqual(syms["demo-runbook"], "Dr")
 
 
 class FixtureRepoTests(unittest.TestCase):
@@ -224,6 +268,9 @@ class FixtureRepoTests(unittest.TestCase):
         index_html = (self.root / "docs" / "index.html").read_text()
 
         self.assertIn("<h1>Reports</h1>", reports_html)
+        # edition comes from the newest report, never the clock
+        self.assertIn("Edition 25 Sep 2026", reports_html)
+        self.assertIn("Edition 25 Sep 2026", index_html)
         self.assertIn(
             '<link rel="canonical" href="https://laansdole.github.io/'
             'my-hermes-skills/reports.html" />', reports_html)
@@ -234,7 +281,7 @@ class FixtureRepoTests(unittest.TestCase):
 
         # both root-level indexes list every report, pointing at generated HTML
         for page in (reports_html, compat_html):
-            hrefs = re.findall(r'<a class="card card-report" href="([^"]+)"', page)
+            hrefs = re.findall(r'<a class="report-row" href="([^"]+)"', page)
             self.assertEqual(sorted(hrefs), [
                 "reports/2026-09/2026-09-24-short.html",
                 "reports/2026-09/2026-09-25-long.html",
@@ -317,6 +364,91 @@ class FixtureRepoTests(unittest.TestCase):
         first = docs_snapshot(self.root)
         generate(self.root)
         self.assertEqual(first, docs_snapshot(self.root))
+
+
+class ChartTests(unittest.TestCase):
+    """The skills chart: cells, symbols, entries, links, fonts, manifest."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(tmp.cleanup)
+        cls.root = Path(tmp.name)
+        build_fixture_repo(cls.root, {
+            "reports/2026-09/2026-09-25-long.md": LONG_REPORT,
+        }, CHART_SKILLS)
+        generate(cls.root)
+        cls.index = (cls.root / "docs" / "index.html").read_text()
+        cls.chart = re.search(r'<ol class="chart">(.*?)</ol>', cls.index, re.S).group(1)
+
+    def test_one_cell_per_skill_in_chart_order(self):
+        cells = re.findall(r'<a class="cell f-([a-z-]+)" href="#entry-([^"]+)"', self.chart)
+        self.assertEqual(cells, [
+            ("research", "covidence-full-text-retrieval"),
+            ("research", "covidence-full-text-review"),  # child right after parent
+            ("productivity", "demo-runbook"),
+            ("productivity", "dev-runbook"),
+            ("unfiled", "zz-unknown"),
+        ])
+        self.assertIn("child of 01", self.chart.split('href="#entry-covidence-full-text-review"')[1]
+                      .split("</li>")[0])
+        self.assertIn('aria-label="03 demo-runbook, Productivity, version 0.1.0"', self.chart)
+        self.assertIn('aria-label="04 dev-runbook, Productivity, unversioned"', self.chart)
+
+    def test_symbols_are_unique(self):
+        syms = re.findall(r'<span class="c-sym">([^<]+)</span>', self.chart)
+        self.assertEqual(len(syms), len(CHART_SKILLS))
+        self.assertEqual(len(set(syms)), len(syms))
+
+    def test_each_family_is_one_labelled_block_of_marked_cells(self):
+        blocks = re.findall(
+            r'<li class="fam-block" data-fam="([a-z-]+)"[^>]*>\s*'
+            r'<p class="fb-h"><span>([^<]+)</span><span class="fb-n">(\d+)'
+            r'.*?<ul class="fb-cells">(.*?)</ul>', self.chart, re.S)
+        self.assertEqual([(slug, word, n) for slug, word, n, _ in blocks], [
+            ("research", "Research", "2"),
+            ("productivity", "Productivity", "2"),
+            ("unfiled", "Unfiled", "1"),
+        ])
+        marks = {gd.slugify(f): m for f, (_, _, m) in gd.FAMILIES.items()}
+        for slug, _, n, body in blocks:
+            fams = re.findall(r'<a class="cell f-([a-z-]+)"', body)
+            self.assertEqual(fams, [slug] * int(n), f"block {slug} mixes families")
+            self.assertEqual(re.findall(r'<span class="c-mark">([^<]+)</span>', body),
+                             [marks[slug]] * int(n), f"{slug} cells lack their mark")
+
+    def test_every_cell_resolves_to_exactly_one_entry(self):
+        for name in re.findall(r'href="#(entry-[^"]+)"', self.chart):
+            self.assertEqual(self.index.count(f'id="{name}"'), 1, name)
+
+    def test_entries_link_skill_md_and_source_to_real_paths(self):
+        entries = re.findall(r'<article class="entry" id="entry-[^"]+".*?</article>', self.index, re.S)
+        self.assertEqual(len(entries), len(CHART_SKILLS))
+        for e in entries:
+            md = re.search(rf'href="{GH}/blob/main/([^"]+/SKILL\.md)"[^>]*>SKILL\.md</a>', e)
+            src = re.search(rf'href="{GH}/tree/main/([^"]+)"[^>]*>Source</a>', e)
+            self.assertTrue(md and src, e[:120])
+            self.assertTrue((self.root / md.group(1)).is_file(), md.group(1))
+            self.assertTrue((self.root / src.group(1)).is_dir(), src.group(1))
+
+    def test_font_faces_point_at_committed_fonts(self):
+        report = (self.root / "docs/reports/2026-09/2026-09-25-long.html").read_text()
+        for page, prefix in ((self.index, ""), (report, "../../")):
+            urls = re.findall(r'url\("([^"]+)"\)', page)
+            self.assertTrue(urls)
+            for u in urls:
+                self.assertTrue(u.startswith(prefix + "fonts/"), u)
+                self.assertTrue((REPO / "docs" / u[len(prefix):]).is_file(), u)
+
+    def test_manifest_keeps_section_titles_and_child_order(self):
+        generate(self.root, "--json")
+        manifest = json.loads((self.root / "skills.json").read_text())
+        self.assertEqual([s["title"] for s in manifest["sections"]],
+                         ["Research", "Productivity", "zz-unknown"])
+        self.assertEqual([s["name"] for s in manifest["sections"][0]["skills"]],
+                         ["covidence-full-text-retrieval", "covidence-full-text-review"])
+        self.assertEqual(sorted(manifest["skills"][0]), sorted(
+            ["name", "version", "description", "category", "path", "url"]))
 
 
 if __name__ == "__main__":

@@ -3,321 +3,131 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title>Reports — my-hermes-skills</title>
   <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/reports.html" />
+  <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
   <style>
+    @font-face { font-family: "Archivo"; src: url("fonts/archivo-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 200 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-italic.woff2") format("woff2"); font-weight: 200 900; font-style: italic; font-display: swap; }
+    @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+    :root, :root[data-theme="light"] {
+      color-scheme: light;
+      --ground: #f6f4ee; --ink: #17171b; --muted: #5d5a52;
+      --hair: #cfcabd; --tint: #ebe7dc; --keyline: #17171b;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --ground: #141416; --ink: #ece9e0; --muted: #9a968b;
+      --hair: #38373a; --tint: #1e1e21; --keyline: #141416;
+    }
     :root {
-      --bg: #0d1117;
-      --bg2: #161b22;
-      --bg3: #21262d;
-      --border: #30363d;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --text-dim: #6e7681;
-      --accent: #58a6ff;
-      --accent-dim: #1f6feb;
-      --green: #3fb950;
-      --purple: #bc8cff;
-      --orange: #d29922;
-      --red: #f85149;
-      --tag-bg: #1f2937;
-      --tag-border: #374151;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --pad: 48px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { background: var(--ground); color: var(--ink);
+           scrollbar-color: var(--muted) var(--ground); -webkit-text-size-adjust: 100%; }
+    body { margin: 0; font: 400 17px/28px var(--serif); caret-color: var(--ink);
+           font-optical-sizing: auto; overflow-wrap: break-word; }
+    ::selection { background: #e8a33a; color: #17171b; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    h1, h2, h3, h4 { text-wrap: balance; }
+    .sc { font-variant-caps: small-caps; font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden;
+          clip-path: inset(50%); white-space: nowrap; }
+    .skip { position: absolute; left: var(--pad); top: -80px; z-index: 10;
+            padding: 8px 16px; background: var(--ink); color: var(--ground);
+            font: 700 14px/20px var(--display); text-decoration: none; }
+    .skip:focus { top: 8px; }
 
-    /* Light theme (GitHub light palette) — applied via [data-theme] set by the
-       inline JS (OS preference, overridable by the header toggle, persisted) */
-    :root[data-theme="light"] {
-      --bg: #ffffff;
-      --bg2: #f6f8fa;
-      --bg3: #eaeef2;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --text-muted: #59636e;
-      --text-dim: #6e7781;
-      --accent: #0969da;
-      --accent-dim: #0969da;
-      --green: #1a7f37;
-      --purple: #8250df;
-      --orange: #9a6700;
-      --red: #cf222e;
-      --tag-bg: #eff1f3;
-      --tag-border: #d0d7de;
-    }
+    .mast { padding: 32px var(--pad) 0; }
+    .mast-in { display: flex; flex-wrap: wrap; align-items: flex-end;
+               justify-content: space-between; gap: 16px 40px;
+               padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+    .mast-name { margin: 0; font: 900 88px/88px var(--display); letter-spacing: -0.035em; }
+    .mast-name a { text-decoration: none; }
+    .mast-compact .mast-name { font-size: 40px; line-height: 40px; letter-spacing: -0.03em; }
+    .nav ul { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px;
+              margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 0 4px; border-bottom: 3px solid transparent;
+             font: 600 14px/20px var(--display); letter-spacing: 0.08em;
+             text-transform: uppercase; text-decoration: none; }
+    .nav a:hover { border-bottom-color: var(--muted); }
+    .nav a[aria-current] { font-weight: 800; border-bottom-color: var(--ink); }
+    .theme-toggle { display: grid; place-items: center; width: 40px; height: 40px;
+                    padding: 0; border: 2px solid var(--ink); border-radius: 0;
+                    background: none; color: var(--ink); cursor: pointer; }
+    .theme-toggle:hover { background: var(--ink); color: var(--ground); }
+    .theme-toggle svg { display: block; width: 20px; height: 20px; }
+    :root[data-theme="dark"] .i-moon, :root[data-theme="light"] .i-sun { display: none; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    .band { margin-top: 96px; padding: 0 var(--pad) 32px; }
+    .band ul { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0;
+               padding: 16px 0 0; border-top: 3px solid var(--ink); list-style: none;
+               font: 500 14px/20px var(--display); }
+    .band code { font-size: 13px; }
+    .band-ed { margin-left: auto; font-weight: 700; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 100vh;
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
     }
-
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-
-    /* Layout */
-    header {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
+    @media (max-width: 1100px) {
+      .mast-name { font-size: 64px; line-height: 64px; }
     }
-    .header-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      height: 56px;
+    @media (max-width: 640px) {
+      :root { --pad: 16px; }
+      .mast { padding-top: 24px; }
+      .mast-name { font-size: 40px; line-height: 40px; }
+      .mast-compact .mast-name { font-size: 32px; line-height: 32px; }
+      .nav ul { gap: 4px 20px; }
+      .nav a { font-size: 13px; }
+      .band { margin-top: 64px; }
+      .band ul { flex-direction: column; }
+      .band-ed { margin-left: 0; }
     }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--text);
-    }
-    .logo svg { flex-shrink: 0; }
-    .header-links {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-    .header-links a { color: var(--text-muted); }
-    .header-links a:hover { color: var(--text); text-decoration: none; }
-
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1;
-      padding: 0;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .theme-toggle:hover { border-color: var(--text-muted); background: var(--bg3); }
-
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-    }
-
-    /* Hero */
-    .hero { margin-bottom: 48px; }
-    .hero-eyebrow {
-      font-size: 12px;
-      font-family: var(--mono);
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    .hero h1 {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      color: var(--text-muted);
-      font-size: 15px;
-      max-width: 580px;
-      margin-bottom: 24px;
-    }
-    .hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
-    .stat { display: flex; flex-direction: column; gap: 2px; }
-    .stat-num {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      font-family: var(--mono);
-    }
-    .stat-label { font-size: 12px; color: var(--text-muted); }
-
-    /* Section */
-    .section { margin-bottom: 48px; }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-    .section-title { font-size: 16px; font-weight: 600; color: var(--text); }
-    .section-count {
-      margin-left: auto;
-      font-size: 12px;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1px 8px;
-    }
-
-    /* Cards */
-    .cards { display: flex; flex-direction: column; gap: 10px; }
-    .card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 18px;
-      transition: border-color 0.15s, background 0.15s;
-      cursor: default;
-    }
-    .card:hover { border-color: var(--accent-dim); background: var(--bg3); }
-    .card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-    .card-name {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-      flex: 1;
-      min-width: 0;
-    }
-    .card-name .card-title-link { color: inherit; text-decoration: none; }
-    .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
-    .card-name .card-title-link strong { color: inherit; }
-    /* whole-card link (report cards) */
-    a.card { text-decoration: none; display: block; color: inherit; }
-    a.card:hover { border-color: var(--accent); }
-    a.card:hover .card-name { text-decoration: underline; }
-    .card-version {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      flex-shrink: 0;
-    }
-    .card-links { display: flex; gap: 8px; flex-shrink: 0; }
-    .card-link {
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2px 8px;
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .card-link:hover { color: var(--text); border-color: var(--text-muted); text-decoration: none; }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 10px;
-    }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tag {
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      background: var(--tag-bg);
-      border: 1px solid var(--tag-border);
-      border-radius: 3px;
-      padding: 1px 6px;
-    }
-
-    /* child card (indented) */
-    .card-child {
-      margin-left: 24px;
-      border-left: 2px solid var(--border);
-      border-radius: 0 8px 8px 0;
-    }
-    .card-child .card-name::before { content: "↳ "; color: var(--text-dim); }
-
-    /* Setup box */
-    .setup-box {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 48px;
-    }
-    .setup-box h2 {
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .setup-step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
-    .step-num {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent-dim);
-      color: var(--text);
-      font-size: 11px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .step-body { font-size: 13px; color: var(--text-muted); }
-    .step-body code {
-      font-family: var(--mono);
-      font-size: 12px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-      color: var(--green);
-    }
-
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 24px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 12px;
-    }
-    footer a { color: var(--text-dim); }
-    footer a:hover { color: var(--text-muted); }
-
-    @media (max-width: 600px) {
-      .hero h1 { font-size: 24px; }
-      .hero-stats { gap: 16px; }
-      .card-child { margin-left: 12px; }
+    .f-research { background: #e8a33a; color: #17171b; }
+    .f-productivity { background: #e2643f; color: #17171b; }
+    .f-coding-agents { background: #3a63b8; color: #ffffff; }
+    .f-design { background: #7a52b3; color: #ffffff; }
+    .f-slack { background: #4f9e63; color: #17171b; }
+    .f-unfiled { background: #d8d4c8; color: #17171b; }
+    :root[data-theme="dark"] .f-unfiled { background: #8f8a7e; }
+    .page-head { padding: 48px var(--pad) 0; }
+    .page-head h1 { margin: 0; font: 900 64px/64px var(--display); letter-spacing: -0.03em; }
+    .lede { margin: 16px 0 0; }
+    .compat { margin: 8px 0 0; color: var(--muted); }
+    .ledger { --cols: 112px minmax(0, 1fr) minmax(0, 1fr); margin-top: 48px; padding: 0 var(--pad); }
+    .ledger-head { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                   padding: 0 8px 8px; border-bottom: 3px solid var(--ink);
+                   font: 700 13px/20px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+    .month h2 { margin: 32px 0 0; padding: 0 8px 8px; border-bottom: 1px solid var(--ink);
+                font: 800 20px/24px var(--display); }
+    .rows { margin: 0; padding: 0; list-style: none; }
+    .report-row { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                  padding: 12px 8px; border-bottom: 1px solid var(--hair);
+                  text-decoration: none; }
+    .report-row:hover { background: var(--tint); }
+    .report-row:hover .r-title { text-decoration: underline; text-decoration-thickness: 2px; }
+    .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
+    .r-title { font: 700 17px/24px var(--display); }
+    .r-title code { font: 400 15px/24px var(--mono); }
+    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-verdict code { font-size: 14px; }
+    @media (max-width: 640px) {
+      .page-head { padding-top: 32px; }
+      .page-head h1 { font-size: 40px; line-height: 40px; }
+      .ledger-head { display: none; }
+      .report-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
     }
   </style>
   <script>
@@ -333,174 +143,122 @@
   </script>
 </head>
 <body>
-
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
-        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      my-hermes-skills
-    </div>
-    <div class="header-links">
-      <a href="index.html">Skills</a>
-      <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">GitHub</a>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
-    </div>
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast">
+  <div class="mast-in">
+    <p class="mast-name"><a href="index.html">my-<wbr>hermes-<wbr>skills</a></p>
+    <nav class="nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html#chart">Chart</a></li>
+        <li><a href="index.html#entries">Entries</a></li>
+        <li><a href="index.html#a-z">Index A–Z</a></li>
+        <li><a href="reports.html" aria-current="page">Reports</a></li>
+        <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">GitHub</a></li>
+        <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon" aria-hidden="true"><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></span></button></li>
+      </ul>
+    </nav>
   </div>
 </header>
 
-<main>
-
-  <div class="hero">
-    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
+<main id="main">
+  <div class="page-head">
     <h1>Reports</h1>
-    <p class="hero-sub">
-      Dated reports filed by the <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank">writing-reports</a> skill —
-      one card per report, newest first. Each card opens the full report.
+    <p class="lede">
+      11 reports filed by the <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank" rel="noopener">writing-reports</a> skill,
+      newest first. Each row opens the full report.
     </p>
-    <div class="hero-stats">
-      <div class="stat">
-        <span class="stat-num">11</span>
-        <span class="stat-label">reports</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">📅</span>
-        <span class="stat-label">newest first</span>
-      </div>
-    </div>
   </div>
-
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#3a2a0f">📰</div>
-      <span class="section-title">All reports</span>
-      <span class="section-count">11 reports</span>
-    </div>
-    <div class="cards">
-
-      <a class="card card-report" href="reports/2026-10/2026-10-24-mermaid-vs-reladraw.html">
-        <div class="card-top">
-          <span class="card-name">Mermaid vs Reladraw for README diagrams</span>
-          <span class="card-version">2026-10-24</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit (or show on a Pages site). GitHub renders only four fenced diagram syntaxes (mermaid
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.html">
-        <div class="card-top">
-          <span class="card-name">Hermes voice replies crackle on macOS: afplay cuts Ogg/Opus off after ~1s</span>
-          <span class="card-version">2026-10-24</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> The audio files were fine. Playback was cutting them off. On macOS 15 and later, <code>afplay</code> opens an Ogg/Opus file, plays about the first second, and exits 0. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one sent
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.html">
-        <div class="card-top">
-          <span class="card-name">Has oh-my-pi adopted Pi 1.0 and Pi Durable?</span>
-          <span class="card-version">2026-10-15</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> No. omp has not adopted either one, and it should not rebase onto Pi 1.0, but it should keep closing Pi 1.x extension-compatibility gaps and track Pi Durable's design for its own durability proposals (see "Should omp adopt them?"). It has not rebased onto Pi 1.0 and does not use
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.html">
-        <div class="card-top">
-          <span class="card-name">Claude Haiku 5.5 (max) vs GPT-6 Luna (max) in omp: why the small-model agents feel slower</span>
-          <span class="card-version">2026-10-14</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> Yes, it is slower, and the cause is <code>:max</code> effort on Haiku, not the model itself: Haiku 5.5:max took 3.3x longer than Luna:max on the same review (456 s vs 139 s) because it wrote 10.6x more output tokens. Haiku 5.5:<strong>medium</strong> was the fastest of all four configs (31 s) and found
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks.html">
-        <div class="card-top">
-          <span class="card-name">Claude Haiku 5.5 vs GPT-6 Luna: effort-level benchmarks in omp</span>
-          <span class="card-version">2026-10-14</span>
-        </div>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.html">
-        <div class="card-top">
-          <span class="card-name">OpenCode v2 vs v1: what changed, and how Go handles model routing</span>
-          <span class="card-version">2026-09-27</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> OpenCode v2 is a major agent-platform and configuration revision—not a new “smarter model” tier—and its strongest improvements are its new architecture and expanded client workflows.[1][2] V1 config is largely intended to keep working, but plugins and server API integrations are
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.html">
-        <div class="card-top">
-          <span class="card-name">GPT-6 Luna vs GLM-5.3-Flash: external comparisons and firsthand reports</span>
-          <span class="card-version">2026-09-26</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> There is evidence to compare the pair, but it does <strong>not</strong> show that GLM-5.3-Flash is the faster daily coordinator. Gradually.ai reports Luna ahead on most matched coding/agentic benchmarks, while listing lower-priced alternate-provider routes for both models.[1] Search snippets
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.html">
-        <div class="card-top">
-          <span class="card-name">GPT-5.6 vs GPT-6 Sol/Luna — Reddit Usage and Experience Report</span>
-          <span class="card-version">2026-09-26</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> The Reddit evidence supports your read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed—especially for Luna. The most consistent practical distinction is a reported trade-off: GPT-6 Luna is attractive for cheaper
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-25-semif-openjev-integration-guide.html">
-        <div class="card-top">
-          <span class="card-name">SemIf (formerly OpenJev): Integration and API Guide</span>
-          <span class="card-version">2026-09-25</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through <code>semif-score</code> for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application needs
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-19-typesafe-jev-first-hands.html">
-        <div class="card-top">
-          <span class="card-name">TypeSafe Jev — First-Hands Evaluation Report</span>
-          <span class="card-version">2026-09-19</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> Jev is a decision-only model — send state + typed questions, get calibrated probabilities instead of generated text — and it does what it claims on first hands: ~0.9s end-to-end per call from Vietnam, ~$0.00004 for a 9-question fan-out (vendor price list, not metered on our side)
-          </p>
-      </a>
-      <a class="card card-report" href="reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">
-        <div class="card-top">
-          <span class="card-name">CommandCode Model Efficiency Report</span>
-          <span class="card-version">2026-09-08</span>
-        </div>
-          <p class="card-desc">
-            <strong style="color:var(--green)">Verdict:</strong> <strong>Keep GLM-5.3-Flash as the daily driver.</strong> It is already the most cost-efficient model on the CommandCode catalog — by a wide margin, not a marginal one. No switch recommended.
-          </p>
-      </a>
-
-    </div>
+  <div class="ledger">
+    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Verdict</span></div>
+    <section class="month" aria-labelledby="m-october-2026">
+      <h2 id="m-october-2026">October 2026</h2>
+      <ol class="rows">
+        <li><a class="report-row" href="reports/2026-10/2026-10-24-mermaid-vs-reladraw.html">
+          <time class="r-date sc" datetime="2026-10-24">24 Oct</time>
+          <span class="r-title">Mermaid vs Reladraw for README diagrams</span>
+          <span class="r-verdict">Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit (or show on a Pages site). GitHub renders only four fenced diagram syntaxes…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.html">
+          <time class="r-date sc" datetime="2026-10-24">24 Oct</time>
+          <span class="r-title">Hermes voice replies crackle on macOS: afplay cuts Ogg/Opus off after ~1s</span>
+          <span class="r-verdict">The audio files were fine. Playback was cutting them off. On macOS 15 and later, <code>afplay</code> opens an Ogg/Opus file, plays about the first second, and exits 0. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.html">
+          <time class="r-date sc" datetime="2026-10-15">15 Oct</time>
+          <span class="r-title">Has oh-my-pi adopted Pi 1.0 and Pi Durable?</span>
+          <span class="r-verdict">No. omp has not adopted either one, and it should not rebase onto Pi 1.0, but it should keep closing Pi 1.x extension-compatibility gaps and track Pi Durable's design for its own durability proposals (see "Should omp adopt them?"). It has not rebased onto Pi 1.0 and does not use…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.html">
+          <time class="r-date sc" datetime="2026-10-14">14 Oct</time>
+          <span class="r-title">Claude Haiku 5.5 (max) vs GPT-6 Luna (max) in omp: why the small-model agents feel slower</span>
+          <span class="r-verdict">Yes, it is slower, and the cause is <code>:max</code> effort on Haiku, not the model itself: Haiku 5.5:max took 3.3x longer than Luna:max on the same review (456 s vs 139 s) because it wrote 10.6x more output tokens. Haiku 5.5:<strong>medium</strong> was the fastest of all four configs (31 s) and found…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks.html">
+          <time class="r-date sc" datetime="2026-10-14">14 Oct</time>
+          <span class="r-title">Claude Haiku 5.5 vs GPT-6 Luna: effort-level benchmarks in omp</span>
+          <span class="r-verdict"></span>
+        </a></li>
+      </ol>
+    </section>
+    <section class="month" aria-labelledby="m-september-2026">
+      <h2 id="m-september-2026">September 2026</h2>
+      <ol class="rows">
+        <li><a class="report-row" href="reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.html">
+          <time class="r-date sc" datetime="2026-09-27">27 Sep</time>
+          <span class="r-title">OpenCode v2 vs v1: what changed, and how Go handles model routing</span>
+          <span class="r-verdict">OpenCode v2 is a major agent-platform and configuration revision—not a new “smarter model” tier—and its strongest improvements are its new architecture and expanded client workflows.[1][2] V1 config is largely intended to keep working, but plugins and server API integrations are…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.html">
+          <time class="r-date sc" datetime="2026-09-26">26 Sep</time>
+          <span class="r-title">GPT-6 Luna vs GLM-5.3-Flash: external comparisons and firsthand reports</span>
+          <span class="r-verdict">There is evidence to compare the pair, but it does <strong>not</strong> show that GLM-5.3-Flash is the faster daily coordinator. Gradually.ai reports Luna ahead on most matched coding/agentic benchmarks, while listing lower-priced alternate-provider routes for both models.[1] Search snippets…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.html">
+          <time class="r-date sc" datetime="2026-09-26">26 Sep</time>
+          <span class="r-title">GPT-5.6 vs GPT-6 Sol/Luna — Reddit Usage and Experience Report</span>
+          <span class="r-verdict">The Reddit evidence supports your read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed—especially for Luna. The most consistent practical distinction is a reported trade-off: GPT-6 Luna is attractive for…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-09/2026-09-25-semif-openjev-integration-guide.html">
+          <time class="r-date sc" datetime="2026-09-25">25 Sep</time>
+          <span class="r-title">SemIf (formerly OpenJev): Integration and API Guide</span>
+          <span class="r-verdict">SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through <code>semif-score</code> for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-09/2026-09-19-typesafe-jev-first-hands.html">
+          <time class="r-date sc" datetime="2026-09-19">19 Sep</time>
+          <span class="r-title">TypeSafe Jev — First-Hands Evaluation Report</span>
+          <span class="r-verdict">Jev is a decision-only model — send state + typed questions, get calibrated probabilities instead of generated text — and it does what it claims on first hands: ~0.9s end-to-end per call from Vietnam, ~$0.00004 for a 9-question fan-out (vendor price list, not metered on our…</span>
+        </a></li>
+        <li><a class="report-row" href="reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">
+          <time class="r-date sc" datetime="2026-09-08">8 Sep</time>
+          <span class="r-title">CommandCode Model Efficiency Report</span>
+          <span class="r-verdict"><strong>Keep GLM-5.3-Flash as the daily driver.</strong> It is already the most cost-efficient model on the CommandCode catalog — by a wide margin, not a marginal one. No switch recommended.</span>
+        </a></li>
+      </ol>
+    </section>
   </div>
-
 </main>
 
-<footer>
-  <p>
-    Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
-    <a href="index.html">Skills</a>
-  </p>
+<footer class="band">
+  <ul>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">LaansDole/my-hermes-skills</a></li>
+    <li>Generated from <code>reports/YYYY-MM/*.md</code></li>
+    <li><a href="https://hermes-agent.nousresearch.com" target="_blank" rel="noopener">Hermes Agent</a> by Nous Research</li>
+    <li class="band-ed sc">Edition 24 Oct 2026</li>
+  </ul>
 </footer>
-
   <script>
     (function () {
       var root = document.documentElement;
       var btn = document.getElementById("theme-toggle");
-      var icon = document.getElementById("theme-icon");
       var stored = null;
       try { stored = localStorage.getItem("theme"); } catch (e) {}
-      if (!btn || !icon) return;
+      if (!btn) return;
       function paint() {
-        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+        var label = root.getAttribute("data-theme") === "light"
+          ? "Switch to dark theme" : "Switch to light theme";
+        btn.setAttribute("aria-label", label);
+        btn.title = label;
       }
       btn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";

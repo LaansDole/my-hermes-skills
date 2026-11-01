@@ -74,6 +74,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance"
     },
     {
+      "name": "impeccable",
+      "version": "4.8.0",
+      "description": "Use when the user wants to design, redesign, shape, critique, audit, polish, simplify, harden, animate, or otherwise improve a frontend interface: websites, landing pages, dashboards, product UI, components, forms, settings, onboarding, empty states, and native iOS or Android screens. Handles UX review, hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior, edge cases, and capturing or documenting design systems (DESIGN.md, tokens). Also for making bland UI bolder, loud UI quieter, or ambitious visual effects. Not for backend-only or non-UI tasks.",
+      "category": "Design",
+      "path": "skills/creative/impeccable",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable"
+    },
+    {
       "name": "memory-ui",
       "version": "",
       "description": "Launch the Mnemosyne browser UI to inspect stored memory.",
@@ -287,6 +295,19 @@
           "category": "Coding Agents",
           "path": "skills/oh-my-pi",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi"
+        }
+      ]
+    },
+    {
+      "title": "Design",
+      "skills": [
+        {
+          "name": "impeccable",
+          "version": "4.8.0",
+          "description": "Use when the user wants to design, redesign, shape, critique, audit, polish, simplify, harden, animate, or otherwise improve a frontend interface: websites, landing pages, dashboards, product UI, components, forms, settings, onboarding, empty states, and native iOS or Android screens. Handles UX review, hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior, edge cases, and capturing or documenting design systems (DESIGN.md, tokens). Also for making bland UI bolder, loud UI quieter, or ambitious visual effects. Not for backend-only or non-UI tasks.",
+          "category": "Design",
+          "path": "skills/creative/impeccable",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable"
         }
       ]
     },

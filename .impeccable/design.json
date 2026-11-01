@@ -1,0 +1,577 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-11-01T04:12:33+00:00",
+  "title": "Design System: my-hermes-skills",
+  "extensions": {
+    "colorMeta": {
+      "chart-paper": {
+        "role": "neutral",
+        "displayName": "Chart Paper",
+        "canonical": "#f6f4ee",
+        "oklch": "oklch(96.7% 0.008 91)",
+        "tonalRamp": [
+          "#0c0b07",
+          "#262521",
+          "#43423d",
+          "#63615c",
+          "#84827d",
+          "#a7a59f",
+          "#cbc9c3",
+          "#f0eee8"
+        ],
+        "theme": "light"
+      },
+      "carbon-ground": {
+        "role": "neutral",
+        "displayName": "Carbon Ground",
+        "canonical": "#141416",
+        "oklch": "oklch(19.2% 0.004 286)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252527",
+          "#424244",
+          "#616163",
+          "#828285",
+          "#a5a5a7",
+          "#c9c9cc",
+          "#eeeef1"
+        ],
+        "theme": "dark"
+      },
+      "press-ink": {
+        "role": "primary",
+        "displayName": "Press Ink",
+        "canonical": "#17171b",
+        "oklch": "oklch(20.6% 0.008 286)",
+        "tonalRamp": [
+          "#0b0b0e",
+          "#252529",
+          "#414146",
+          "#616166",
+          "#828287",
+          "#a4a4aa",
+          "#c8c8ce",
+          "#eeeef4"
+        ],
+        "theme": "light"
+      },
+      "bone-ink": {
+        "role": "primary",
+        "displayName": "Bone Ink",
+        "canonical": "#ece9e0",
+        "oklch": "oklch(93.4% 0.012 92)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
+          "#f1eee5"
+        ],
+        "theme": "dark"
+      },
+      "pencil-grey": {
+        "role": "neutral",
+        "displayName": "Pencil Grey",
+        "canonical": "#5d5a52",
+        "oklch": "oklch(46.8% 0.013 90)",
+        "tonalRamp": [
+          "#0d0b05",
+          "#27251e",
+          "#45423a",
+          "#646159",
+          "#85827a",
+          "#a8a59c",
+          "#ccc9c0",
+          "#f2eee5"
+        ],
+        "theme": "light"
+      },
+      "ash-grey": {
+        "role": "neutral",
+        "displayName": "Ash Grey",
+        "canonical": "#9a968b",
+        "oklch": "oklch(67.3% 0.017 90)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#28251c",
+          "#454238",
+          "#656157",
+          "#868277",
+          "#a9a59a",
+          "#cdc9bd",
+          "#f3eee2"
+        ],
+        "theme": "dark"
+      },
+      "paper-hairline": {
+        "role": "neutral",
+        "displayName": "Paper Hairline",
+        "canonical": "#cfcabd",
+        "oklch": "oklch(83.9% 0.019 89)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#29251b",
+          "#464237",
+          "#656155",
+          "#878276",
+          "#aaa598",
+          "#cec9bc",
+          "#f3eee1"
+        ],
+        "theme": "light"
+      },
+      "carbon-hairline": {
+        "role": "neutral",
+        "displayName": "Carbon Hairline",
+        "canonical": "#38373a",
+        "oklch": "oklch(33.9% 0.005 301)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252427",
+          "#424144",
+          "#626064",
+          "#838285",
+          "#a5a4a8",
+          "#cac8cc",
+          "#efeef1"
+        ],
+        "theme": "dark"
+      },
+      "paper-tint": {
+        "role": "neutral",
+        "displayName": "Paper Tint",
+        "canonical": "#ebe7dc",
+        "oklch": "oklch(92.8% 0.015 90)",
+        "tonalRamp": [
+          "#0e0b05",
+          "#28251d",
+          "#454239",
+          "#646158",
+          "#868278",
+          "#a9a59a",
+          "#cdc9be",
+          "#f2eee3"
+        ],
+        "theme": "light"
+      },
+      "carbon-tint": {
+        "role": "neutral",
+        "displayName": "Carbon Tint",
+        "canonical": "#1e1e21",
+        "oklch": "oklch(23.6% 0.006 286)",
+        "tonalRamp": [
+          "#0b0b0d",
+          "#252528",
+          "#424245",
+          "#616164",
+          "#828286",
+          "#a4a4a8",
+          "#c9c9cd",
+          "#eeeef2"
+        ],
+        "theme": "dark"
+      },
+      "research-amber": {
+        "role": "secondary",
+        "displayName": "Research Amber",
+        "canonical": "#e8a33a",
+        "oklch": "oklch(76.5% 0.142 73)",
+        "tonalRamp": [
+          "#1b0400",
+          "#3d1b00",
+          "#623600",
+          "#8a5300",
+          "#b47200",
+          "#d39845",
+          "#f2bf7c",
+          "#ffe7b0"
+        ]
+      },
+      "productivity-vermilion": {
+        "role": "secondary",
+        "displayName": "Productivity Vermilion",
+        "canonical": "#e2643f",
+        "oklch": "oklch(65.3% 0.166 37)",
+        "tonalRamp": [
+          "#230000",
+          "#4a0700",
+          "#752103",
+          "#a33a1a",
+          "#d15631",
+          "#f08262",
+          "#ffad91",
+          "#ffd8c0"
+        ]
+      },
+      "coding-cobalt": {
+        "role": "secondary",
+        "displayName": "Coding Cobalt",
+        "canonical": "#3a63b8",
+        "oklch": "oklch(51.5% 0.142 263)",
+        "tonalRamp": [
+          "#010727",
+          "#0d224e",
+          "#233f79",
+          "#3a5ea7",
+          "#547fd6",
+          "#7ca4f2",
+          "#a6c9ff",
+          "#d1efff"
+        ]
+      },
+      "design-violet": {
+        "role": "secondary",
+        "displayName": "Design Violet",
+        "canonical": "#7a52b3",
+        "oklch": "oklch(52.8% 0.150 300)",
+        "tonalRamp": [
+          "#110224",
+          "#2d174a",
+          "#4c3173",
+          "#6e4c9f",
+          "#916acd",
+          "#b291e9",
+          "#d4b9ff",
+          "#f8e2ff"
+        ]
+      },
+      "slack-green": {
+        "role": "secondary",
+        "displayName": "Slack Green",
+        "canonical": "#4f9e63",
+        "oklch": "oklch(63.3% 0.118 150)",
+        "tonalRamp": [
+          "#001101",
+          "#012e11",
+          "#164f28",
+          "#2e7141",
+          "#47965c",
+          "#75b783",
+          "#a1d9ac",
+          "#cefcd6"
+        ]
+      },
+      "unfiled-stone": {
+        "role": "secondary",
+        "displayName": "Unfiled Stone",
+        "canonical": "#d8d4c8",
+        "oklch": "oklch(87.0% 0.017 92)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#28251c",
+          "#454238",
+          "#656157",
+          "#868277",
+          "#a9a599",
+          "#cdc9bd",
+          "#f2eee2"
+        ],
+        "theme": "light"
+      },
+      "unfiled-stone-dark": {
+        "role": "secondary",
+        "displayName": "Unfiled Stone Dark",
+        "canonical": "#8f8a7e",
+        "oklch": "oklch(63.4% 0.019 88)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#29251b",
+          "#464237",
+          "#666156",
+          "#878276",
+          "#aaa598",
+          "#cec9bc",
+          "#f4eee1"
+        ],
+        "theme": "dark"
+      },
+      "fill-white": {
+        "role": "neutral",
+        "displayName": "Fill White",
+        "canonical": "#ffffff",
+        "oklch": "oklch(100.0% 0.000 90)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "Masthead name only; 64px under 1100px, 40px under 640px."
+      },
+      "symbol": {
+        "displayName": "Element Symbol",
+        "purpose": "Two-letter cell symbol; scales with cell width (min(48px, 36% of cell))."
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "Catalog section heads on 3px rules."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Key heading, family heads, entry names, month heads, report h3."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Catalog prose; full column width, no measure."
+      },
+      "body-reader": {
+        "displayName": "Body (Reader)",
+        "purpose": "Report pages; 17px/28px on mobile; full column width."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Uppercase tracked subheads: key, TOC, ledger columns."
+      },
+      "cell-meta": {
+        "displayName": "Cell Meta",
+        "purpose": "Cell number, version, name; tabular figures."
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "Paths, commands and code only."
+      }
+    },
+    "themes": {
+      "light": {
+        "ground": "#f6f4ee",
+        "ink": "#17171b",
+        "muted": "#5d5a52",
+        "hair": "#cfcabd",
+        "tint": "#ebe7dc",
+        "keyline": "#17171b"
+      },
+      "dark": {
+        "ground": "#141416",
+        "ink": "#ece9e0",
+        "muted": "#9a968b",
+        "hair": "#38373a",
+        "tint": "#1e1e21",
+        "keyline": "#141416"
+      },
+      "behavior": "data-theme set before first paint: stored choice wins, else prefers-color-scheme; toggle persists to localStorage('theme'); OS changes followed until overridden."
+    },
+    "rules": [
+      {
+        "name": "heavy-rule",
+        "value": "3px solid var(--ink)",
+        "purpose": "Opens sections, family blocks, key, TOC, pager, masthead, foot band."
+      },
+      {
+        "name": "medium-rule",
+        "value": "2px solid var(--ink)",
+        "purpose": "Table top/bottom, theme toggle border."
+      },
+      {
+        "name": "hairline",
+        "value": "1px solid var(--hair)",
+        "purpose": "Row dividers."
+      },
+      {
+        "name": "keyline",
+        "value": "1px solid var(--keyline)",
+        "purpose": "Cell and swatch borders."
+      },
+      {
+        "name": "focus-ring",
+        "value": "outline: 3px solid var(--ink); outline-offset: 2px",
+        "purpose": "Global :focus-visible."
+      },
+      {
+        "name": "cell-hover",
+        "value": "outline: 3px solid currentColor; outline-offset: -5px",
+        "purpose": "Element cell hover."
+      }
+    ],
+    "shadows": [],
+    "motion": [
+      {
+        "name": "ease",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "Family recede transition."
+      },
+      {
+        "name": "family-recede",
+        "value": "opacity 0.2s var(--ease), filter 0.2s var(--ease); others to opacity 0.18 + grayscale(1)",
+        "purpose": "Pointing at a key family recedes every other block; disabled under prefers-reduced-motion."
+      },
+      {
+        "name": "smooth-scroll",
+        "value": "scroll-behavior: smooth",
+        "purpose": "Only under prefers-reduced-motion: no-preference."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "mobile",
+        "value": "640px"
+      },
+      {
+        "name": "tablet",
+        "value": "1100px"
+      },
+      {
+        "name": "chart-container-narrow",
+        "value": "600px (container query)"
+      }
+    ],
+    "fonts": [
+      {
+        "family": "Archivo",
+        "file": "docs/fonts/archivo-latin-wght-normal.woff2",
+        "weights": "100 900",
+        "license": "OFL"
+      },
+      {
+        "family": "Source Serif 4",
+        "file": "docs/fonts/source-serif-4-latin-wght-normal.woff2",
+        "weights": "200 900",
+        "license": "OFL"
+      },
+      {
+        "family": "Source Serif 4 Italic",
+        "file": "docs/fonts/source-serif-4-latin-wght-italic.woff2",
+        "weights": "200 900",
+        "license": "OFL"
+      },
+      {
+        "family": "JetBrains Mono",
+        "file": "docs/fonts/jetbrains-mono-latin-400-normal.woff2",
+        "weights": "400",
+        "license": "OFL"
+      }
+    ],
+    "source": "scripts/generate_docs.py (BASE_CSS, INDEX_CSS, READER_CSS, REPORTS_CSS, FAMILIES, DARK_FILLS)"
+  },
+  "components": [
+    {
+      "name": "Element Cell",
+      "kind": "card",
+      "refersTo": "element-cell",
+      "description": "Signature chart tile: number, family mark, version, two-letter symbol, skill name on a flat family fill; links to its handbook entry.",
+      "html": "<a class=\"ds-cell\" href=\"#\"><span class=\"ds-cell-top\"><span>01</span><span class=\"ds-cell-mark\">RES</span><span>1.2.0</span></span><span class=\"ds-cell-sym\">Cf</span><span class=\"ds-cell-name\">covidence-full-text-retrieval</span></a>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-cell{display:flex;flex-direction:column;width:136px;min-height:148px;padding:8px;border:1px solid var(--keyline,#17171b);background:#e8a33a;color:#17171b;font-family:var(--display,'Archivo',sans-serif);text-decoration:none;border-radius:0}.ds-cell:hover{outline:3px solid currentColor;outline-offset:-5px}.ds-cell:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}.ds-cell-top{display:flex;justify-content:space-between;align-items:baseline;gap:4px;font:600 12px/16px var(--display,'Archivo',sans-serif);font-variant-numeric:tabular-nums}.ds-cell-mark{font-weight:700;font-size:16px;font-variant-caps:all-small-caps;letter-spacing:.06em}.ds-cell-sym{margin-top:8px;font:900 48px/48px var(--display,'Archivo',sans-serif);letter-spacing:-.02em}.ds-cell-name{margin-top:auto;padding-top:4px;font:600 12px/16px var(--display,'Archivo',sans-serif);overflow-wrap:anywhere}"
+    },
+    {
+      "name": "Element Cell (Coding Agents)",
+      "kind": "card",
+      "refersTo": "element-cell-cobalt",
+      "description": "Cobalt family cell with white text; violet Design uses the same pairing.",
+      "html": "<a class=\"ds-cell-cod\" href=\"#\"><span class=\"ds-cell-top\"><span>15</span><span class=\"ds-cell-mark\">COD</span><span></span></span><span class=\"ds-cell-sym\">Op</span><span class=\"ds-cell-name\">oh-my-pi</span></a>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-cell-cod{display:flex;flex-direction:column;width:136px;min-height:148px;padding:8px;border:1px solid var(--keyline,#17171b);background:#3a63b8;color:#fff;font-family:var(--display,'Archivo',sans-serif);text-decoration:none}.ds-cell-cod:hover{outline:3px solid currentColor;outline-offset:-5px}.ds-cell-cod:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}.ds-cell-top{display:flex;justify-content:space-between;font:600 12px/16px var(--display,'Archivo',sans-serif)}.ds-cell-mark{font-weight:700;font-size:16px;font-variant-caps:all-small-caps;letter-spacing:.06em}.ds-cell-sym{margin-top:8px;font:900 48px/48px var(--display,'Archivo',sans-serif);letter-spacing:-.02em}.ds-cell-name{margin-top:auto;padding-top:4px;font:600 12px/16px var(--display,'Archivo',sans-serif)}"
+    },
+    {
+      "name": "Key Row",
+      "kind": "chip",
+      "refersTo": "key-swatch",
+      "description": "Key entry: swatch with three-letter mark, family name, count; hover underlines the name (and on the live page recedes other families).",
+      "html": "<a class=\"ds-key\" href=\"#\"><span class=\"ds-sw\">PRO</span><span class=\"ds-key-name\">Productivity</span><span class=\"ds-key-n\">10</span></a>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-key{display:grid;grid-template-columns:40px 1fr auto;gap:12px;align-items:center;width:320px;padding:6px 0;border-top:3px solid var(--ink,#17171b);border-bottom:1px solid var(--hair,#cfcabd);color:var(--ink,#17171b);font:600 15px/20px var(--display,'Archivo',sans-serif);text-decoration:none}.ds-key:hover .ds-key-name,.ds-key:focus-visible .ds-key-name{text-decoration:underline 2px;text-underline-offset:4px}.ds-key:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}.ds-sw{display:grid;place-items:center;height:24px;border:1px solid var(--keyline,#17171b);background:#e2643f;color:#17171b;font-weight:700;font-size:16px;line-height:16px;font-variant-caps:all-small-caps;letter-spacing:.06em}.ds-key-n{font-variant-numeric:tabular-nums}"
+    },
+    {
+      "name": "Theme Toggle",
+      "kind": "button",
+      "refersTo": "theme-toggle",
+      "description": "The only button: 40px square, 2px ink border, inverts on hover.",
+      "html": "<button class=\"ds-toggle\" type=\"button\" aria-label=\"Switch to dark theme\"><svg viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linejoin=\"miter\" width=\"20\" height=\"20\"><path d=\"M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z\"/></svg></button>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-toggle{display:grid;place-items:center;width:40px;height:40px;padding:0;border:2px solid var(--ink,#17171b);border-radius:0;background:none;color:var(--ink,#17171b);cursor:pointer}.ds-toggle:hover{background:var(--ink,#17171b);color:var(--ground,#f6f4ee)}.ds-toggle:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}.ds-toggle svg{display:block}"
+    },
+    {
+      "name": "Site Navigation",
+      "kind": "nav",
+      "refersTo": "nav-link",
+      "description": "Uppercase tracked Archivo links; 3px bottom border shows hover (muted) and current page (ink, 800).",
+      "html": "<nav class=\"ds-nav\"><a href=\"#\" aria-current=\"page\">Chart</a><a href=\"#\">Entries</a><a href=\"#\">Index A–Z</a><a href=\"#\">Reports</a><a href=\"#\">GitHub</a></nav>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-nav{display:flex;flex-wrap:wrap;gap:8px 28px;color:var(--ink,#17171b)}.ds-nav a{display:block;padding:8px 0 4px;border-bottom:3px solid transparent;color:inherit;font:600 14px/20px var(--display,'Archivo',sans-serif);letter-spacing:.08em;text-transform:uppercase;text-decoration:none}.ds-nav a:hover{border-bottom-color:var(--muted,#5d5a52)}.ds-nav a[aria-current]{font-weight:800;border-bottom-color:var(--ink,#17171b)}.ds-nav a:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}"
+    },
+    {
+      "name": "Install Line",
+      "kind": "input",
+      "refersTo": "install-line",
+      "description": "Mono command on the tint surface; the system has no form inputs, this is its only field-like surface.",
+      "html": "<p class=\"ds-install\">ln -s &lt;repo&gt;/skills/&lt;path&gt; ~/.hermes/skills/&lt;name&gt;</p>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-install{margin:0;padding:8px 12px;background:var(--tint,#ebe7dc);color:var(--ink,#17171b);font:400 13px/20px var(--mono,'JetBrains Mono',monospace);overflow-wrap:anywhere;border-radius:0}"
+    },
+    {
+      "name": "Report Ledger Row",
+      "kind": "custom",
+      "refersTo": "report-row",
+      "description": "Whole-row link: small-caps date, bold title, muted serif verdict; tint on hover.",
+      "html": "<a class=\"ds-row\" href=\"#\"><time class=\"ds-row-date\">25 Sep</time><span class=\"ds-row-title\">SemIf (formerly OpenJev): Integration and API Guide</span><span class=\"ds-row-verdict\">SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API.</span></a>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-row{display:grid;grid-template-columns:112px minmax(0,1fr) minmax(0,1fr);gap:32px;padding:12px 8px;border-bottom:1px solid var(--hair,#cfcabd);color:var(--ink,#17171b);text-decoration:none}.ds-row:hover{background:var(--tint,#ebe7dc)}.ds-row:hover .ds-row-title{text-decoration:underline;text-decoration-thickness:2px}.ds-row:focus-visible{outline:3px solid var(--ink,#17171b);outline-offset:2px}.ds-row-date{font:600 16px/24px var(--display,'Archivo',sans-serif);font-variant-caps:small-caps;font-variant-numeric:tabular-nums;letter-spacing:.02em}.ds-row-title{font:700 17px/24px var(--display,'Archivo',sans-serif)}.ds-row-verdict{font:400 15px/24px var(--serif,'Source Serif 4',serif);color:var(--muted,#5d5a52)}"
+    },
+    {
+      "name": "Section Head",
+      "kind": "custom",
+      "refersTo": "",
+      "description": "3px ink rule over an 800-weight Archivo headline; opens every catalog section.",
+      "html": "<h2 class=\"ds-sect\">Handbook entries</h2>",
+      "css": ":root{--ground:#f6f4ee;--ink:#17171b;--muted:#5d5a52;--hair:#cfcabd;--tint:#ebe7dc;--keyline:#17171b;--display:\"Archivo\",\"Helvetica Neue\",Arial,sans-serif;--serif:\"Source Serif 4\",Georgia,serif;--mono:\"JetBrains Mono\",ui-monospace,Menlo,monospace;--ease:cubic-bezier(0.16,1,0.3,1)}.ds-sect{margin:0;padding-top:16px;border-top:3px solid var(--ink,#17171b);color:var(--ink,#17171b);font:800 40px/44px var(--display,'Archivo',sans-serif);letter-spacing:-.02em}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Reference Wall Chart",
+    "overview": "The site is a printed reference chart pinned to a workshop wall. Every skill is a numbered element cell carrying a two-letter symbol, the cells are grouped into flat colour-blocked families, and each cell is keyed to a handbook entry further down the sheet. The whole toolkit is visible at once in the first viewport; the key at the right explains how to read it. Reports are not a second visual world. They are the same paper and ink, set as a dated ledger and as long-form reading pages.\n\nThe material is print, not screen chrome: chart paper (light) or carbon ground (dark), near-black or bone ink, heavy 3px ink rules that open every block, 1px hairlines between rows, square corners everywhere, and no shadows. Colour is confined to the frame: the six family fills live on cells, key swatches and family heads. Running text, tables and the report column stay achromatic. Density is high in the chart and generous in the reader. Paragraphs and lists run the full column width; the owner rejected a narrow 65–75ch measure, and the system does not impose one.\n\nBoth themes are first-class. The theme follows the OS until the visitor toggles it, then the choice persists. Every page is generated by `scripts/generate_docs.py`; the design lives in that file and changes go through it, never through hand-edited HTML.",
+    "keyCharacteristics": [
+      "Element cells: number, three-letter family mark, version, two-letter symbol, skill name.",
+      "Six flat process-colour families: Research, Productivity, Coding Agents, Design, Slack, Unfiled.",
+      "Heavy grotesk (Archivo) for structure, reading serif (Source Serif 4) for prose, mono only for paths and commands.",
+      "3px ink rules open blocks; 1px hairlines separate rows; corners are square; nothing casts a shadow.",
+      "Full-width paragraphs and lists; small-caps tabular figures for dates and versions."
+    ],
+    "rules": [
+      {
+        "name": "The Colour In The Frame Rule",
+        "body": "Family fills appear only on cells, key swatches and family heads. Prose, tables, the report ledger and reader pages stay ink on paper.",
+        "section": "colors"
+      },
+      {
+        "name": "The Mark Plus Word Rule",
+        "body": "A family fill never appears without its three-letter mark or its name beside it.",
+        "section": "colors"
+      },
+      {
+        "name": "The Small-Caps Provenance Rule",
+        "body": "Dates, versions, editions and pager labels set in small caps with tabular figures (0.02em tracking).",
+        "section": "typography"
+      },
+      {
+        "name": "The Mono Is For Machines Rule",
+        "body": "JetBrains Mono appears only on paths, commands and code, never as a decorative voice.",
+        "section": "typography"
+      },
+      {
+        "name": "The Printed Sheet Rule",
+        "body": "No box-shadow, no blur, no raised cards. If an element needs separation, use a rule, a hairline or the tint.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** make design changes in `scripts/generate_docs.py` and regenerate; the HTML is build output.",
+      "**Do** ship both themes for every new element, with the theme following the OS until the visitor toggles it.",
+      "**Do** pair every family fill with its three-letter mark or family name, and keep text-on-fill contrast at WCAG AA or better (the fill table records each ratio).",
+      "**Do** open blocks with a 3px ink rule and divide rows with 1px hairlines.",
+      "**Do** let paragraphs, lists and tables run the full column width.",
+      "**Do** set dates and versions in small caps with tabular figures."
+    ],
+    "donts": [
+      "**Don't** impose a 65–75ch measure or any narrow reading column; the owner rejected it.",
+      "**Don't** round corners or add shadows; this is a printed sheet.",
+      "**Don't** put family colour into prose, tables, the report ledger or reader pages.",
+      "**Don't** convey family by hue alone.",
+      "**Don't** use mono for anything but paths, commands and code.",
+      "**Don't** add a seventh family fill ad hoc; unknown sections fall into Unfiled until a family is defined in `FAMILIES`."
+    ]
+  }
+}

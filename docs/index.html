@@ -3,321 +3,245 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
   <title>my-hermes-skills — LaansDole</title>
   <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/" />
+  <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
   <style>
+    @font-face { font-family: "Archivo"; src: url("fonts/archivo-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 200 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-italic.woff2") format("woff2"); font-weight: 200 900; font-style: italic; font-display: swap; }
+    @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+    :root, :root[data-theme="light"] {
+      color-scheme: light;
+      --ground: #f6f4ee; --ink: #17171b; --muted: #5d5a52;
+      --hair: #cfcabd; --tint: #ebe7dc; --keyline: #17171b;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --ground: #141416; --ink: #ece9e0; --muted: #9a968b;
+      --hair: #38373a; --tint: #1e1e21; --keyline: #141416;
+    }
     :root {
-      --bg: #0d1117;
-      --bg2: #161b22;
-      --bg3: #21262d;
-      --border: #30363d;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --text-dim: #6e7681;
-      --accent: #58a6ff;
-      --accent-dim: #1f6feb;
-      --green: #3fb950;
-      --purple: #bc8cff;
-      --orange: #d29922;
-      --red: #f85149;
-      --tag-bg: #1f2937;
-      --tag-border: #374151;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+      --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --pad: 48px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
     }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { background: var(--ground); color: var(--ink);
+           scrollbar-color: var(--muted) var(--ground); -webkit-text-size-adjust: 100%; }
+    body { margin: 0; font: 400 17px/28px var(--serif); caret-color: var(--ink);
+           font-optical-sizing: auto; overflow-wrap: break-word; }
+    ::selection { background: #e8a33a; color: #17171b; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    h1, h2, h3, h4 { text-wrap: balance; }
+    .sc { font-variant-caps: small-caps; font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden;
+          clip-path: inset(50%); white-space: nowrap; }
+    .skip { position: absolute; left: var(--pad); top: -80px; z-index: 10;
+            padding: 8px 16px; background: var(--ink); color: var(--ground);
+            font: 700 14px/20px var(--display); text-decoration: none; }
+    .skip:focus { top: 8px; }
 
-    /* Light theme (GitHub light palette) — applied via [data-theme] set by the
-       inline JS (OS preference, overridable by the header toggle, persisted) */
-    :root[data-theme="light"] {
-      --bg: #ffffff;
-      --bg2: #f6f8fa;
-      --bg3: #eaeef2;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --text-muted: #59636e;
-      --text-dim: #6e7781;
-      --accent: #0969da;
-      --accent-dim: #0969da;
-      --green: #1a7f37;
-      --purple: #8250df;
-      --orange: #9a6700;
-      --red: #cf222e;
-      --tag-bg: #eff1f3;
-      --tag-border: #d0d7de;
-    }
+    .mast { padding: 32px var(--pad) 0; }
+    .mast-in { display: flex; flex-wrap: wrap; align-items: flex-end;
+               justify-content: space-between; gap: 16px 40px;
+               padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+    .mast-name { margin: 0; font: 900 88px/88px var(--display); letter-spacing: -0.035em; }
+    .mast-name a { text-decoration: none; }
+    .mast-compact .mast-name { font-size: 40px; line-height: 40px; letter-spacing: -0.03em; }
+    .nav ul { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px;
+              margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 0 4px; border-bottom: 3px solid transparent;
+             font: 600 14px/20px var(--display); letter-spacing: 0.08em;
+             text-transform: uppercase; text-decoration: none; }
+    .nav a:hover { border-bottom-color: var(--muted); }
+    .nav a[aria-current] { font-weight: 800; border-bottom-color: var(--ink); }
+    .theme-toggle { display: grid; place-items: center; width: 40px; height: 40px;
+                    padding: 0; border: 2px solid var(--ink); border-radius: 0;
+                    background: none; color: var(--ink); cursor: pointer; }
+    .theme-toggle:hover { background: var(--ink); color: var(--ground); }
+    .theme-toggle svg { display: block; width: 20px; height: 20px; }
+    :root[data-theme="dark"] .i-moon, :root[data-theme="light"] .i-sun { display: none; }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
+    .band { margin-top: 96px; padding: 0 var(--pad) 32px; }
+    .band ul { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0;
+               padding: 16px 0 0; border-top: 3px solid var(--ink); list-style: none;
+               font: 500 14px/20px var(--display); }
+    .band code { font-size: 13px; }
+    .band-ed { margin-left: auto; font-weight: 700; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 100vh;
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
     }
+    @media (max-width: 1100px) {
+      .mast-name { font-size: 64px; line-height: 64px; }
+    }
+    @media (max-width: 640px) {
+      :root { --pad: 16px; }
+      .mast { padding-top: 24px; }
+      .mast-name { font-size: 40px; line-height: 40px; }
+      .mast-compact .mast-name { font-size: 32px; line-height: 32px; }
+      .nav ul { gap: 4px 20px; }
+      .nav a { font-size: 13px; }
+      .band { margin-top: 64px; }
+      .band ul { flex-direction: column; }
+      .band-ed { margin-left: 0; }
+    }
+    .f-research { background: #e8a33a; color: #17171b; }
+    .f-productivity { background: #e2643f; color: #17171b; }
+    .f-coding-agents { background: #3a63b8; color: #ffffff; }
+    .f-design { background: #7a52b3; color: #ffffff; }
+    .f-slack { background: #4f9e63; color: #17171b; }
+    .f-unfiled { background: #d8d4c8; color: #17171b; }
+    :root[data-theme="dark"] .f-unfiled { background: #8f8a7e; }
+    .atlas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px;
+             align-items: start; padding: 24px var(--pad) 0; }
+    .chart-wrap { container-type: inline-size; }
+    .chart { --gap: 4px; --bgap: 16px;
+             --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px var(--bgap);
+             margin: 0; padding: 0; list-style: none; }
+    .fam-block { flex: none; width: min-content;
+                 transition: opacity 0.2s var(--ease), filter 0.2s var(--ease); }
+    .fb-h { display: flex; justify-content: space-between; align-items: baseline;
+            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 3px solid var(--ink);
+            font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 20px;
+            font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
+    .fb-n { flex: none; font-variant-numeric: tabular-nums; }
+    .fb-cells { display: grid; grid-template-columns: repeat(var(--cols), var(--cell));
+                gap: var(--gap); margin: 0; padding: 0; list-style: none; }
+    .fb-cells li { display: flex; }
+    .cell, .legend-cell { display: flex; flex-direction: column; min-height: 148px;
+                          padding: 8px; border: 1px solid var(--keyline);
+                          font-family: var(--display); text-decoration: none; }
+    .cell { flex: 1; min-height: max(144px, calc(var(--cell) * 1.07)); }
+    .cell:hover { outline: 3px solid currentColor; outline-offset: -5px; }
+    .cell:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .c-top { display: flex; justify-content: space-between; align-items: baseline; gap: 4px;
+             font: 600 12px/16px var(--display); font-variant-numeric: tabular-nums; }
+    .c-mark { font-weight: 700; font-size: 16px; font-variant-caps: all-small-caps;
+              letter-spacing: 0.06em; }
+    .c-sym { margin-top: 8px; font: 900 48px/48px var(--display); letter-spacing: -0.02em; }
+    .chart .c-sym { font-size: min(48px, calc(var(--cell) * 0.36)); line-height: 1; }
+    .c-child { margin-top: 2px; font: 600 12px/16px var(--display);
+               font-variant-caps: small-caps; letter-spacing: 0.02em; }
+    .c-name { margin-top: auto; padding-top: 4px; font: 600 12px/16px var(--display); }
 
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
+    .key-sum { margin: 0 0 12px; font-size: 15px; line-height: 24px; color: var(--muted); }
+    .key h2 { margin: 0 0 4px; font: 800 20px/24px var(--display); }
+    .key h3 { margin: 24px 0 8px; font: 800 13px/20px var(--display);
+              letter-spacing: 0.08em; text-transform: uppercase; }
+    .key-fams { margin: 0; padding: 0; list-style: none; border-top: 3px solid var(--ink); }
+    .key-fam { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
+               align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair);
+               font: 600 15px/20px var(--display); text-decoration: none; }
+    .key-fam:hover .kf-name, .key-fam:focus-visible .kf-name {
+      text-decoration: underline 2px; text-underline-offset: 4px; }
+    .kf-n { font-variant-numeric: tabular-nums; }
+    .sw { display: grid; place-items: center; height: 24px; border: 1px solid var(--keyline);
+          font-weight: 700; font-size: 16px; line-height: 16px;
+          font-variant-caps: all-small-caps; letter-spacing: 0.06em; }
+    .legend { display: grid; grid-template-columns: 104px 1fr; gap: 0 12px; margin: 0; }
+    .legend-cell { min-height: 112px; }
+    .legend-cell .c-sym { margin-top: 8px; font-size: 40px; line-height: 40px; }
+    .legend-labels { display: flex; flex-direction: column; justify-content: space-between;
+                     margin: 0; padding: 4px 0; list-style: none;
+                     font: 600 13px/20px var(--display); }
+    .legend-labels li::before { content: ""; display: inline-block; width: 16px; height: 1px;
+                                margin-right: 8px; vertical-align: middle; background: var(--ink); }
+    .legend-note { margin: 12px 0 0; font-size: 15px; line-height: 24px; }
+    .key-install { margin: 0; padding: 8px 12px; background: var(--tint);
+                   font: 400 13px/20px var(--mono); overflow-wrap: anywhere; }
+    .key-more { margin: 8px 0 0; font: 600 14px/20px var(--display); }
 
-    /* Layout */
-    header {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      height: 56px;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--text);
-    }
-    .logo svg { flex-shrink: 0; }
-    .header-links {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-    .header-links a { color: var(--text-muted); }
-    .header-links a:hover { color: var(--text); text-decoration: none; }
+    .sect { margin-top: 96px; padding: 0 var(--pad); }
+    .sect > h2 { margin: 0; padding-top: 16px; border-top: 3px solid var(--ink);
+                 font: 800 40px/44px var(--display); letter-spacing: -0.02em; }
+    .fam-h { display: flex; justify-content: space-between; align-items: baseline;
+             gap: 16px; margin: 40px 0 0; padding: 8px 12px;
+             font: 800 20px/24px var(--display); scroll-margin-top: 24px; }
+    .fam-h span { font: 600 14px/20px var(--display); font-variant-numeric: tabular-nums; }
+    .entry { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+             gap: 12px 40px; padding: 24px 0; border-bottom: 1px solid var(--hair);
+             scroll-margin-top: 24px; }
+    .e-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px;
+              align-items: start; }
+    .e-cell { display: flex; flex-direction: column; justify-content: space-between;
+              height: 64px; padding: 4px 6px; border: 1px solid var(--keyline);
+              font-family: var(--display); }
+    .e-n { font: 600 11px/12px var(--display); font-variant-numeric: tabular-nums; }
+    .e-s { font: 900 28px/28px var(--display); letter-spacing: -0.02em; }
+    .entry:target .e-cell { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .e-name { margin: 0; font: 800 20px/24px var(--display); overflow-wrap: anywhere; }
+    .e-meta { display: flex; flex-wrap: wrap; gap: 0 12px; margin: 4px 0 0;
+              font: 500 14px/20px var(--display); color: var(--muted); }
+    .e-desc { margin: 0; }
+    .e-tags { margin: 8px 0 0; font: 400 14px/20px var(--display); color: var(--muted); }
+    .e-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px;
+               margin: 12px 0 0; font: 700 14px/20px var(--display); }
+    .e-links code { font: 400 13px/20px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
 
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1;
-      padding: 0;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .theme-toggle:hover { border-color: var(--text-muted); background: var(--bg3); }
+    .az { columns: 4 200px; column-gap: 40px; margin: 24px 0 0; padding: 0; list-style: none; }
+    .az li { break-inside: avoid; }
+    .az a { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid var(--hair);
+            font: 600 15px/20px var(--display); text-decoration: none; }
+    .az a:hover span + span { text-decoration: underline; text-underline-offset: 3px; }
+    .az-n { color: var(--muted); font-variant-numeric: tabular-nums; }
 
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-    }
+    .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 40px;
+             margin: 24px 0 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { counter-increment: step; padding-top: 12px; border-top: 1px solid var(--ink); }
+    .steps li::before { content: counter(step, decimal-leading-zero); display: block;
+                        margin-bottom: 8px; font: 900 40px/44px var(--display);
+                        font-variant-numeric: tabular-nums; }
+    .steps code { font-size: 15px; }
 
-    /* Hero */
-    .hero { margin-bottom: 48px; }
-    .hero-eyebrow {
-      font-size: 12px;
-      font-family: var(--mono);
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
+    @media (prefers-reduced-motion: reduce) {
+      .fam-block { transition: none; }
     }
-    .hero h1 {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+    @media (max-width: 1100px) {
+      .atlas { grid-template-columns: minmax(0, 1fr); }
+      .key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
-    .hero-sub {
-      color: var(--text-muted);
-      font-size: 15px;
-      max-width: 580px;
-      margin-bottom: 24px;
+    @container (max-width: 600px) {
+      .chart { --bgap: 12px; --cell: calc((100cqi - 3 * var(--gap)) / 4); row-gap: 16px;
+               align-items: flex-start; }
+      .fb-cells { grid-template-columns: repeat(var(--cols-s), var(--cell)); }
+      /* two-line head (2x20px lines + 4px pad + 3px rule, border-box): rules and labels share y per row */
+      .fb-h { font-size: 16px; min-height: 47px; align-items: flex-end; }
+      .cell { min-height: 120px; padding: 6px; }
+      .c-top { font-size: 11px; line-height: 12px; }
+      .c-mark { font-size: 14px; }
+      .c-sym { margin-top: 4px; }
+      .c-child { font-size: 11px; line-height: 12px; }
+      .c-name { font-size: 11px; line-height: 12px; overflow-wrap: anywhere; }
     }
-    .hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
-    .stat { display: flex; flex-direction: column; gap: 2px; }
-    .stat-num {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      font-family: var(--mono);
+    @media (max-width: 640px) {
+      .atlas { padding-top: 24px; gap: 32px; }
+      .key { grid-template-columns: minmax(0, 1fr); }
+      .sect { margin-top: 64px; }
+      .sect > h2 { font-size: 32px; line-height: 36px; }
+      .entry { grid-template-columns: minmax(0, 1fr); }
+      .az { columns: 2; column-gap: 24px; }
+      .steps { grid-template-columns: minmax(0, 1fr); }
     }
-    .stat-label { font-size: 12px; color: var(--text-muted); }
-
-    /* Section */
-    .section { margin-bottom: 48px; }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-    .section-title { font-size: 16px; font-weight: 600; color: var(--text); }
-    .section-count {
-      margin-left: auto;
-      font-size: 12px;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1px 8px;
-    }
-
-    /* Cards */
-    .cards { display: flex; flex-direction: column; gap: 10px; }
-    .card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 18px;
-      transition: border-color 0.15s, background 0.15s;
-      cursor: default;
-    }
-    .card:hover { border-color: var(--accent-dim); background: var(--bg3); }
-    .card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-    .card-name {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-      flex: 1;
-      min-width: 0;
-    }
-    .card-name .card-title-link { color: inherit; text-decoration: none; }
-    .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
-    .card-name .card-title-link strong { color: inherit; }
-    /* whole-card link (report cards) */
-    a.card { text-decoration: none; display: block; color: inherit; }
-    a.card:hover { border-color: var(--accent); }
-    a.card:hover .card-name { text-decoration: underline; }
-    .card-version {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      flex-shrink: 0;
-    }
-    .card-links { display: flex; gap: 8px; flex-shrink: 0; }
-    .card-link {
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2px 8px;
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .card-link:hover { color: var(--text); border-color: var(--text-muted); text-decoration: none; }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 10px;
-    }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tag {
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      background: var(--tag-bg);
-      border: 1px solid var(--tag-border);
-      border-radius: 3px;
-      padding: 1px 6px;
-    }
-
-    /* child card (indented) */
-    .card-child {
-      margin-left: 24px;
-      border-left: 2px solid var(--border);
-      border-radius: 0 8px 8px 0;
-    }
-    .card-child .card-name::before { content: "↳ "; color: var(--text-dim); }
-
-    /* Setup box */
-    .setup-box {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 48px;
-    }
-    .setup-box h2 {
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .setup-step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
-    .step-num {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent-dim);
-      color: var(--text);
-      font-size: 11px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .step-body { font-size: 13px; color: var(--text-muted); }
-    .step-body code {
-      font-family: var(--mono);
-      font-size: 12px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-      color: var(--green);
-    }
-
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 24px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 12px;
-    }
-    footer a { color: var(--text-dim); }
-    footer a:hover { color: var(--text-muted); }
-
-    @media (max-width: 600px) {
-      .hero h1 { font-size: 24px; }
-      .hero-stats { gap: 16px; }
-      .card-child { margin-left: 12px; }
+    .atlas:has(.key-fam[data-fam="research"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="research"]),
+    .atlas:has(.key-fam[data-fam="productivity"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="productivity"]),
+    .atlas:has(.key-fam[data-fam="coding-agents"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="coding-agents"]),
+    .atlas:has(.key-fam[data-fam="design"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="design"]),
+    .atlas:has(.key-fam[data-fam="slack"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="slack"]),
+    .atlas:has(.key-fam[data-fam="unfiled"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="unfiled"]) {
+      opacity: 0.18; filter: grayscale(1);
     }
   </style>
   <script>
@@ -333,558 +257,553 @@
   </script>
 </head>
 <body>
-
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
-        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      my-hermes-skills
-    </div>
-    <div class="header-links">
-      <a href="reports.html">Reports</a>
-      <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">GitHub</a>
-      <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
-    </div>
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast">
+  <div class="mast-in">
+    <h1 class="mast-name">my-<wbr>hermes-<wbr>skills</h1>
+    <nav class="nav" aria-label="Site">
+      <ul>
+        <li><a href="#chart" aria-current="page">Chart</a></li>
+        <li><a href="#entries">Entries</a></li>
+        <li><a href="#a-z">Index A–Z</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">GitHub</a></li>
+        <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon" aria-hidden="true"><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></span></button></li>
+      </ul>
+    </nav>
   </div>
 </header>
 
-<main>
+<main id="main">
 
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
-    <h1>Personal Hermes Agent Skills</h1>
-    <p class="hero-sub">
-      A curated collection of reusable skills for
-      <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a>
-      — covering systematic review automation, productivity utilities, and Slack tooling.
-      Each skill is self-contained with its own <code style="font-family:var(--mono);font-size:13px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">SKILL.md</code> and setup instructions.
-    </p>
-    <div class="hero-stats">
-      <div class="stat">
-        <span class="stat-num">19</span>
-        <span class="stat-label">skills</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">6</span>
-        <span class="stat-label">categories</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">MIT</span>
-        <span class="stat-label">license</span>
-      </div>
-    </div>
+<section class="atlas" id="chart" aria-labelledby="chart-h">
+  <h2 class="vh" id="chart-h">Chart of skills</h2>
+  <div class="chart-wrap">
+    <ol class="chart">
+    <li class="fam-block" data-fam="research" style="--cols: 4; --cols-s: 4">
+      <p class="fb-h"><span>Research</span><span class="fb-n">4<span class="vh"> skills</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-research" href="#entry-covidence-full-text-retrieval" aria-label="01 covidence-full-text-retrieval, Research, version 1.2.0">
+          <span class="c-top"><span>01</span><span class="c-mark">RES</span><span class="c-v">1.2.0</span></span>
+          <span class="c-sym">Cf</span>
+          <span class="c-name">covidence-<wbr>full-<wbr>text-<wbr>retrieval</span>
+        </a></li>
+        <li><a class="cell f-research" href="#entry-covidence-full-text-review" aria-label="02 covidence-full-text-review, Research, version 2.0.0, child of 01 covidence-full-text-retrieval">
+          <span class="c-top"><span>02</span><span class="c-mark">RES</span><span class="c-v">2.0.0</span></span>
+          <span class="c-sym">Cr</span>
+          <span class="c-child">child of 01</span>
+          <span class="c-name">covidence-<wbr>full-<wbr>text-<wbr>review</span>
+        </a></li>
+        <li><a class="cell f-research" href="#entry-covidence-screening" aria-label="03 covidence-screening, Research, version 1.0.0">
+          <span class="c-top"><span>03</span><span class="c-mark">RES</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Cs</span>
+          <span class="c-name">covidence-<wbr>screening</span>
+        </a></li>
+        <li><a class="cell f-research" href="#entry-sci-hub-access" aria-label="04 sci-hub-access, Research, version 1.1.0">
+          <span class="c-top"><span>04</span><span class="c-mark">RES</span><span class="c-v">1.1.0</span></span>
+          <span class="c-sym">Sh</span>
+          <span class="c-name">sci-<wbr>hub-<wbr>access</span>
+        </a></li>
+      </ul>
+    </li>
+    <li class="fam-block" data-fam="productivity" style="--cols: 5; --cols-s: 4">
+      <p class="fb-h"><span>Productivity</span><span class="fb-n">10<span class="vh"> skills</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-productivity" href="#entry-auditing-worktrees" aria-label="05 auditing-worktrees, Productivity, version 1.0.0">
+          <span class="c-top"><span>05</span><span class="c-mark">PRO</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Aw</span>
+          <span class="c-name">auditing-<wbr>worktrees</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-camofox-browser" aria-label="06 camofox-browser, Productivity, version 1.0.0">
+          <span class="c-top"><span>06</span><span class="c-mark">PRO</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Cb</span>
+          <span class="c-name">camofox-<wbr>browser</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-demo-runbook" aria-label="07 demo-runbook, Productivity, version 0.1.0">
+          <span class="c-top"><span>07</span><span class="c-mark">PRO</span><span class="c-v">0.1.0</span></span>
+          <span class="c-sym">Dr</span>
+          <span class="c-name">demo-<wbr>runbook</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-hermes-deepseek-cache" aria-label="08 hermes-deepseek-cache, Productivity, version 1.1.0">
+          <span class="c-top"><span>08</span><span class="c-mark">PRO</span><span class="c-v">1.1.0</span></span>
+          <span class="c-sym">Hd</span>
+          <span class="c-name">hermes-<wbr>deepseek-<wbr>cache</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-i-have-adhd" aria-label="09 i-have-adhd, Productivity, unversioned">
+          <span class="c-top"><span>09</span><span class="c-mark">PRO</span><span class="c-v"></span></span>
+          <span class="c-sym">Ih</span>
+          <span class="c-name">i-<wbr>have-<wbr>adhd</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-memory-ui" aria-label="10 memory-ui, Productivity, unversioned">
+          <span class="c-top"><span>10</span><span class="c-mark">PRO</span><span class="c-v"></span></span>
+          <span class="c-sym">Mu</span>
+          <span class="c-name">memory-<wbr>ui</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-multi-repo-pr-review-merge-round" aria-label="11 multi-repo-pr-review-merge-round, Productivity, version 1.0.0">
+          <span class="c-top"><span>11</span><span class="c-mark">PRO</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Mr</span>
+          <span class="c-name">multi-<wbr>repo-<wbr>pr-<wbr>review-<wbr>merge-<wbr>round</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-oh-my-ghostty" aria-label="12 oh-my-ghostty, Productivity, version 1.0.0">
+          <span class="c-top"><span>12</span><span class="c-mark">PRO</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Om</span>
+          <span class="c-name">oh-<wbr>my-<wbr>ghostty</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-tldr" aria-label="13 tldr, Productivity, version 1.1.0">
+          <span class="c-top"><span>13</span><span class="c-mark">PRO</span><span class="c-v">1.1.0</span></span>
+          <span class="c-sym">Tl</span>
+          <span class="c-name">tldr</span>
+        </a></li>
+        <li><a class="cell f-productivity" href="#entry-writing-reports" aria-label="14 writing-reports, Productivity, version 1.0.0">
+          <span class="c-top"><span>14</span><span class="c-mark">PRO</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Wr</span>
+          <span class="c-name">writing-<wbr>reports</span>
+        </a></li>
+      </ul>
+    </li>
+    <li class="fam-block" data-fam="coding-agents" style="--cols: 1; --cols-s: 1">
+      <p class="fb-h"><span>Coding Agents</span><span class="fb-n">1<span class="vh"> skill</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-coding-agents" href="#entry-oh-my-pi" aria-label="15 oh-my-pi, Coding Agents, unversioned">
+          <span class="c-top"><span>15</span><span class="c-mark">COD</span><span class="c-v"></span></span>
+          <span class="c-sym">Op</span>
+          <span class="c-name">oh-<wbr>my-<wbr>pi</span>
+        </a></li>
+      </ul>
+    </li>
+    <li class="fam-block" data-fam="design" style="--cols: 1; --cols-s: 1">
+      <p class="fb-h"><span>Design</span><span class="fb-n">1<span class="vh"> skill</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-design" href="#entry-impeccable" aria-label="16 impeccable, Design, version 4.8.0">
+          <span class="c-top"><span>16</span><span class="c-mark">DES</span><span class="c-v">4.8.0</span></span>
+          <span class="c-sym">Im</span>
+          <span class="c-name">impeccable</span>
+        </a></li>
+      </ul>
+    </li>
+    <li class="fam-block" data-fam="slack" style="--cols: 2; --cols-s: 2">
+      <p class="fb-h"><span>Slack</span><span class="fb-n">2<span class="vh"> skills</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-slack" href="#entry-slack-mention-watch" aria-label="17 slack-mention-watch, Slack, version 2.2.0">
+          <span class="c-top"><span>17</span><span class="c-mark">SLK</span><span class="c-v">2.2.0</span></span>
+          <span class="c-sym">Sm</span>
+          <span class="c-name">slack-<wbr>mention-<wbr>watch</span>
+        </a></li>
+        <li><a class="cell f-slack" href="#entry-slack-scan" aria-label="18 slack-scan, Slack, version 1.0.0">
+          <span class="c-top"><span>18</span><span class="c-mark">SLK</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Ss</span>
+          <span class="c-name">slack-<wbr>scan</span>
+        </a></li>
+      </ul>
+    </li>
+    <li class="fam-block" data-fam="unfiled" style="--cols: 2; --cols-s: 2">
+      <p class="fb-h"><span>Unfiled</span><span class="fb-n">2<span class="vh"> skills</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-unfiled" href="#entry-ilearning-autoadvance" aria-label="19 ilearning-autoadvance, Unfiled, version 5.0.0">
+          <span class="c-top"><span>19</span><span class="c-mark">UNF</span><span class="c-v">5.0.0</span></span>
+          <span class="c-sym">Ia</span>
+          <span class="c-name">ilearning-<wbr>autoadvance</span>
+        </a></li>
+        <li><a class="cell f-unfiled" href="#entry-superpowers-using-superpowers" aria-label="20 superpowers-using-superpowers, Unfiled, version 1.0.0">
+          <span class="c-top"><span>20</span><span class="c-mark">UNF</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Su</span>
+          <span class="c-name">superpowers-<wbr>using-<wbr>superpowers</span>
+        </a></li>
+      </ul>
+    </li>
+    </ol>
   </div>
+    <aside class="key" aria-labelledby="key-h">
+      <div>
+      <h2 id="key-h">Key</h2>
+      <p class="key-sum">20 skills in 6 families.</p>
+      <ul class="key-fams">
+        <li><a class="key-fam" href="#family-research" data-fam="research"><span class="sw f-research" aria-hidden="true">RES</span><span class="kf-name">Research</span><span class="kf-n">4</span></a></li>
+        <li><a class="key-fam" href="#family-productivity" data-fam="productivity"><span class="sw f-productivity" aria-hidden="true">PRO</span><span class="kf-name">Productivity</span><span class="kf-n">10</span></a></li>
+        <li><a class="key-fam" href="#family-coding-agents" data-fam="coding-agents"><span class="sw f-coding-agents" aria-hidden="true">COD</span><span class="kf-name">Coding Agents</span><span class="kf-n">1</span></a></li>
+        <li><a class="key-fam" href="#family-design" data-fam="design"><span class="sw f-design" aria-hidden="true">DES</span><span class="kf-name">Design</span><span class="kf-n">1</span></a></li>
+        <li><a class="key-fam" href="#family-slack" data-fam="slack"><span class="sw f-slack" aria-hidden="true">SLK</span><span class="kf-name">Slack</span><span class="kf-n">2</span></a></li>
+        <li><a class="key-fam" href="#family-unfiled" data-fam="unfiled"><span class="sw f-unfiled" aria-hidden="true">UNF</span><span class="kf-name">Unfiled</span><span class="kf-n">2</span></a></li>
+      </ul>
+      </div>
+      <div>
+      <h3>Reading a cell</h3>
+      <figure class="legend">
+        <div class="legend-cell f-research" aria-hidden="true">
+          <span class="c-top"><span>01</span><span class="c-mark">RES</span><span class="c-v">1.2.0</span></span>
+          <span class="c-sym">Cf</span>
+          <span class="c-name">covidence-<wbr>full-<wbr>text-<wbr>retrieval</span>
+        </div>
+        <ul class="legend-labels">
+          <li>Number, family, version</li>
+          <li>Symbol</li>
+          <li>Skill name</li>
+        </ul>
+      </figure>
+      <p class="legend-note">Cells run in chart order, one per skill; open one for its handbook entry, SKILL.md and source. Point at a family to pick out its cells.</p>
+      <h3>Install</h3>
+      <p class="key-install">ln -s &lt;repo&gt;/skills/&lt;path&gt; ~/.hermes/skills/&lt;name&gt;</p>
+      <p class="key-more"><a href="#install">All install steps</a></p>
+      </div>
+    </aside>
+</section>
 
-  <!-- Quick setup -->
-  <div class="setup-box">
-    <h2>Quick Setup</h2>
-    <div class="setup-step">
-      <div class="step-num">1</div>
-      <div class="step-body">Clone or fork this repo, then symlink (or copy) any skill folder into <code>~/.hermes/skills/</code></div>
+<section class="sect" id="entries" aria-labelledby="entries-h">
+<h2 id="entries-h">Handbook entries</h2>
+<section aria-labelledby="family-research">
+  <h3 class="fam-h f-research" id="family-research">Research <span>4 skills</span></h3>
+  <article class="entry" id="entry-covidence-full-text-retrieval" aria-labelledby="entry-covidence-full-text-retrieval-h">
+    <div class="e-head">
+      <span class="e-cell f-research" aria-hidden="true"><span class="e-n">01</span><span class="e-s">Cf</span></span>
+      <div>
+        <h4 class="e-name" id="entry-covidence-full-text-retrieval-h">covidence-full-text-retrieval</h4>
+        <p class="e-meta"><span>Research</span><span><span class="sc">v1.2.0</span></span></p>
+      </div>
     </div>
-    <div class="setup-step">
-      <div class="step-num">2</div>
-      <div class="step-body">Merge <code>.hermes-config/config-patch.yaml</code> into <code>~/.hermes/config.yaml</code> for auto-approvals needed by CDP browser skills</div>
+    <div class="e-body">
+      <p class="e-desc">Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user&#x27;s Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence&#x27;s &quot;Upload full text&quot; action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.</p>
+      <p class="e-tags"><span class="sc">Tags</span> covidence / systematic-review / full-text / open-access / notebooklm / browser-automation</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval" target="_blank" rel="noopener">Source</a><code>skills/covidence-full-text-retrieval</code></p>
     </div>
-    <div class="setup-step">
-      <div class="step-num">3</div>
-      <div class="step-body">For skills with a <code>README.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</div>
+  </article>
+  <article class="entry" id="entry-covidence-full-text-review" aria-labelledby="entry-covidence-full-text-review-h">
+    <div class="e-head">
+      <span class="e-cell f-research" aria-hidden="true"><span class="e-n">02</span><span class="e-s">Cr</span></span>
+      <div>
+        <h4 class="e-name" id="entry-covidence-full-text-review-h">covidence-full-text-review</h4>
+        <p class="e-meta"><span>Research</span><span><span class="sc">v2.0.0</span></span><span><span>child of <a href="#entry-covidence-full-text-retrieval">01 covidence-full-text-retrieval</a></span></span></p>
+      </div>
     </div>
-    <div class="setup-step">
-      <div class="step-num">4</div>
-      <div class="step-body">Hermes auto-discovers skills in <code>~/.hermes/skills/</code> — just start a new session and the skill will be available</div>
+    <div class="e-body">
+      <p class="e-desc">Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.</p>
+      <p class="e-tags"><span class="sc">Tags</span> covidence / systematic-review / full-text / review / browser-automation</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review" target="_blank" rel="noopener">Source</a><code>skills/covidence-full-text-retrieval/covidence-full-text-review</code></p>
     </div>
-  </div>
-
-  <!-- Category: Research -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#1a2d4a">🔬</div>
-      <span class="section-title">Research</span>
-      <span class="section-count">4 skills</span>
+  </article>
+  <article class="entry" id="entry-covidence-screening" aria-labelledby="entry-covidence-screening-h">
+    <div class="e-head">
+      <span class="e-cell f-research" aria-hidden="true"><span class="e-n">03</span><span class="e-s">Cs</span></span>
+      <div>
+        <h4 class="e-name" id="entry-covidence-screening-h">covidence-screening</h4>
+        <p class="e-meta"><span>Research</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
     </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">covidence-full-text-retrieval</span>
-          <span class="card-version">v1.2.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user&#x27;s Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence&#x27;s &quot;Upload full text&quot; action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">full-text</span>
-          <span class="tag">open-access</span>
-          <span class="tag">notebooklm</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-      <div class="card card-child">
-        <div class="card-top">
-          <span class="card-name">covidence-full-text-review</span>
-          <span class="card-version">v2.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">full-text</span>
-          <span class="tag">review</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">covidence-screening</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously screen references at the title &amp; abstract stage of a Covidence systematic review in the user&#x27;s Chrome session via CDP. Votes Yes/Maybe/No per the user&#x27;s PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.
-        </p>
-        <div class="card-tags">
-          <span class="tag">covidence</span>
-          <span class="tag">systematic-review</span>
-          <span class="tag">screening</span>
-          <span class="tag">browser-automation</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">sci-hub-access</span>
-          <span class="card-version">v1.1.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/sci-hub-access/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when a paywalled DOI&#x27;s full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.
-        </p>
-        <div class="card-tags">
-          <span class="tag">sci-hub</span>
-          <span class="tag">sci-net</span>
-          <span class="tag">paywall</span>
-          <span class="tag">full-text</span>
-          <span class="tag">doi</span>
-          <span class="tag">springer</span>
-          <span class="tag">elbakyan</span>
-          <span class="tag">pdf-retrieval</span>
-          <span class="tag">research-access</span>
-        </div>
-      </div>
-
+    <div class="e-body">
+      <p class="e-desc">Autonomously screen references at the title &amp; abstract stage of a Covidence systematic review in the user&#x27;s Chrome session via CDP. Votes Yes/Maybe/No per the user&#x27;s PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.</p>
+      <p class="e-tags"><span class="sc">Tags</span> covidence / systematic-review / screening / browser-automation</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/covidence-screening/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening" target="_blank" rel="noopener">Source</a><code>skills/covidence-screening</code></p>
     </div>
-  </div>
-
-  <!-- Category: Productivity -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#2d1f4a">⚡</div>
-      <span class="section-title">Productivity</span>
-      <span class="section-count">10 skills</span>
+  </article>
+  <article class="entry" id="entry-sci-hub-access" aria-labelledby="entry-sci-hub-access-h">
+    <div class="e-head">
+      <span class="e-cell f-research" aria-hidden="true"><span class="e-n">04</span><span class="e-s">Sh</span></span>
+      <div>
+        <h4 class="e-name" id="entry-sci-hub-access-h">sci-hub-access</h4>
+        <p class="e-meta"><span>Research</span><span><span class="sc">v1.1.0</span></span></p>
+      </div>
     </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">auditing-worktrees</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/auditing-worktrees/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos
-        </p>
-        <div class="card-tags">
-          <span class="tag">git</span>
-          <span class="tag">worktrees</span>
-          <span class="tag">audit</span>
-          <span class="tag">review</span>
-          <span class="tag">productivity</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">camofox-browser</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/camofox-browser/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when sites block bots. Start Camofox, saved logins.
-        </p>
-        <div class="card-tags">
-          <span class="tag">browser</span>
-          <span class="tag">camoufox</span>
-          <span class="tag">camofox</span>
-          <span class="tag">cloudflare</span>
-          <span class="tag">captcha</span>
-          <span class="tag">anti-bot</span>
-          <span class="tag">login</span>
-          <span class="tag">launchd</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">demo-runbook</span>
-          <span class="card-version">v0.1.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/demo-runbook/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when asked for a runbook demo. Real runs, video, Pages.
-        </p>
-        <div class="card-tags">
-          <span class="tag">demo</span>
-          <span class="tag">runbook</span>
-          <span class="tag">walkthrough</span>
-          <span class="tag">screencast</span>
-          <span class="tag">video</span>
-          <span class="tag">captions</span>
-          <span class="tag">github-pages</span>
-          <span class="tag">cdp</span>
-          <span class="tag">headless-chrome</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">hermes-deepseek-cache</span>
-          <span class="card-version">v1.1.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/hermes-deepseek-cache/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek&#x27;s prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.
-        </p>
-        <div class="card-tags">
-          <span class="tag">deepseek</span>
-          <span class="tag">prefix-cache</span>
-          <span class="tag">cache-hit</span>
-          <span class="tag">telemetry</span>
-          <span class="tag">hit-rate</span>
-          <span class="tag">kv-cache</span>
-          <span class="tag">slash-command</span>
-          <span class="tag">hermes</span>
-          <span class="tag">port</span>
-          <span class="tag">integration</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">i-have-adhd</span>
-          
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/i-have-adhd/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until &quot;stop adhd mode&quot;.
-        </p>
-        <div class="card-tags">
-
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">memory-ui</span>
-          
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/memory-ui/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Launch the Mnemosyne browser UI to inspect stored memory.
-        </p>
-        <div class="card-tags">
-
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">multi-repo-pr-review-merge-round</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/multi-repo-pr-review-merge-round/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/multi-repo-pr-review-merge-round" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.
-        </p>
-        <div class="card-tags">
-          <span class="tag">omp</span>
-          <span class="tag">oh-my-pi</span>
-          <span class="tag">pr-review</span>
-          <span class="tag">merge</span>
-          <span class="tag">worktrees</span>
-          <span class="tag">audit</span>
-          <span class="tag">usage-budget</span>
-          <span class="tag">coordinator</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">oh-my-ghostty</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/oh-my-ghostty/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.
-        </p>
-        <div class="card-tags">
-          <span class="tag">ghostty</span>
-          <span class="tag">terminal</span>
-          <span class="tag">zsh</span>
-          <span class="tag">fastfetch</span>
-          <span class="tag">bat</span>
-          <span class="tag">eza</span>
-          <span class="tag">zoxide</span>
-          <span class="tag">macos</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">tldr</span>
-          <span class="card-version">v1.1.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/tldr/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when the user says tldr / TL;DR or asks for a before/after summary.
-        </p>
-        <div class="card-tags">
-          <span class="tag">tldr</span>
-          <span class="tag">summary</span>
-          <span class="tag">recap</span>
-          <span class="tag">before-after</span>
-          <span class="tag">communication</span>
-          <span class="tag">concise</span>
-        </div>
-      </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">writing-reports</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any &#x27;give me the report&#x27; request.
-        </p>
-        <div class="card-tags">
-          <span class="tag">report</span>
-          <span class="tag">research</span>
-          <span class="tag">benchmark</span>
-          <span class="tag">comparison</span>
-          <span class="tag">references</span>
-          <span class="tag">documentation</span>
-          <span class="tag">filing</span>
-        </div>
-      </div>
-
+    <div class="e-body">
+      <p class="e-desc">Use when a paywalled DOI&#x27;s full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.</p>
+      <p class="e-tags"><span class="sc">Tags</span> sci-hub / sci-net / paywall / full-text / doi / springer / elbakyan / pdf-retrieval / research-access</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/sci-hub-access/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access" target="_blank" rel="noopener">Source</a><code>skills/sci-hub-access</code></p>
     </div>
-  </div>
-
-  <!-- Category: Coding Agents -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#0f3a3a">🤖</div>
-      <span class="section-title">Coding Agents</span>
-      <span class="section-count">1 skill</span>
-    </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">oh-my-pi</span>
-          
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/oh-my-pi/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Troubleshoot/operate the Oh-My-Pi (omp) coding agent.
-        </p>
-        <div class="card-tags">
-
-        </div>
+  </article>
+</section>
+<section aria-labelledby="family-productivity">
+  <h3 class="fam-h f-productivity" id="family-productivity">Productivity <span>10 skills</span></h3>
+  <article class="entry" id="entry-auditing-worktrees" aria-labelledby="entry-auditing-worktrees-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">05</span><span class="e-s">Aw</span></span>
+      <div>
+        <h4 class="e-name" id="entry-auditing-worktrees-h">auditing-worktrees</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.0.0</span></span></p>
       </div>
-
     </div>
-  </div>
-
-  <!-- Category: Slack -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#2d2a1f">💬</div>
-      <span class="section-title">Slack</span>
-      <span class="section-count">2 skills</span>
+    <div class="e-body">
+      <p class="e-desc">Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos</p>
+      <p class="e-tags"><span class="sc">Tags</span> git / worktrees / audit / review / productivity</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/auditing-worktrees/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees" target="_blank" rel="noopener">Source</a><code>skills/productivity/auditing-worktrees</code></p>
     </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">slack-mention-watch</span>
-          <span class="card-version">v2.2.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack/slack-mention-watch/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.
-        </p>
-        <div class="card-tags">
-          <span class="tag">slack</span>
-          <span class="tag">notifications</span>
-          <span class="tag">monitoring</span>
-          <span class="tag">cron</span>
-        </div>
+  </article>
+  <article class="entry" id="entry-camofox-browser" aria-labelledby="entry-camofox-browser-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">06</span><span class="e-s">Cb</span></span>
+      <div>
+        <h4 class="e-name" id="entry-camofox-browser-h">camofox-browser</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.0.0</span></span></p>
       </div>
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">slack-scan</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack/slack-scan/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Summarize today&#x27;s Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.
-        </p>
-        <div class="card-tags">
-          <span class="tag">slack</span>
-          <span class="tag">summary</span>
-          <span class="tag">notifications</span>
-          <span class="tag">todo</span>
-        </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when sites block bots. Start Camofox, saved logins.</p>
+      <p class="e-tags"><span class="sc">Tags</span> browser / camoufox / camofox / cloudflare / captcha / anti-bot / login / launchd</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/camofox-browser/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser" target="_blank" rel="noopener">Source</a><code>skills/productivity/camofox-browser</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-demo-runbook" aria-labelledby="entry-demo-runbook-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">07</span><span class="e-s">Dr</span></span>
+      <div>
+        <h4 class="e-name" id="entry-demo-runbook-h">demo-runbook</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v0.1.0</span></span></p>
       </div>
-
     </div>
-  </div>
-
-  <!-- Category: ilearning-autoadvance -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#21262d">📦</div>
-      <span class="section-title">ilearning-autoadvance</span>
-      <span class="section-count">1 skill</span>
+    <div class="e-body">
+      <p class="e-desc">Use when asked for a runbook demo. Real runs, video, Pages.</p>
+      <p class="e-tags"><span class="sc">Tags</span> demo / runbook / walkthrough / screencast / video / captions / github-pages / cdp / headless-chrome</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/demo-runbook/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook" target="_blank" rel="noopener">Source</a><code>skills/productivity/demo-runbook</code></p>
     </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">ilearning-autoadvance</span>
-          <span class="card-version">v5.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/ilearning-autoadvance/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.
-        </p>
-        <div class="card-tags">
-
-        </div>
+  </article>
+  <article class="entry" id="entry-hermes-deepseek-cache" aria-labelledby="entry-hermes-deepseek-cache-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">08</span><span class="e-s">Hd</span></span>
+      <div>
+        <h4 class="e-name" id="entry-hermes-deepseek-cache-h">hermes-deepseek-cache</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.1.0</span></span></p>
       </div>
-
     </div>
-  </div>
-
-  <!-- Category: superpowers -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#21262d">📦</div>
-      <span class="section-title">superpowers</span>
-      <span class="section-count">1 skill</span>
+    <div class="e-body">
+      <p class="e-desc">Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek&#x27;s prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.</p>
+      <p class="e-tags"><span class="sc">Tags</span> deepseek / prefix-cache / cache-hit / telemetry / hit-rate / kv-cache / slash-command / hermes / port / integration</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/hermes-deepseek-cache/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache" target="_blank" rel="noopener">Source</a><code>skills/productivity/hermes-deepseek-cache</code></p>
     </div>
-    <div class="cards">
-
-      <div class="card">
-        <div class="card-top">
-          <span class="card-name">superpowers-using-superpowers</span>
-          <span class="card-version">v1.0.0</span>
-          <div class="card-links">
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-using-superpowers/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions
-        </p>
-        <div class="card-tags">
-          <span class="tag">superpowers</span>
-          <span class="tag">skills</span>
-          <span class="tag">workflow</span>
-        </div>
+  </article>
+  <article class="entry" id="entry-i-have-adhd" aria-labelledby="entry-i-have-adhd-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">09</span><span class="e-s">Ih</span></span>
+      <div>
+        <h4 class="e-name" id="entry-i-have-adhd-h">i-have-adhd</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">unversioned</span></span></p>
       </div>
-
     </div>
-  </div>
+    <div class="e-body">
+      <p class="e-desc">Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until &quot;stop adhd mode&quot;.</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/i-have-adhd/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd" target="_blank" rel="noopener">Source</a><code>skills/productivity/i-have-adhd</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-memory-ui" aria-labelledby="entry-memory-ui-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">10</span><span class="e-s">Mu</span></span>
+      <div>
+        <h4 class="e-name" id="entry-memory-ui-h">memory-ui</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">unversioned</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Launch the Mnemosyne browser UI to inspect stored memory.</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/memory-ui/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui" target="_blank" rel="noopener">Source</a><code>skills/productivity/memory-ui</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-multi-repo-pr-review-merge-round" aria-labelledby="entry-multi-repo-pr-review-merge-round-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">11</span><span class="e-s">Mr</span></span>
+      <div>
+        <h4 class="e-name" id="entry-multi-repo-pr-review-merge-round-h">multi-repo-pr-review-merge-round</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.</p>
+      <p class="e-tags"><span class="sc">Tags</span> omp / oh-my-pi / pr-review / merge / worktrees / audit / usage-budget / coordinator</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/multi-repo-pr-review-merge-round/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/multi-repo-pr-review-merge-round" target="_blank" rel="noopener">Source</a><code>skills/productivity/multi-repo-pr-review-merge-round</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-oh-my-ghostty" aria-labelledby="entry-oh-my-ghostty-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">12</span><span class="e-s">Om</span></span>
+      <div>
+        <h4 class="e-name" id="entry-oh-my-ghostty-h">oh-my-ghostty</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.</p>
+      <p class="e-tags"><span class="sc">Tags</span> ghostty / terminal / zsh / fastfetch / bat / eza / zoxide / macos</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/oh-my-ghostty/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty" target="_blank" rel="noopener">Source</a><code>skills/productivity/oh-my-ghostty</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-tldr" aria-labelledby="entry-tldr-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">13</span><span class="e-s">Tl</span></span>
+      <div>
+        <h4 class="e-name" id="entry-tldr-h">tldr</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.1.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when the user says tldr / TL;DR or asks for a before/after summary.</p>
+      <p class="e-tags"><span class="sc">Tags</span> tldr / summary / recap / before-after / communication / concise</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/tldr/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr" target="_blank" rel="noopener">Source</a><code>skills/productivity/tldr</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-writing-reports" aria-labelledby="entry-writing-reports-h">
+    <div class="e-head">
+      <span class="e-cell f-productivity" aria-hidden="true"><span class="e-n">14</span><span class="e-s">Wr</span></span>
+      <div>
+        <h4 class="e-name" id="entry-writing-reports-h">writing-reports</h4>
+        <p class="e-meta"><span>Productivity</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any &#x27;give me the report&#x27; request.</p>
+      <p class="e-tags"><span class="sc">Tags</span> report / research / benchmark / comparison / references / documentation / filing</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports" target="_blank" rel="noopener">Source</a><code>skills/productivity/writing-reports</code></p>
+    </div>
+  </article>
+</section>
+<section aria-labelledby="family-coding-agents">
+  <h3 class="fam-h f-coding-agents" id="family-coding-agents">Coding Agents <span>1 skill</span></h3>
+  <article class="entry" id="entry-oh-my-pi" aria-labelledby="entry-oh-my-pi-h">
+    <div class="e-head">
+      <span class="e-cell f-coding-agents" aria-hidden="true"><span class="e-n">15</span><span class="e-s">Op</span></span>
+      <div>
+        <h4 class="e-name" id="entry-oh-my-pi-h">oh-my-pi</h4>
+        <p class="e-meta"><span>Coding Agents</span><span><span class="sc">unversioned</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Troubleshoot/operate the Oh-My-Pi (omp) coding agent.</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/oh-my-pi/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi" target="_blank" rel="noopener">Source</a><code>skills/oh-my-pi</code></p>
+    </div>
+  </article>
+</section>
+<section aria-labelledby="family-design">
+  <h3 class="fam-h f-design" id="family-design">Design <span>1 skill</span></h3>
+  <article class="entry" id="entry-impeccable" aria-labelledby="entry-impeccable-h">
+    <div class="e-head">
+      <span class="e-cell f-design" aria-hidden="true"><span class="e-n">16</span><span class="e-s">Im</span></span>
+      <div>
+        <h4 class="e-name" id="entry-impeccable-h">impeccable</h4>
+        <p class="e-meta"><span>Design</span><span><span class="sc">v4.8.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when the user wants to design, redesign, shape, critique, audit, polish, simplify, harden, animate, or otherwise improve a frontend interface: websites, landing pages, dashboards, product UI, components, forms, settings, onboarding, empty states, and native iOS or Android screens. Handles UX review, hierarchy, layout, typography, color, motion, UX copy, accessibility, responsive behavior, edge cases, and capturing or documenting design systems (DESIGN.md, tokens). Also for making bland UI bolder, loud UI quieter, or ambitious visual effects. Not for backend-only or non-UI tasks.</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/creative/impeccable/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable" target="_blank" rel="noopener">Source</a><code>skills/creative/impeccable</code></p>
+    </div>
+  </article>
+</section>
+<section aria-labelledby="family-slack">
+  <h3 class="fam-h f-slack" id="family-slack">Slack <span>2 skills</span></h3>
+  <article class="entry" id="entry-slack-mention-watch" aria-labelledby="entry-slack-mention-watch-h">
+    <div class="e-head">
+      <span class="e-cell f-slack" aria-hidden="true"><span class="e-n">17</span><span class="e-s">Sm</span></span>
+      <div>
+        <h4 class="e-name" id="entry-slack-mention-watch-h">slack-mention-watch</h4>
+        <p class="e-meta"><span>Slack</span><span><span class="sc">v2.2.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.</p>
+      <p class="e-tags"><span class="sc">Tags</span> slack / notifications / monitoring / cron</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack/slack-mention-watch/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch" target="_blank" rel="noopener">Source</a><code>skills/slack/slack-mention-watch</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-slack-scan" aria-labelledby="entry-slack-scan-h">
+    <div class="e-head">
+      <span class="e-cell f-slack" aria-hidden="true"><span class="e-n">18</span><span class="e-s">Ss</span></span>
+      <div>
+        <h4 class="e-name" id="entry-slack-scan-h">slack-scan</h4>
+        <p class="e-meta"><span>Slack</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Summarize today&#x27;s Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.</p>
+      <p class="e-tags"><span class="sc">Tags</span> slack / summary / notifications / todo</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/slack/slack-scan/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan" target="_blank" rel="noopener">Source</a><code>skills/slack/slack-scan</code></p>
+    </div>
+  </article>
+</section>
+<section aria-labelledby="family-unfiled">
+  <h3 class="fam-h f-unfiled" id="family-unfiled">Unfiled <span>2 skills</span></h3>
+  <article class="entry" id="entry-ilearning-autoadvance" aria-labelledby="entry-ilearning-autoadvance-h">
+    <div class="e-head">
+      <span class="e-cell f-unfiled" aria-hidden="true"><span class="e-n">19</span><span class="e-s">Ia</span></span>
+      <div>
+        <h4 class="e-name" id="entry-ilearning-autoadvance-h">ilearning-autoadvance</h4>
+        <p class="e-meta"><span>Unfiled</span><span><span class="sc">v5.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/ilearning-autoadvance/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance" target="_blank" rel="noopener">Source</a><code>skills/ilearning-autoadvance</code></p>
+    </div>
+  </article>
+  <article class="entry" id="entry-superpowers-using-superpowers" aria-labelledby="entry-superpowers-using-superpowers-h">
+    <div class="e-head">
+      <span class="e-cell f-unfiled" aria-hidden="true"><span class="e-n">20</span><span class="e-s">Su</span></span>
+      <div>
+        <h4 class="e-name" id="entry-superpowers-using-superpowers-h">superpowers-using-superpowers</h4>
+        <p class="e-meta"><span>Unfiled</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions</p>
+      <p class="e-tags"><span class="sc">Tags</span> superpowers / skills / workflow</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/superpowers/superpowers-using-superpowers/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers" target="_blank" rel="noopener">Source</a><code>skills/superpowers/superpowers-using-superpowers</code></p>
+    </div>
+  </article>
+</section>
+</section>
+
+<section class="sect" id="a-z" aria-labelledby="a-z-h">
+  <h2 id="a-z-h">Index A–Z</h2>
+  <ul class="az">
+    <li><a href="#entry-auditing-worktrees"><span class="az-n">05</span><span>auditing-worktrees</span></a></li>
+    <li><a href="#entry-camofox-browser"><span class="az-n">06</span><span>camofox-browser</span></a></li>
+    <li><a href="#entry-covidence-full-text-retrieval"><span class="az-n">01</span><span>covidence-full-text-retrieval</span></a></li>
+    <li><a href="#entry-covidence-full-text-review"><span class="az-n">02</span><span>covidence-full-text-review</span></a></li>
+    <li><a href="#entry-covidence-screening"><span class="az-n">03</span><span>covidence-screening</span></a></li>
+    <li><a href="#entry-demo-runbook"><span class="az-n">07</span><span>demo-runbook</span></a></li>
+    <li><a href="#entry-hermes-deepseek-cache"><span class="az-n">08</span><span>hermes-deepseek-cache</span></a></li>
+    <li><a href="#entry-i-have-adhd"><span class="az-n">09</span><span>i-have-adhd</span></a></li>
+    <li><a href="#entry-ilearning-autoadvance"><span class="az-n">19</span><span>ilearning-autoadvance</span></a></li>
+    <li><a href="#entry-impeccable"><span class="az-n">16</span><span>impeccable</span></a></li>
+    <li><a href="#entry-memory-ui"><span class="az-n">10</span><span>memory-ui</span></a></li>
+    <li><a href="#entry-multi-repo-pr-review-merge-round"><span class="az-n">11</span><span>multi-repo-pr-review-merge-round</span></a></li>
+    <li><a href="#entry-oh-my-ghostty"><span class="az-n">12</span><span>oh-my-ghostty</span></a></li>
+    <li><a href="#entry-oh-my-pi"><span class="az-n">15</span><span>oh-my-pi</span></a></li>
+    <li><a href="#entry-sci-hub-access"><span class="az-n">04</span><span>sci-hub-access</span></a></li>
+    <li><a href="#entry-slack-mention-watch"><span class="az-n">17</span><span>slack-mention-watch</span></a></li>
+    <li><a href="#entry-slack-scan"><span class="az-n">18</span><span>slack-scan</span></a></li>
+    <li><a href="#entry-superpowers-using-superpowers"><span class="az-n">20</span><span>superpowers-using-superpowers</span></a></li>
+    <li><a href="#entry-tldr"><span class="az-n">13</span><span>tldr</span></a></li>
+    <li><a href="#entry-writing-reports"><span class="az-n">14</span><span>writing-reports</span></a></li>
+  </ul>
+</section>
+
+<section class="sect" id="install" aria-labelledby="install-h">
+  <h2 id="install-h">Install</h2>
+  <ol class="steps">
+    <li>Clone or fork this repo, then symlink (or copy) any skill folder into <code>~/.hermes/skills/</code></li>
+    <li>Merge <code>.hermes-config/config-patch.yaml</code> into <code>~/.hermes/config.yaml</code> for auto-approvals needed by CDP browser skills</li>
+    <li>For skills with a <code>README.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</li>
+    <li><a href="https://hermes-agent.nousresearch.com/docs" target="_blank" rel="noopener">Hermes</a> auto-discovers skills in <code>~/.hermes/skills/</code>; start a new session and the skill is available</li>
+  </ol>
+</section>
 
 </main>
 
-<footer>
-  <p>
-    Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
-    <a href="https://github.com/LaansDole/my-hermes-skills" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
-    <a href="https://laansdole.github.io/my-hermes-skills/">laansdole.github.io/my-hermes-skills</a>
-  </p>
+<footer class="band">
+  <ul>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">LaansDole/my-hermes-skills</a></li>
+    <li>Generated from <code>skills/**/SKILL.md</code></li>
+    <li><a href="https://hermes-agent.nousresearch.com" target="_blank" rel="noopener">Hermes Agent</a> by Nous Research</li>
+    <li class="band-ed sc">Edition 24 Oct 2026</li>
+  </ul>
 </footer>
-
   <script>
     (function () {
       var root = document.documentElement;
       var btn = document.getElementById("theme-toggle");
-      var icon = document.getElementById("theme-icon");
       var stored = null;
       try { stored = localStorage.getItem("theme"); } catch (e) {}
-      if (!btn || !icon) return;
+      if (!btn) return;
       function paint() {
-        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+        var label = root.getAttribute("data-theme") === "light"
+          ? "Switch to dark theme" : "Switch to light theme";
+        btn.setAttribute("aria-label", label);
+        btn.title = label;
       }
       btn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";

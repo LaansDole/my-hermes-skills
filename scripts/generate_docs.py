@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
-"""Generate docs/index.html from skills/**/SKILL.md frontmatter.
+"""Generate the docs/ site from skills/**/SKILL.md and reports/YYYY-MM/*.md.
 
 Zero dependencies (no PyYAML): parses the frontmatter subset used in this
 repo — name, version, description (plain or double-quoted), tags (inline
 list). Parent/child nesting is inferred from the folder tree: a SKILL.md
 whose parent folder also contains a SKILL.md is a child of that skill.
 
-Run:  python3 scripts/generate_docs.py
-Out:  docs/index.html  (overwritten)
+The skills catalog is a reference wall chart: every skill is a numbered
+cell with a two-letter symbol, coloured by family, keyed to a handbook
+entry below the chart.
+
+Run:  python3 scripts/generate_docs.py          (site)
+      python3 scripts/generate_docs.py --json   (skills.json instead of index.html)
+Out:  docs/index.html, docs/reports.html, docs/daily-news.html and
+      docs/reports/YYYY-MM/<slug>.html (overwritten). Fonts are committed
+      under docs/fonts/ and only referenced from here.
 """
 
 import html
 import json
 import re
+import string
 import sys
 from pathlib import Path
 
@@ -21,18 +29,44 @@ SKILLS = REPO / "skills"
 REPORTS = REPO / "reports"
 OUT = REPO / "docs" / "index.html"
 GH = "https://github.com/LaansDole/my-hermes-skills"
+HERMES = "https://hermes-agent.nousresearch.com"
 
-# top-level skills/ dir -> (section title, icon, icon bg color)
+# top-level skills/ dir -> section title. Unknown dirs become their own
+# section (titled by the dir) and sit in the Unfiled family on the chart.
 CATEGORY_MAP = {
-    "covidence-screening":        ("Research", "🔬", "#1a2d4a"),
-    "covidence-full-text-retrieval": ("Research", "🔬", "#1a2d4a"),
-    "productivity":               ("Productivity", "⚡", "#2d1f4a"),
-    "sci-hub-access":             ("Research", "📚", "#1f4a2d"),
-    "slack":                      ("Slack", "💬", "#2d2a1f"),
-    "oh-my-pi":                   ("Coding Agents", "🤖", "#0f3a3a"),
+    "covidence-screening":           "Research",
+    "covidence-full-text-retrieval": "Research",
+    "sci-hub-access":                "Research",
+    "productivity":                  "Productivity",
+    "oh-my-pi":                      "Coding Agents",
+    "creative":                      "Design",
+    "slack":                         "Slack",
 }
 # fixed section order; unknown sections append alphabetically
-SECTION_ORDER = ["Research", "Productivity", "Coding Agents", "Slack"]
+SECTION_ORDER = ["Research", "Productivity", "Coding Agents", "Design", "Slack"]
+
+INK = "#17171b"
+# family -> (flat process fill, text on fill, mark). The three-letter mark
+# rides on every cell and key swatch, so family is never hue alone.
+# Contrast (WCAG), text on fill: 8.28, 5.22, 5.74, 5.70, 5.45, 12.06 : 1.
+FAMILIES = {
+    "Research":      ("#e8a33a", INK, "RES"),
+    "Productivity":  ("#e2643f", INK, "PRO"),
+    "Coding Agents": ("#3a63b8", "#ffffff", "COD"),
+    "Design":        ("#7a52b3", "#ffffff", "DES"),
+    "Slack":         ("#4f9e63", INK, "SLK"),
+    "Unfiled":       ("#d8d4c8", INK, "UNF"),
+}
+# dark-theme fill overrides; pale Unfiled was the loudest block on carbon.
+# #8f8a7e under ink: 5.20 : 1.
+DARK_FILLS = {"Unfiled": "#8f8a7e"}
+UNFILED = "Unfiled"
+
+# skill name -> two-letter symbol, when the derived one reads badly.
+SYMBOL_OVERRIDES: dict = {}
+
+MONTHS = ("January", "February", "March", "April", "May", "June", "July",
+          "August", "September", "October", "November", "December")
 
 
 def parse_frontmatter(text: str) -> dict:
@@ -71,7 +105,6 @@ def find_skills() -> list:
     """Return dicts for every SKILL.md under skills/, with category/nesting."""
     skills = []
     for p in sorted(SKILLS.rglob("SKILL.md")):
-        rel = p.relative_to(REPO)
         skill_dir = p.parent
         top = skill_dir.relative_to(SKILLS).parts[0]
         fm = parse_frontmatter(p.read_text())
@@ -98,7 +131,7 @@ def find_skills() -> list:
 def find_reports() -> list:
     """Return dicts for report Markdown under reports/YYYY-MM/.
 
-    Expected naming: YYYY-MM-DD-<slug>.md; the leading date becomes the card
+    Expected naming: YYYY-MM-DD-<slug>.md; the leading date becomes the row
     date and the slug becomes the title. Hidden/private scratch and dot-prefixed
     paths are never published, including nested report directories.
     """
@@ -139,30 +172,6 @@ def find_reports() -> list:
     return reports
 
 
-def card_html(s: dict, child: bool = False) -> str:
-    cls = "card card-child" if child else "card"
-    version = f'<span class="card-version">v{s["version"]}</span>' if s["version"] else ""
-    tags = "\n".join(f'          <span class="tag">{html.escape(t)}</span>'
-                     for t in s["tags"])
-    desc = html.escape(s["description"])
-    return f"""      <div class="{cls}">
-        <div class="card-top">
-          <span class="card-name">{html.escape(s['name'])}</span>
-          {version}
-          <div class="card-links">
-            <a class="card-link" href="{GH}/blob/main/{s['rel_dir']}/SKILL.md" target="_blank">SKILL.md</a>
-            <a class="card-link" href="{GH}/tree/main/{s['rel_dir']}" target="_blank">source</a>
-          </div>
-        </div>
-        <p class="card-desc">
-          {desc}
-        </p>
-        <div class="card-tags">
-{tags}
-        </div>
-      </div>"""
-
-
 def inline_md(text: str) -> str:
     """Render inline markdown (bold/italic/code/links) to HTML."""
     s = html.escape(text, quote=False)
@@ -172,63 +181,28 @@ def inline_md(text: str) -> str:
     return s
 
 
-def report_card_html(r: dict) -> str:
-    """One report card for the Reports page. The WHOLE card links to the
-    rendered report page (no separate button)."""
-    date = html.escape(r["date"]) if r["date"] else "undated"
-    title_html = inline_md(r["title"])
-    verdict = ""
-    if r["verdict"]:
-        verdict = f"""\n          <p class=\"card-desc\">\n            <strong style=\"color:var(--green)\">Verdict:</strong> {inline_md(r['verdict'][:280].rstrip())}\n          </p>"""
-    # Site root = docs/ => site path /my-hermes-skills/... Use repo-relative
-    # links WITHOUT ".." so the project-site base path is never escaped.
-    page_href = "reports/" + r["rel_path"][len("reports/"):-3] + ".html"
-    return f"""      <a class="card card-report" href="{page_href}">
-        <div class="card-top">
-          <span class="card-name">{title_html}</span>
-          <span class="card-version">{date}</span>
-        </div>{verdict}
-      </a>"""
+def section_title(s: dict) -> str:
+    return CATEGORY_MAP.get(s["top"], s["top"])
 
 
-def sections_html(skills: list) -> str:
-    """Group skills by section title; children immediately after their parent."""
+def ordered_sections(skills: list) -> list:
+    """[(section title, skills)] in SECTION_ORDER; children right after their parent."""
     by_section = {}
-    for s in skills:
-        title, icon, bg = CATEGORY_MAP.get(s["top"], (s["top"], "📦", "#21262d"))
-        by_section.setdefault(title, {"icon": icon, "bg": bg, "skills": []})
-        by_section[title]["skills"].append(s)
-
+    for s in sorted(skills, key=lambda x: x["name"]):
+        by_section.setdefault(section_title(s), []).append(s)
     ordered = sorted(by_section, key=lambda t: (SECTION_ORDER.index(t)
                                                 if t in SECTION_ORDER
                                                 else len(SECTION_ORDER) + 1))
-    blocks = []
+    out = []
     for title in ordered:
-        sec = by_section[title]
-        cards = []
-        for s in sorted(sec["skills"], key=lambda x: x["name"]):
+        rows = []
+        for s in by_section[title]:
             if s["parent_skill"]:
-                continue  # rendered under its parent below
-            cards.append(card_html(s))
-            for c in sorted(sec["skills"], key=lambda x: x["name"]):
-                if c["parent_skill"] == s["name"]:
-                    cards.append(card_html(c, child=True))
-        n = len(cards)
-        count = "1 skill" if n == 1 else f"{n} skills"
-        blocks.append(f"""  <!-- Category: {title} -->
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:{sec['bg']}">{sec['icon']}</div>
-      <span class="section-title">{html.escape(title)}</span>
-      <span class="section-count">{count}</span>
-    </div>
-    <div class="cards">
-
-{chr(10).join(cards)}
-
-    </div>
-  </div>""")
-    return "\n\n".join(blocks)
+                continue  # placed right after its parent below
+            rows.append(s)
+            rows.extend(c for c in by_section[title] if c["parent_skill"] == s["name"])
+        out.append((title, rows))
+    return out
 
 
 def entry_json(s: dict, title: str) -> dict:
@@ -245,348 +219,200 @@ def entry_json(s: dict, title: str) -> dict:
 
 def manifest_json(skills: list) -> dict:
     """Build the skills.json manifest (deterministic: no timestamps)."""
-    flat = []
-    by_section = {}
-    for s in sorted(skills, key=lambda x: x["name"]):
-        title, _, _ = CATEGORY_MAP.get(s["top"], (s["top"], "📦", "#21262d"))
-        flat.append(entry_json(s, title))
-        by_section.setdefault(title, []).append(s)
-
-    ordered = sorted(by_section, key=lambda t: (SECTION_ORDER.index(t)
-                                                if t in SECTION_ORDER
-                                                else len(SECTION_ORDER) + 1))
-    sections = []
-    for title in ordered:
-        sec_skills = []
-        for s in sorted(by_section[title], key=lambda x: x["name"]):
-            if s["parent_skill"]:
-                continue  # rendered under its parent below
-            sec_skills.append(entry_json(s, title))
-            for c in sorted(by_section[title], key=lambda x: x["name"]):
-                if c["parent_skill"] == s["name"]:
-                    sec_skills.append(entry_json(c, title))
-        sections.append({"title": title, "skills": sec_skills})
-
     return {
         "source_repo": GH,
-        "skills": flat,
-        "sections": sections,
+        "skills": [entry_json(s, section_title(s))
+                   for s in sorted(skills, key=lambda x: x["name"])],
+        "sections": [{"title": t, "skills": [entry_json(s, t) for s in rows]}
+                     for t, rows in ordered_sections(skills)],
     }
 
 
-CSS = """    :root {
-      --bg: #0d1117;
-      --bg2: #161b22;
-      --bg3: #21262d;
-      --border: #30363d;
-      --text: #e6edf3;
-      --text-muted: #8b949e;
-      --text-dim: #6e7681;
-      --accent: #58a6ff;
-      --accent-dim: #1f6feb;
-      --green: #3fb950;
-      --purple: #bc8cff;
-      --orange: #d29922;
-      --red: #f85149;
-      --tag-bg: #1f2937;
-      --tag-border: #374151;
-      --font: -apple-system, BlinkMacSystemFont, "Segoe UI", "Noto Sans", Helvetica, Arial, sans-serif;
-      --mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-    }
+def assign_symbols(names: list) -> dict:
+    """Unique element-style symbol per skill, in chart order.
 
-    /* Light theme (GitHub light palette) — applied via [data-theme] set by the
-       inline JS (OS preference, overridable by the header toggle, persisted) */
-    :root[data-theme="light"] {
-      --bg: #ffffff;
-      --bg2: #f6f8fa;
-      --bg3: #eaeef2;
-      --border: #d0d7de;
-      --text: #1f2328;
-      --text-muted: #59636e;
-      --text-dim: #6e7781;
-      --accent: #0969da;
-      --accent-dim: #0969da;
-      --green: #1a7f37;
-      --purple: #8250df;
-      --orange: #9a6700;
-      --red: #cf222e;
-      --tag-bg: #eff1f3;
-      --tag-border: #d0d7de;
-    }
+    First letter upper, then the first free distinguishing lower letter:
+    second word's initial, last word's initial, middle initials, then the
+    remaining letters of the name. Overrides are reserved before anything
+    is derived.
+    """
+    used = set(SYMBOL_OVERRIDES.values())
+    if len(used) != len(SYMBOL_OVERRIDES):
+        raise SystemExit("SYMBOL_OVERRIDES assigns one symbol twice")
+    out = {}
+    for name in names:
+        if name in SYMBOL_OVERRIDES:
+            out[name] = SYMBOL_OVERRIDES[name]
+            continue
+        words = re.findall(r"[a-z0-9]+", name.lower()) or ["x"]
+        head = words[0][0].upper()
+        initials = [w[0] for w in words[1:]]
+        tail = (initials[:1] + initials[-1:] + initials[1:-1]
+                + list("".join(words)[1:]) + list(string.ascii_lowercase))
+        # ponytail: 26+ skills sharing a first letter exhaust this; add overrides then
+        sym = next((head + c for c in tail if head + c not in used), None)
+        if sym is None:
+            raise SystemExit(f"no free symbol for {name}; add a SYMBOL_OVERRIDES entry")
+        used.add(sym)
+        out[name] = sym
+    return out
 
-    * { box-sizing: border-box; margin: 0; padding: 0; }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: var(--font);
-      font-size: 14px;
-      line-height: 1.6;
-      min-height: 100vh;
-    }
+def chart_cells(skills: list) -> list:
+    """Skills in chart order with number, symbol, family and parent number."""
+    rows = [(t, s) for t, ss in ordered_sections(skills) for s in ss]
+    width = max(2, len(str(len(rows))))
+    syms = assign_symbols([s["name"] for _, s in rows])
+    nums, cells = {}, []
+    for i, (title, s) in enumerate(rows, 1):
+        fam = title if title in FAMILIES else UNFILED
+        nums[s["name"]] = f"{i:0{width}d}"
+        cells.append({**s, "n": nums[s["name"]], "sym": syms[s["name"]],
+                      "family": fam, "fam": slugify(fam), "mark": FAMILIES[fam][2],
+                      "parent_n": nums.get(s["parent_skill"] or "")})
+    return cells
 
-    a { color: var(--accent); text-decoration: none; }
-    a:hover { text-decoration: underline; }
 
-    /* Layout */
-    header {
-      background: var(--bg2);
-      border-bottom: 1px solid var(--border);
-      padding: 0 24px;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .header-inner {
-      max-width: 960px;
-      margin: 0 auto;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-      height: 56px;
-    }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-weight: 600;
-      font-size: 15px;
-      color: var(--text);
-    }
-    .logo svg { flex-shrink: 0; }
-    .header-links {
-      margin-left: auto;
-      display: flex;
-      align-items: center;
-      gap: 20px;
-      font-size: 13px;
-      color: var(--text-muted);
-    }
-    .header-links a { color: var(--text-muted); }
-    .header-links a:hover { color: var(--text); text-decoration: none; }
+def family_groups(cells: list) -> list:
+    """[(family, cells)] in chart order; families are contiguous in chart order."""
+    groups = []
+    for c in cells:
+        if not groups or groups[-1][0] != c["family"]:
+            groups.append((c["family"], []))
+        groups[-1][1].append(c)
+    return groups
 
-    .theme-toggle {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      width: 28px;
-      height: 28px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      font-size: 14px;
-      line-height: 1;
-      padding: 0;
-      cursor: pointer;
-      transition: color 0.15s, border-color 0.15s, background 0.15s;
-    }
-    .theme-toggle:hover { border-color: var(--text-muted); background: var(--bg3); }
 
-    main {
-      max-width: 960px;
-      margin: 0 auto;
-      padding: 48px 24px 80px;
-    }
+def short_date(d: str) -> str:
+    """2026-10-24 -> '24 Oct'."""
+    return f"{int(d[8:10])} {MONTHS[int(d[5:7]) - 1][:3]}"
 
-    /* Hero */
-    .hero { margin-bottom: 48px; }
-    .hero-eyebrow {
-      font-size: 12px;
-      font-family: var(--mono);
-      color: var(--accent);
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      margin-bottom: 12px;
-    }
-    .hero h1 {
-      font-size: 32px;
-      font-weight: 700;
-      line-height: 1.2;
-      margin-bottom: 12px;
-      background: linear-gradient(135deg, var(--text) 0%, var(--text-muted) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-    .hero-sub {
-      color: var(--text-muted);
-      font-size: 15px;
-      max-width: 580px;
-      margin-bottom: 24px;
-    }
-    .hero-stats { display: flex; gap: 24px; flex-wrap: wrap; }
-    .stat { display: flex; flex-direction: column; gap: 2px; }
-    .stat-num {
-      font-size: 22px;
-      font-weight: 700;
-      color: var(--text);
-      font-family: var(--mono);
-    }
-    .stat-label { font-size: 12px; color: var(--text-muted); }
 
-    /* Section */
-    .section { margin-bottom: 48px; }
-    .section-header {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 16px;
-      padding-bottom: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .section-icon {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 14px;
-      flex-shrink: 0;
-    }
-    .section-title { font-size: 16px; font-weight: 600; color: var(--text); }
-    .section-count {
-      margin-left: auto;
-      font-size: 12px;
-      color: var(--text-dim);
-      font-family: var(--mono);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 10px;
-      padding: 1px 8px;
-    }
+def long_date(d: str) -> str:
+    """2026-10-24 -> '24 Oct 2026'."""
+    return f"{short_date(d)} {d[:4]}"
 
-    /* Cards */
-    .cards { display: flex; flex-direction: column; gap: 10px; }
-    .card {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px 18px;
-      transition: border-color 0.15s, background 0.15s;
-      cursor: default;
-    }
-    .card:hover { border-color: var(--accent-dim); background: var(--bg3); }
-    .card-top { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 8px; }
-    .card-name {
-      font-family: var(--mono);
-      font-size: 13px;
-      font-weight: 600;
-      color: var(--accent);
-      flex: 1;
-      min-width: 0;
-    }
-    .card-name .card-title-link { color: inherit; text-decoration: none; }
-    .card-name .card-title-link:hover { color: var(--text); text-decoration: underline; }
-    .card-name .card-title-link strong { color: inherit; }
-    /* whole-card link (report cards) */
-    a.card { text-decoration: none; display: block; color: inherit; }
-    a.card:hover { border-color: var(--accent); }
-    a.card:hover .card-name { text-decoration: underline; }
-    .card-version {
-      font-family: var(--mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 6px;
-      flex-shrink: 0;
-    }
-    .card-links { display: flex; gap: 8px; flex-shrink: 0; }
-    .card-link {
-      font-size: 11px;
-      color: var(--text-muted);
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 2px 8px;
-      transition: color 0.15s, border-color 0.15s;
-    }
-    .card-link:hover { color: var(--text); border-color: var(--text-muted); text-decoration: none; }
-    .card-desc {
-      font-size: 13px;
-      color: var(--text-muted);
-      line-height: 1.55;
-      margin-bottom: 10px;
-    }
-    .card-tags { display: flex; flex-wrap: wrap; gap: 6px; }
-    .tag {
-      font-size: 11px;
-      font-family: var(--mono);
-      color: var(--text-dim);
-      background: var(--tag-bg);
-      border: 1px solid var(--tag-border);
-      border-radius: 3px;
-      padding: 1px 6px;
-    }
 
-    /* child card (indented) */
-    .card-child {
-      margin-left: 24px;
-      border-left: 2px solid var(--border);
-      border-radius: 0 8px 8px 0;
-    }
-    .card-child .card-name::before { content: "↳ "; color: var(--text-dim); }
+def month_label(d: str) -> str:
+    return f"{MONTHS[int(d[5:7]) - 1]} {d[:4]}" if d else "Undated"
 
-    /* Setup box */
-    .setup-box {
-      background: var(--bg2);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 20px;
-      margin-bottom: 48px;
-    }
-    .setup-box h2 {
-      font-size: 11px;
-      font-weight: 600;
-      margin-bottom: 12px;
-      color: var(--text-muted);
-      text-transform: uppercase;
-      letter-spacing: 0.06em;
-    }
-    .setup-step { display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-start; }
-    .step-num {
-      width: 20px;
-      height: 20px;
-      border-radius: 50%;
-      background: var(--accent-dim);
-      color: var(--text);
-      font-size: 11px;
-      font-weight: 700;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      margin-top: 1px;
-    }
-    .step-body { font-size: 13px; color: var(--text-muted); }
-    .step-body code {
-      font-family: var(--mono);
-      font-size: 12px;
-      background: var(--bg3);
-      border: 1px solid var(--border);
-      border-radius: 4px;
-      padding: 1px 5px;
-      color: var(--green);
-    }
 
-    /* Footer */
-    footer {
-      border-top: 1px solid var(--border);
-      padding: 24px;
-      text-align: center;
-      color: var(--text-dim);
-      font-size: 12px;
-    }
-    footer a { color: var(--text-dim); }
-    footer a:hover { color: var(--text-muted); }
+def edition_date(reports: list) -> str:
+    """Newest report date: deterministic, unlike the clock."""
+    return max((r["date"] for r in reports if r["date"]), default="")
 
-    @media (max-width: 600px) {
-      .hero h1 { font-size: 24px; }
-      .hero-stats { gap: 16px; }
-      .card-child { margin-left: 12px; }
+
+def report_href(r: dict) -> str:
+    """docs-relative page path, without '..' so the project base path holds."""
+    return "reports/" + r["rel_path"][len("reports/"):-3] + ".html"
+
+
+# ---------------------------------------------------------------------------
+# Frame: fonts, tokens, masthead, foot band (every page)
+# ---------------------------------------------------------------------------
+
+FONT_FACES = (
+    ("Archivo", "archivo-latin-wght-normal.woff2", "100 900", "normal"),
+    ("Source Serif 4", "source-serif-4-latin-wght-normal.woff2", "200 900", "normal"),
+    ("Source Serif 4", "source-serif-4-latin-wght-italic.woff2", "200 900", "italic"),
+    ("JetBrains Mono", "jetbrains-mono-latin-400-normal.woff2", "400", "normal"),
+)
+
+BASE_CSS = """    :root, :root[data-theme="light"] {
+      color-scheme: light;
+      --ground: #f6f4ee; --ink: #17171b; --muted: #5d5a52;
+      --hair: #cfcabd; --tint: #ebe7dc; --keyline: #17171b;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --ground: #141416; --ink: #ece9e0; --muted: #9a968b;
+      --hair: #38373a; --tint: #1e1e21; --keyline: #141416;
+    }
+    :root {
+      --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --pad: 48px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { background: var(--ground); color: var(--ink);
+           scrollbar-color: var(--muted) var(--ground); -webkit-text-size-adjust: 100%; }
+    body { margin: 0; font: 400 17px/28px var(--serif); caret-color: var(--ink);
+           font-optical-sizing: auto; overflow-wrap: break-word; }
+    ::selection { background: #e8a33a; color: #17171b; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    h1, h2, h3, h4 { text-wrap: balance; }
+    .sc { font-variant-caps: small-caps; font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden;
+          clip-path: inset(50%); white-space: nowrap; }
+    .skip { position: absolute; left: var(--pad); top: -80px; z-index: 10;
+            padding: 8px 16px; background: var(--ink); color: var(--ground);
+            font: 700 14px/20px var(--display); text-decoration: none; }
+    .skip:focus { top: 8px; }
+
+    .mast { padding: 32px var(--pad) 0; }
+    .mast-in { display: flex; flex-wrap: wrap; align-items: flex-end;
+               justify-content: space-between; gap: 16px 40px;
+               padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+    .mast-name { margin: 0; font: 900 88px/88px var(--display); letter-spacing: -0.035em; }
+    .mast-name a { text-decoration: none; }
+    .mast-compact .mast-name { font-size: 40px; line-height: 40px; letter-spacing: -0.03em; }
+    .nav ul { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px;
+              margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 0 4px; border-bottom: 3px solid transparent;
+             font: 600 14px/20px var(--display); letter-spacing: 0.08em;
+             text-transform: uppercase; text-decoration: none; }
+    .nav a:hover { border-bottom-color: var(--muted); }
+    .nav a[aria-current] { font-weight: 800; border-bottom-color: var(--ink); }
+    .theme-toggle { display: grid; place-items: center; width: 40px; height: 40px;
+                    padding: 0; border: 2px solid var(--ink); border-radius: 0;
+                    background: none; color: var(--ink); cursor: pointer; }
+    .theme-toggle:hover { background: var(--ink); color: var(--ground); }
+    .theme-toggle svg { display: block; width: 20px; height: 20px; }
+    :root[data-theme="dark"] .i-moon, :root[data-theme="light"] .i-sun { display: none; }
+
+    .band { margin-top: 96px; padding: 0 var(--pad) 32px; }
+    .band ul { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0;
+               padding: 16px 0 0; border-top: 3px solid var(--ink); list-style: none;
+               font: 500 14px/20px var(--display); }
+    .band code { font-size: 13px; }
+    .band-ed { margin-left: auto; font-weight: 700; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
+    }
+    @media (max-width: 1100px) {
+      .mast-name { font-size: 64px; line-height: 64px; }
+    }
+    @media (max-width: 640px) {
+      :root { --pad: 16px; }
+      .mast { padding-top: 24px; }
+      .mast-name { font-size: 40px; line-height: 40px; }
+      .mast-compact .mast-name { font-size: 32px; line-height: 32px; }
+      .nav ul { gap: 4px 20px; }
+      .nav a { font-size: 13px; }
+      .band { margin-top: 64px; }
+      .band ul { flex-direction: column; }
+      .band-ed { margin-left: 0; }
     }"""
+
+
+def base_css(root: str) -> str:
+    """Fonts (paths relative to the page's depth), tokens, family fills, frame."""
+    faces = "\n".join(
+        f'    @font-face {{ font-family: "{fam}"; src: url("{root}fonts/{f}") format("woff2");'
+        f" font-weight: {w}; font-style: {st}; font-display: swap; }}"
+        for fam, f, w, st in FONT_FACES)
+    fills = "\n".join(f"    .f-{slugify(name)} {{ background: {bg}; color: {fg}; }}"
+                      for name, (bg, fg, _) in FAMILIES.items())
+    dark = "\n".join(f'    :root[data-theme="dark"] .f-{slugify(name)} {{ background: {bg}; }}'
+                     for name, bg in DARK_FILLS.items())
+    return f"{faces}\n{BASE_CSS}\n{fills}\n{dark}"
 
 
 # Set data-theme before first paint: stored choice wins, else follow the OS.
@@ -603,17 +429,19 @@ PREPAINT_JS = """  <script>
   </script>"""
 
 # Header toggle: flips the theme, persists the choice; auto-follows the OS
-# until the user overrides it. Icon shows the theme you'll switch to.
+# until the user overrides it. CSS shows the icon of the theme you'll get.
 TOGGLE_JS = """  <script>
     (function () {
       var root = document.documentElement;
       var btn = document.getElementById("theme-toggle");
-      var icon = document.getElementById("theme-icon");
       var stored = null;
       try { stored = localStorage.getItem("theme"); } catch (e) {}
-      if (!btn || !icon) return;
+      if (!btn) return;
       function paint() {
-        icon.textContent = root.getAttribute("data-theme") === "light" ? "🌙" : "☀️";
+        var label = root.getAttribute("data-theme") === "light"
+          ? "Switch to dark theme" : "Switch to light theme";
+        btn.setAttribute("aria-label", label);
+        btn.title = label;
       }
       btn.addEventListener("click", function () {
         var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
@@ -632,6 +460,410 @@ TOGGLE_JS = """  <script>
     })();
   </script>"""
 
+THEME_TOGGLE = (
+    '<button id="theme-toggle" class="theme-toggle" type="button" '
+    'aria-label="Toggle light/dark theme" title="Toggle light/dark theme">'
+    '<span id="theme-icon" aria-hidden="true">'
+    '<svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="4"/>'
+    '<path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg>'
+    '<svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" '
+    'stroke-width="2" stroke-linejoin="miter"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg>'
+    "</span></button>")
+
+NAME_HTML = "my-<wbr>hermes-<wbr>skills"
+
+
+def masthead(root: str, current: str, home: bool = False, compact: bool = False) -> str:
+    """Name + nav. root: prefix back to docs/; current: nav label to mark."""
+    index = "" if home else f"{root}index.html"
+    items = [("Chart", f"{index}#chart"), ("Entries", f"{index}#entries"),
+             ("Index A–Z", f"{index}#a-z"), ("Reports", f"{root}reports.html")]
+    cur = ' aria-current="page"'
+    links = "".join(
+        f'\n        <li><a href="{href}"{cur if label == current else ""}>{label}</a></li>'
+        for label, href in items)
+    name = (f'<h1 class="mast-name">{NAME_HTML}</h1>' if home else
+            f'<p class="mast-name"><a href="{root}index.html">{NAME_HTML}</a></p>')
+    cls = "mast mast-compact" if compact else "mast"
+    return f"""<header class="{cls}">
+  <div class="mast-in">
+    {name}
+    <nav class="nav" aria-label="Site">
+      <ul>{links}
+        <li><a href="{GH}" target="_blank" rel="noopener">GitHub</a></li>
+        <li>{THEME_TOGGLE}</li>
+      </ul>
+    </nav>
+  </div>
+</header>"""
+
+
+def foot_band(source: str, edition: str) -> str:
+    ed = f'\n    <li class="band-ed sc">Edition {long_date(edition)}</li>' if edition else ""
+    return f"""<footer class="band">
+  <ul>
+    <li><a href="{GH}/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+    <li><a href="{GH}" target="_blank" rel="noopener">LaansDole/my-hermes-skills</a></li>
+    <li>{source}</li>
+    <li><a href="{HERMES}" target="_blank" rel="noopener">Hermes Agent</a> by Nous Research</li>{ed}
+  </ul>
+</footer>"""
+
+
+def page_html(*, title: str, root: str, css: str, body: str, canonical: str = "") -> str:
+    canon = f'\n  <link rel="canonical" href="{canonical}" />' if canonical else ""
+    return f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>{title}</title>{canon}
+  <link rel="preload" href="{root}fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="{root}fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <style>
+{base_css(root)}
+{css}
+  </style>
+{PREPAINT_JS}
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+{body}
+{TOGGLE_JS}
+</body>
+</html>
+"""
+
+
+# ---------------------------------------------------------------------------
+# Skills catalog: chart, key, handbook entries, A-Z index, install
+# ---------------------------------------------------------------------------
+
+INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px;
+             align-items: start; padding: 24px var(--pad) 0; }
+    .chart-wrap { container-type: inline-size; }
+    .chart { --gap: 4px; --bgap: 16px;
+             --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px var(--bgap);
+             margin: 0; padding: 0; list-style: none; }
+    .fam-block { flex: none; width: min-content;
+                 transition: opacity 0.2s var(--ease), filter 0.2s var(--ease); }
+    .fb-h { display: flex; justify-content: space-between; align-items: baseline;
+            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 3px solid var(--ink);
+            font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 20px;
+            font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
+    .fb-n { flex: none; font-variant-numeric: tabular-nums; }
+    .fb-cells { display: grid; grid-template-columns: repeat(var(--cols), var(--cell));
+                gap: var(--gap); margin: 0; padding: 0; list-style: none; }
+    .fb-cells li { display: flex; }
+    .cell, .legend-cell { display: flex; flex-direction: column; min-height: 148px;
+                          padding: 8px; border: 1px solid var(--keyline);
+                          font-family: var(--display); text-decoration: none; }
+    .cell { flex: 1; min-height: max(144px, calc(var(--cell) * 1.07)); }
+    .cell:hover { outline: 3px solid currentColor; outline-offset: -5px; }
+    .cell:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .c-top { display: flex; justify-content: space-between; align-items: baseline; gap: 4px;
+             font: 600 12px/16px var(--display); font-variant-numeric: tabular-nums; }
+    .c-mark { font-weight: 700; font-size: 16px; font-variant-caps: all-small-caps;
+              letter-spacing: 0.06em; }
+    .c-sym { margin-top: 8px; font: 900 48px/48px var(--display); letter-spacing: -0.02em; }
+    .chart .c-sym { font-size: min(48px, calc(var(--cell) * 0.36)); line-height: 1; }
+    .c-child { margin-top: 2px; font: 600 12px/16px var(--display);
+               font-variant-caps: small-caps; letter-spacing: 0.02em; }
+    .c-name { margin-top: auto; padding-top: 4px; font: 600 12px/16px var(--display); }
+
+    .key-sum { margin: 0 0 12px; font-size: 15px; line-height: 24px; color: var(--muted); }
+    .key h2 { margin: 0 0 4px; font: 800 20px/24px var(--display); }
+    .key h3 { margin: 24px 0 8px; font: 800 13px/20px var(--display);
+              letter-spacing: 0.08em; text-transform: uppercase; }
+    .key-fams { margin: 0; padding: 0; list-style: none; border-top: 3px solid var(--ink); }
+    .key-fam { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
+               align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair);
+               font: 600 15px/20px var(--display); text-decoration: none; }
+    .key-fam:hover .kf-name, .key-fam:focus-visible .kf-name {
+      text-decoration: underline 2px; text-underline-offset: 4px; }
+    .kf-n { font-variant-numeric: tabular-nums; }
+    .sw { display: grid; place-items: center; height: 24px; border: 1px solid var(--keyline);
+          font-weight: 700; font-size: 16px; line-height: 16px;
+          font-variant-caps: all-small-caps; letter-spacing: 0.06em; }
+    .legend { display: grid; grid-template-columns: 104px 1fr; gap: 0 12px; margin: 0; }
+    .legend-cell { min-height: 112px; }
+    .legend-cell .c-sym { margin-top: 8px; font-size: 40px; line-height: 40px; }
+    .legend-labels { display: flex; flex-direction: column; justify-content: space-between;
+                     margin: 0; padding: 4px 0; list-style: none;
+                     font: 600 13px/20px var(--display); }
+    .legend-labels li::before { content: ""; display: inline-block; width: 16px; height: 1px;
+                                margin-right: 8px; vertical-align: middle; background: var(--ink); }
+    .legend-note { margin: 12px 0 0; font-size: 15px; line-height: 24px; }
+    .key-install { margin: 0; padding: 8px 12px; background: var(--tint);
+                   font: 400 13px/20px var(--mono); overflow-wrap: anywhere; }
+    .key-more { margin: 8px 0 0; font: 600 14px/20px var(--display); }
+
+    .sect { margin-top: 96px; padding: 0 var(--pad); }
+    .sect > h2 { margin: 0; padding-top: 16px; border-top: 3px solid var(--ink);
+                 font: 800 40px/44px var(--display); letter-spacing: -0.02em; }
+    .fam-h { display: flex; justify-content: space-between; align-items: baseline;
+             gap: 16px; margin: 40px 0 0; padding: 8px 12px;
+             font: 800 20px/24px var(--display); scroll-margin-top: 24px; }
+    .fam-h span { font: 600 14px/20px var(--display); font-variant-numeric: tabular-nums; }
+    .entry { display: grid; grid-template-columns: minmax(0, 320px) minmax(0, 1fr);
+             gap: 12px 40px; padding: 24px 0; border-bottom: 1px solid var(--hair);
+             scroll-margin-top: 24px; }
+    .e-head { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 16px;
+              align-items: start; }
+    .e-cell { display: flex; flex-direction: column; justify-content: space-between;
+              height: 64px; padding: 4px 6px; border: 1px solid var(--keyline);
+              font-family: var(--display); }
+    .e-n { font: 600 11px/12px var(--display); font-variant-numeric: tabular-nums; }
+    .e-s { font: 900 28px/28px var(--display); letter-spacing: -0.02em; }
+    .entry:target .e-cell { outline: 3px solid var(--ink); outline-offset: 2px; }
+    .e-name { margin: 0; font: 800 20px/24px var(--display); overflow-wrap: anywhere; }
+    .e-meta { display: flex; flex-wrap: wrap; gap: 0 12px; margin: 4px 0 0;
+              font: 500 14px/20px var(--display); color: var(--muted); }
+    .e-desc { margin: 0; }
+    .e-tags { margin: 8px 0 0; font: 400 14px/20px var(--display); color: var(--muted); }
+    .e-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 24px;
+               margin: 12px 0 0; font: 700 14px/20px var(--display); }
+    .e-links code { font: 400 13px/20px var(--mono); color: var(--muted); overflow-wrap: anywhere; }
+
+    .az { columns: 4 200px; column-gap: 40px; margin: 24px 0 0; padding: 0; list-style: none; }
+    .az li { break-inside: avoid; }
+    .az a { display: grid; grid-template-columns: 32px minmax(0, 1fr); gap: 8px;
+            padding: 6px 0; border-bottom: 1px solid var(--hair);
+            font: 600 15px/20px var(--display); text-decoration: none; }
+    .az a:hover span + span { text-decoration: underline; text-underline-offset: 3px; }
+    .az-n { color: var(--muted); font-variant-numeric: tabular-nums; }
+
+    .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 40px;
+             margin: 24px 0 0; padding: 0; list-style: none; counter-reset: step; }
+    .steps li { counter-increment: step; padding-top: 12px; border-top: 1px solid var(--ink); }
+    .steps li::before { content: counter(step, decimal-leading-zero); display: block;
+                        margin-bottom: 8px; font: 900 40px/44px var(--display);
+                        font-variant-numeric: tabular-nums; }
+    .steps code { font-size: 15px; }
+
+    @media (prefers-reduced-motion: reduce) {
+      .fam-block { transition: none; }
+    }
+    @media (max-width: 1100px) {
+      .atlas { grid-template-columns: minmax(0, 1fr); }
+      .key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
+      .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+    @container (max-width: 600px) {
+      .chart { --bgap: 12px; --cell: calc((100cqi - 3 * var(--gap)) / 4); row-gap: 16px;
+               align-items: flex-start; }
+      .fb-cells { grid-template-columns: repeat(var(--cols-s), var(--cell)); }
+      /* two-line head (2x20px lines + 4px pad + 3px rule, border-box): rules and labels share y per row */
+      .fb-h { font-size: 16px; min-height: 47px; align-items: flex-end; }
+      .cell { min-height: 120px; padding: 6px; }
+      .c-top { font-size: 11px; line-height: 12px; }
+      .c-mark { font-size: 14px; }
+      .c-sym { margin-top: 4px; }
+      .c-child { font-size: 11px; line-height: 12px; }
+      .c-name { font-size: 11px; line-height: 12px; overflow-wrap: anywhere; }
+    }
+    @media (max-width: 640px) {
+      .atlas { padding-top: 24px; gap: 32px; }
+      .key { grid-template-columns: minmax(0, 1fr); }
+      .sect { margin-top: 64px; }
+      .sect > h2 { font-size: 32px; line-height: 36px; }
+      .entry { grid-template-columns: minmax(0, 1fr); }
+      .az { columns: 2; column-gap: 24px; }
+      .steps { grid-template-columns: minmax(0, 1fr); }
+    }"""
+
+
+def recede_css(cells: list) -> str:
+    """Pointing at a key family recedes every other family's block."""
+    sel = ",\n".join(
+        f'    .atlas:has(.key-fam[data-fam="{slugify(f)}"]:is(:hover, :focus-visible))'
+        f' .fam-block:not([data-fam="{slugify(f)}"])'
+        for f, _ in family_groups(cells))
+    return f"{sel} {{\n      opacity: 0.18; filter: grayscale(1);\n    }}"
+
+
+def version_label(v: str) -> str:
+    return f"v{html.escape(v)}" if v else "unversioned"
+
+
+def cell_top(c: dict) -> str:
+    ver = html.escape(c["version"]) if c["version"] else ""
+    return (f'<span class="c-top"><span>{c["n"]}</span><span class="c-mark">{c["mark"]}</span>'
+            f'<span class="c-v">{ver}</span></span>')
+
+
+def cell_html(c: dict) -> str:
+    label = f"{c['n']} {c['name']}, {c['family']}, " + (
+        f"version {c['version']}" if c["version"] else "unversioned")
+    child = ""
+    if c["parent_n"]:
+        label += f", child of {c['parent_n']} {c['parent_skill']}"
+        child = f'\n          <span class="c-child">child of {c["parent_n"]}</span>'
+    return f"""        <li><a class="cell f-{c['fam']}" href="#entry-{c['name']}" aria-label="{html.escape(label)}">
+          {cell_top(c)}
+          <span class="c-sym">{html.escape(c['sym'])}</span>{child}
+          <span class="c-name">{html.escape(c['name']).replace('-', '-<wbr>')}</span>
+        </a></li>"""
+
+
+CHART_COLS = 7  # desktop chart width in cells; narrow charts use 4
+
+
+def chart_html(cells: list) -> str:
+    """One labelled block per family, each its own grid, so no row mixes families.
+
+    A block wraps into as few rows as the chart width allows, balanced
+    (10 cells -> 5 x 2, not 7 + 3).
+    """
+    blocks = []
+    for fam, cs in family_groups(cells):
+        n, slug = len(cs), slugify(fam)
+        cols = -(-n // -(-n // CHART_COLS))
+        unit = "skill" if n == 1 else "skills"
+        body = "\n".join(cell_html(c) for c in cs)
+        blocks.append(f"""    <li class="fam-block" data-fam="{slug}" style="--cols: {cols}; --cols-s: {min(n, 4)}">
+      <p class="fb-h"><span>{html.escape(fam)}</span><span class="fb-n">{n}<span class="vh"> {unit}</span></span></p>
+      <ul class="fb-cells">
+{body}
+      </ul>
+    </li>""")
+    return '<ol class="chart">\n' + "\n".join(blocks) + "\n    </ol>"
+
+
+def key_html(cells: list) -> str:
+    fams = family_groups(cells)
+    rows = "".join(
+        f'\n        <li><a class="key-fam" href="#family-{slugify(f)}" data-fam="{slugify(f)}">'
+        f'<span class="sw f-{slugify(f)}" aria-hidden="true">{FAMILIES[f][2]}</span>'
+        f'<span class="kf-name">{html.escape(f)}</span><span class="kf-n">{len(cs)}</span></a></li>'
+        for f, cs in fams)
+    n_fam = "1 family" if len(fams) == 1 else f"{len(fams)} families"
+    n_sk = "1 skill" if len(cells) == 1 else f"{len(cells)} skills"
+    ex = cells[0]
+    return f"""    <aside class="key" aria-labelledby="key-h">
+      <div>
+      <h2 id="key-h">Key</h2>
+      <p class="key-sum">{n_sk} in {n_fam}.</p>
+      <ul class="key-fams">{rows}
+      </ul>
+      </div>
+      <div>
+      <h3>Reading a cell</h3>
+      <figure class="legend">
+        <div class="legend-cell f-{ex['fam']}" aria-hidden="true">
+          {cell_top(ex)}
+          <span class="c-sym">{html.escape(ex['sym'])}</span>
+          <span class="c-name">{html.escape(ex['name']).replace('-', '-<wbr>')}</span>
+        </div>
+        <ul class="legend-labels">
+          <li>Number, family, version</li>
+          <li>Symbol</li>
+          <li>Skill name</li>
+        </ul>
+      </figure>
+      <p class="legend-note">Cells run in chart order, one per skill; open one for its handbook entry, SKILL.md and source. Point at a family to pick out its cells.</p>
+      <h3>Install</h3>
+      <p class="key-install">ln -s &lt;repo&gt;/skills/&lt;path&gt; ~/.hermes/skills/&lt;name&gt;</p>
+      <p class="key-more"><a href="#install">All install steps</a></p>
+      </div>
+    </aside>"""
+
+
+def entry_html(c: dict) -> str:
+    meta = [html.escape(c["family"]), f'<span class="sc">{version_label(c["version"])}</span>']
+    if c["parent_n"]:
+        meta.append(f'<span>child of <a href="#entry-{c["parent_skill"]}">'
+                    f'{c["parent_n"]} {html.escape(c["parent_skill"])}</a></span>')
+    tags = ""
+    if c["tags"]:
+        tags = (f'\n      <p class="e-tags"><span class="sc">Tags</span> '
+                f'{" / ".join(html.escape(t) for t in c["tags"])}</p>')
+    nid = f"entry-{c['name']}"
+    return f"""  <article class="entry" id="{nid}" aria-labelledby="{nid}-h">
+    <div class="e-head">
+      <span class="e-cell f-{c['fam']}" aria-hidden="true"><span class="e-n">{c['n']}</span><span class="e-s">{html.escape(c['sym'])}</span></span>
+      <div>
+        <h4 class="e-name" id="{nid}-h">{html.escape(c['name'])}</h4>
+        <p class="e-meta">{"".join(f"<span>{m}</span>" for m in meta)}</p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">{html.escape(c['description'])}</p>{tags}
+      <p class="e-links"><a href="{GH}/blob/main/{c['rel_dir']}/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="{GH}/tree/main/{c['rel_dir']}" target="_blank" rel="noopener">Source</a><code>{html.escape(c['rel_dir'])}</code></p>
+    </div>
+  </article>"""
+
+
+def entries_html(cells: list) -> str:
+    blocks = []
+    for fam, group in family_groups(cells):
+        slug = slugify(fam)
+        count = "1 skill" if len(group) == 1 else f"{len(group)} skills"
+        body = "\n".join(entry_html(c) for c in group)
+        blocks.append(f"""<section aria-labelledby="family-{slug}">
+  <h3 class="fam-h f-{slug}" id="family-{slug}">{html.escape(fam)} <span>{count}</span></h3>
+{body}
+</section>""")
+    return "\n".join(blocks)
+
+
+def az_html(cells: list) -> str:
+    return "\n".join(
+        f'    <li><a href="#entry-{c["name"]}"><span class="az-n">{c["n"]}</span>'
+        f'<span>{html.escape(c["name"])}</span></a></li>'
+        for c in sorted(cells, key=lambda c: c["name"]))
+
+
+def index_html(skills: list, edition: str) -> str:
+    cells = chart_cells(skills)
+    body = f"""{masthead("", "Chart", home=True)}
+
+<main id="main">
+
+<section class="atlas" id="chart" aria-labelledby="chart-h">
+  <h2 class="vh" id="chart-h">Chart of skills</h2>
+  <div class="chart-wrap">
+    {chart_html(cells)}
+  </div>
+{key_html(cells)}
+</section>
+
+<section class="sect" id="entries" aria-labelledby="entries-h">
+<h2 id="entries-h">Handbook entries</h2>
+{entries_html(cells)}
+</section>
+
+<section class="sect" id="a-z" aria-labelledby="a-z-h">
+  <h2 id="a-z-h">Index A–Z</h2>
+  <ul class="az">
+{az_html(cells)}
+  </ul>
+</section>
+
+<section class="sect" id="install" aria-labelledby="install-h">
+  <h2 id="install-h">Install</h2>
+  <ol class="steps">
+    <li>Clone or fork this repo, then symlink (or copy) any skill folder into <code>~/.hermes/skills/</code></li>
+    <li>Merge <code>.hermes-config/config-patch.yaml</code> into <code>~/.hermes/config.yaml</code> for auto-approvals needed by CDP browser skills</li>
+    <li>For skills with a <code>README.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</li>
+    <li><a href="{HERMES}/docs" target="_blank" rel="noopener">Hermes</a> auto-discovers skills in <code>~/.hermes/skills/</code>; start a new session and the skill is available</li>
+  </ol>
+</section>
+
+</main>
+
+{foot_band("Generated from <code>skills/**/SKILL.md</code>", edition)}"""
+    return page_html(title="my-hermes-skills — LaansDole", root="",
+                     css=f"{INDEX_CSS}\n{recede_css(cells)}", body=body,
+                     canonical="https://laansdole.github.io/my-hermes-skills/")
+
+
+# ---------------------------------------------------------------------------
+# Reports: catalog table, compat route, reader pages
+# ---------------------------------------------------------------------------
 
 def slugify(text: str) -> str:
     """Heading text -> stable anchor id; inline markdown is stripped first."""
@@ -774,6 +1006,9 @@ def md_to_html(text: str) -> str:
             items = []
             while i < len(lines) and re.match(r"^\s*[-*]\s+", lines[i]):
                 items.append(re.sub(r"^\s*[-*]\s+", "", lines[i])); i += 1
+            if out and out[-1].startswith("<h1"):
+                # lead-in metadata: "**Date:**" lifts into a label column, colon dropped
+                items = [re.sub(r"^\*\*([^*]+?):?\*\*:?", r"**\1**", x) for x in items]
             out.append("<ul>" + "".join(f"<li>{inline(x)}</li>" for x in items) + "</ul>")
             continue
         if ln.startswith(">"):
@@ -814,241 +1049,208 @@ def prune_report_pages(reports: list) -> None:
             d.rmdir()
 
 
-def write_report_pages(reports: list) -> None:
-    """Render each report markdown file as a styled HTML page under docs/reports/."""
+READER_CSS = """    .reader { padding: 48px max(var(--pad), 8vw) 0; }
+    article { font: 400 18px/32px var(--serif); }
+    article h1 { margin: 0 0 32px; font: 900 48px/52px var(--display); letter-spacing: -0.03em; }
+    article h2 { margin: 64px 0 16px; padding-top: 16px; border-top: 3px solid var(--ink);
+                 font: 800 28px/32px var(--display); letter-spacing: -0.01em; }
+    article h3 { margin: 40px 0 12px; font: 800 20px/24px var(--display); }
+    article h4, article h5, article h6 { margin: 32px 0 8px; font: 700 17px/24px var(--display); }
+    article h1, article h2, article h3 { overflow-wrap: anywhere; scroll-margin-top: 24px; }
+    article p { margin: 0 0 16px; }
+    article ul, article ol { margin: 0 0 16px; padding-left: 28px; }
+    article li { margin: 4px 0; }
+    article li::marker { font-family: var(--display); font-weight: 700; }
+    article a { overflow-wrap: anywhere; }
+    article strong { font-weight: 700; }
+    article > h1 + ul { margin: 0 0 40px; padding: 0; list-style: none;
+                        border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
+                        font-size: 16px; line-height: 24px; }
+    article > h1 + ul li { position: relative; margin: 0; padding: 8px 0 8px 160px; }
+    article > h1 + ul li + li { border-top: 1px solid var(--hair); }
+    article > h1 + ul li > strong:first-child { position: absolute; left: 0; top: 8px; width: 144px;
+                        font: 700 16px/24px var(--display); font-variant-caps: small-caps;
+                        letter-spacing: 0.02em; }
+    article code { font-size: 0.85em; overflow-wrap: anywhere; }
+    article pre { margin: 24px 0; padding: 16px 20px; overflow-x: auto; background: var(--tint);
+                  font: 400 14px/24px var(--mono); }
+    article pre code { font-size: inherit; overflow-wrap: normal; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 24px 0 32px; }
+    article table { width: 100%; min-width: 560px; margin: 0; border-collapse: collapse;
+                    border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
+                    font: 400 15px/24px var(--serif); font-variant-numeric: tabular-nums; }
+    article th { padding: 8px 16px 8px 0; border-bottom: 1px solid var(--ink); text-align: left;
+                 vertical-align: bottom; font: 700 14px/20px var(--display); }
+    article td { padding: 8px 16px 8px 0; border-top: 1px solid var(--hair); vertical-align: top; }
+    article tbody tr:first-child td { border-top: 0; }
+    article blockquote { margin: 24px 0; padding: 0 0 0 24px; border-left: 1px solid var(--ink);
+                         font-style: italic; }
+    article hr { margin: 40px 0; border: 0; border-top: 1px solid var(--hair); }
+    article hr:has(+ h2, + .toc) { display: none; }
+    .toc { margin: 32px 0 48px; padding-top: 12px; border-top: 3px solid var(--ink); }
+    .toc-title { margin: 0 0 8px; font: 800 13px/20px var(--display);
+                 letter-spacing: 0.08em; text-transform: uppercase; }
+    .toc ul { columns: 2 320px; column-gap: 48px; margin: 0; padding: 0; list-style: none; }
+    .toc li { margin: 0; break-inside: avoid; }
+    .toc a { display: block; padding: 6px 0; border-bottom: 1px solid var(--hair);
+             font: 600 15px/20px var(--display); text-decoration: none; }
+    .toc a:hover { text-decoration: underline; }
+    .toc-sub a { padding-left: 20px; font-weight: 400; color: var(--muted); }
+    .pager { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 40px;
+             margin-top: 64px; padding-top: 12px; border-top: 3px solid var(--ink);
+             font: 700 15px/20px var(--display); }
+    .pager a { text-decoration: none; }
+    .pager a:hover span + span { text-decoration: underline; }
+    .pager .sc { display: block; color: var(--muted); font-weight: 600; }
+    .pager-next { text-align: right; }
+    @media (max-width: 640px) {
+      .reader { padding: 32px var(--pad) 0; }
+      article { font-size: 17px; line-height: 28px; }
+      article h1 { font-size: 32px; line-height: 36px; }
+      article h2 { font-size: 24px; line-height: 28px; }
+      article > h1 + ul li { padding-left: 0; }
+      article > h1 + ul li > strong:first-child { position: static; display: block; width: auto; }
+      .pager { grid-template-columns: minmax(0, 1fr); }
+      .pager-next { text-align: left; }
+    }"""
+
+
+def write_report_pages(reports: list, edition: str) -> None:
+    """Render each report markdown file as a reader page under docs/reports/."""
     base = REPO / "docs" / "reports"
     prune_report_pages(reports)
-    for r in reports:
+    root = "../../"
+    for i, r in enumerate(reports):
         src = REPO / r["rel_path"]
         rel_html = Path(r["rel_path"]).with_suffix(".html")
         dst = base / Path(*rel_html.parts[1:])  # strip leading reports/
         dst.parent.mkdir(parents=True, exist_ok=True)
-        body = md_to_html(src.read_text())
-        title = html.escape(r["title"])
-        page = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>{title} — Reports</title>
-  <style>
-{REPORT_CSS}
-  </style>
-{PREPAINT_JS}
-</head>
-<body>
+        # reports are newest first: i-1 is newer, i+1 is older
+        newer = reports[i - 1] if i > 0 else None
+        older = reports[i + 1] if i + 1 < len(reports) else None
+        older_html = (f'<a href="{root}{report_href(older)}" rel="prev"><span class="sc">Older</span>'
+                      f'<span>{inline_md(older["title"])}</span></a>') if older else "<span></span>"
+        newer_html = (f'<a class="pager-next" href="{root}{report_href(newer)}" rel="next">'
+                      f'<span class="sc">Newer</span><span>{inline_md(newer["title"])}</span></a>'
+                      ) if newer else "<span></span>"
+        source = (f'Filed by the writing-reports skill · <a href="{GH}/blob/main/{r["rel_path"]}" '
+                  f'target="_blank" rel="noopener">Markdown source</a>')
+        body = f"""{masthead(root, "Reports", compact=True)}
 
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
-        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      Reports
-    </div>
-    <div class="header-links">
-      <a href="../../reports.html">All reports</a>
-      <a href="{GH}/blob/main/{r['rel_path']}" target="_blank">Markdown source</a>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
-    </div>
-  </div>
-</header>
-
-<main>
+<main id="main" class="reader">
   <article>
-{body}
+{md_to_html(src.read_text())}
   </article>
+  <nav class="pager" aria-label="More reports">
+    {older_html}
+    <a href="{root}reports.html"><span class="sc">Back to</span><span>All reports</span></a>
+    {newer_html}
+  </nav>
 </main>
 
-<footer>
-  <p>
-    <a href="../../reports.html">← All reports</a> &nbsp;·&nbsp;
-    Filed by the writing-reports skill &nbsp;·&nbsp;
-    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a>
-  </p>
-</footer>
-
-{TOGGLE_JS}
-</body>
-</html>
-"""
-        dst.write_text(page)
+{foot_band(source, edition)}"""
+        dst.write_text(page_html(title=f"{html.escape(r['title'])} — Reports",
+                                 root=root, css=READER_CSS, body=body))
 
 
-REPORT_CSS = """
-    :root { --bg:#0d1117; --bg2:#161b22; --border:#21262d; --text:#e6edf3;
-            --text-muted:#8b949e; --text-dim:#6e7681; --accent:#1f6feb;
-            --green:#3fb950; --mono:ui-monospace,SFMono-Regular,Menlo,monospace; }
-    :root[data-theme="light"] { --bg:#ffffff; --bg2:#f6f8fa; --border:#d0d7de;
-            --text:#1f2328; --text-muted:#656d76; --text-dim:#8c959f;
-            --accent:#0969da; --green:#1a7f37; }
-    * { box-sizing:border-box; }
-    body { margin:0; background:var(--bg); color:var(--text);
-           font:15px/1.7 -apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; }
-    header { border-bottom:1px solid var(--border); background:var(--bg);
-             position:sticky; top:0; z-index:100; }
-    .header-inner { max-width:860px; margin:0 auto; padding:12px 24px;
-                    display:flex; justify-content:space-between; align-items:center; }
-    .logo { display:flex; gap:8px; align-items:center; font-weight:600; font-size:14px; }
-    .header-links { display:flex; gap:16px; align-items:center; }
-    .header-links a { color:var(--text-muted); text-decoration:none; font-size:13px; }
-    .header-links a:hover { color:var(--text); }
-    .theme-toggle { background:none; border:1px solid var(--border); border-radius:6px;
-                    padding:4px 8px; cursor:pointer; font-size:13px; }
-    main { max-width:860px; margin:0 auto; padding:40px 24px 64px; }
-    article h1 { font-size:28px; line-height:1.3; margin:0 0 20px; }
-    article h2 { font-size:20px; margin:36px 0 12px; padding-bottom:6px;
-                 border-bottom:1px solid var(--border); }
-    article h3 { font-size:16px; margin:24px 0 8px; }
-    article p, article li { color:var(--text); }
-    article code { font-family:var(--mono); font-size:13px; background:var(--bg2);
-                   border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
-    article pre { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
-                  padding:14px; overflow-x:auto; }
-    article pre code { background:none; border:none; padding:0; }
-    /* tables scroll sideways instead of blowing out narrow screens */
-    .table-scroll { overflow-x:auto; -webkit-overflow-scrolling:touch; margin:16px 0; }
-    article table { border-collapse:collapse; width:100%; min-width:520px; margin:0; font-size:14px; }
-    article th, article td { border:1px solid var(--border); padding:7px 10px; text-align:left; }
-    article th { background:var(--bg2); font-weight:600; }
-    article tr:nth-child(even) td { background:var(--bg2); }
-    article blockquote { border-left:3px solid var(--accent); margin:16px 0; padding:4px 16px;
-                         color:var(--text-muted); }
-    article hr { border:none; border-top:1px solid var(--border); margin:28px 0; }
-    article a { color:var(--accent); overflow-wrap:anywhere; }
-    article code { overflow-wrap:anywhere; }
-    article h1, article h2, article h3 { scroll-margin-top:72px; overflow-wrap:anywhere; }
-    /* table of contents (long reports only) */
-    .toc { background:var(--bg2); border:1px solid var(--border); border-radius:8px;
-           padding:14px 18px; margin:24px 0 8px; }
-    .toc-title { margin:0 0 8px; font-size:12px; font-weight:600; letter-spacing:0.06em;
-                 text-transform:uppercase; color:var(--text-muted); }
-    .toc ul { list-style:none; margin:0; padding:0; }
-    .toc li { margin:0; }
-    .toc-sub { padding-left:16px; }
-    .toc a { display:block; padding:8px 0; font-size:14px; line-height:1.4;
-             text-decoration:none; }
-    .toc a:hover { text-decoration:underline; }
-    .toc-sub a { font-size:13px; color:var(--text-muted); }
-    footer { border-top:1px solid var(--border); padding:20px 24px; text-align:center;
-             color:var(--text-dim); font-size:12px; }
-    footer a { color:var(--text-dim); }
-    footer a:hover { color:var(--text-muted); }
-    @media (max-width:600px) {
-      .header-inner { flex-wrap:wrap; gap:8px 12px; padding:10px 16px; }
-      .header-links { gap:12px; }
-      main { padding:24px 16px 48px; }
-      article h1 { font-size:23px; }
-      article h2 { font-size:18px; }
-    }
-"""
-
+REPORTS_CSS = """    .page-head { padding: 48px var(--pad) 0; }
+    .page-head h1 { margin: 0; font: 900 64px/64px var(--display); letter-spacing: -0.03em; }
+    .lede { margin: 16px 0 0; }
+    .compat { margin: 8px 0 0; color: var(--muted); }
+    .ledger { --cols: 112px minmax(0, 1fr) minmax(0, 1fr); margin-top: 48px; padding: 0 var(--pad); }
+    .ledger-head { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                   padding: 0 8px 8px; border-bottom: 3px solid var(--ink);
+                   font: 700 13px/20px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+    .month h2 { margin: 32px 0 0; padding: 0 8px 8px; border-bottom: 1px solid var(--ink);
+                font: 800 20px/24px var(--display); }
+    .rows { margin: 0; padding: 0; list-style: none; }
+    .report-row { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                  padding: 12px 8px; border-bottom: 1px solid var(--hair);
+                  text-decoration: none; }
+    .report-row:hover { background: var(--tint); }
+    .report-row:hover .r-title { text-decoration: underline; text-decoration-thickness: 2px; }
+    .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
+    .r-title { font: 700 17px/24px var(--display); }
+    .r-title code { font: 400 15px/24px var(--mono); }
+    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-verdict code { font-size: 14px; }
+    @media (max-width: 640px) {
+      .page-head { padding-top: 32px; }
+      .page-head h1 { font-size: 40px; line-height: 40px; }
+      .ledger-head { display: none; }
+      .report-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    }"""
 
 REPORTS_CANONICAL = "https://laansdole.github.io/my-hermes-skills/reports.html"
 
 COMPAT_NOTE = """
-    <p class="hero-sub">
+    <p class="compat">
       This page is kept so older links keep working. The canonical index is
       <a href="reports.html">reports.html</a>.
     </p>"""
 
 
-def reports_index_html(reports: list, note: str = "") -> str:
+def verdict_excerpt(v: str) -> str:
+    if len(v) <= 280:
+        return inline_md(v)
+    return inline_md(v[:280].rsplit(" ", 1)[0]) + "…"
+
+
+def report_row_html(r: dict) -> str:
+    """One ledger row; the WHOLE row is the link to the report page."""
+    date = (f'<time class="r-date sc" datetime="{r["date"]}">{short_date(r["date"])}</time>'
+            if r["date"] else '<span class="r-date sc">undated</span>')
+    return f"""        <li><a class="report-row" href="{report_href(r)}">
+          {date}
+          <span class="r-title">{inline_md(r["title"])}</span>
+          <span class="r-verdict">{verdict_excerpt(r["verdict"])}</span>
+        </a></li>"""
+
+
+def reports_index_html(reports: list, edition: str, note: str = "") -> str:
     """The report catalog page; identical body for the canonical and compat routes."""
     if not reports:
-        cards = "    <p class=\"card-desc\" style=\"padding:0 4px\">No reports filed yet.</p>\n"
+        ledger = '    <p class="lede">No reports filed yet.</p>'
     else:
-        cards = "\n".join(report_card_html(r) for r in reports)
+        months = {}
+        for r in reports:
+            months.setdefault(month_label(r["date"]), []).append(r)
+        groups = "\n".join(
+            f"""    <section class="month" aria-labelledby="m-{slugify(m)}">
+      <h2 id="m-{slugify(m)}">{m}</h2>
+      <ol class="rows">
+{chr(10).join(report_row_html(r) for r in rs)}
+      </ol>
+    </section>""" for m, rs in months.items())
+        ledger = f"""    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Verdict</span></div>
+{groups}"""
     n = len(reports)
     count = "1 report" if n == 1 else f"{n} reports"
-    return f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Reports — my-hermes-skills</title>
-  <link rel="canonical" href="{REPORTS_CANONICAL}" />
-  <style>
-{CSS}
-  </style>
-{PREPAINT_JS}
-</head>
-<body>
+    body = f"""{masthead("", "Reports")}
 
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
-        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      my-hermes-skills
-    </div>
-    <div class="header-links">
-      <a href="index.html">Skills</a>
-      <a href="{GH}" target="_blank">GitHub</a>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
-    </div>
-  </div>
-</header>
-
-<main>
-
-  <div class="hero">
-    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
+<main id="main">
+  <div class="page-head">
     <h1>Reports</h1>
-    <p class="hero-sub">
-      Dated reports filed by the <a href="{GH}/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank">writing-reports</a> skill —
-      one card per report, newest first. Each card opens the full report.
+    <p class="lede">
+      {count} filed by the <a href="{GH}/blob/main/skills/productivity/writing-reports/SKILL.md" target="_blank" rel="noopener">writing-reports</a> skill,
+      newest first. Each row opens the full report.
     </p>{note}
-    <div class="hero-stats">
-      <div class="stat">
-        <span class="stat-num">{n}</span>
-        <span class="stat-label">reports</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">📅</span>
-        <span class="stat-label">newest first</span>
-      </div>
-    </div>
   </div>
-
-  <div class="section">
-    <div class="section-header">
-      <div class="section-icon" style="background:#3a2a0f">📰</div>
-      <span class="section-title">All reports</span>
-      <span class="section-count">{count}</span>
-    </div>
-    <div class="cards">
-
-{cards}
-
-    </div>
+  <div class="ledger">
+{ledger}
   </div>
-
 </main>
 
-<footer>
-  <p>
-    Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
-    <a href="{GH}/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
-    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
-    <a href="index.html">Skills</a>
-  </p>
-</footer>
-
-{TOGGLE_JS}
-</body>
-</html>
-"""
+{foot_band("Generated from <code>reports/YYYY-MM/*.md</code>", edition)}"""
+    return page_html(title="Reports — my-hermes-skills", root="", css=REPORTS_CSS,
+                     body=body, canonical=REPORTS_CANONICAL)
 
 
-def write_report_indexes(reports: list) -> None:
+def write_report_indexes(reports: list, edition: str) -> None:
     """Write canonical docs/reports.html plus the legacy docs/daily-news.html route."""
     docs = REPO / "docs"
-    (docs / "reports.html").write_text(reports_index_html(reports))
-    (docs / "daily-news.html").write_text(reports_index_html(reports, COMPAT_NOTE))
+    (docs / "reports.html").write_text(reports_index_html(reports, edition))
+    (docs / "daily-news.html").write_text(reports_index_html(reports, edition, COMPAT_NOTE))
     print(f"wrote {docs / 'reports.html'} + daily-news.html ({len(reports)} reports)")
 
 
@@ -1059,8 +1261,9 @@ def main() -> int:
         return 1
 
     reports = find_reports()
-    write_report_pages(reports)
-    write_report_indexes(reports)
+    edition = edition_date(reports)
+    write_report_pages(reports, edition)
+    write_report_indexes(reports, edition)
 
     if "--json" in sys.argv:
         manifest = manifest_json(skills)
@@ -1069,107 +1272,8 @@ def main() -> int:
         print(f"wrote {json_out} ({len(manifest['skills'])} skills)")
         return 0
 
-    n_cats = len({CATEGORY_MAP.get(s["top"], (s["top"],))[0] for s in skills})
-    page = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>my-hermes-skills — LaansDole</title>
-  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/" />
-  <style>
-{CSS}
-  </style>
-{PREPAINT_JS}
-</head>
-<body>
-
-<header>
-  <div class="header-inner">
-    <div class="logo">
-      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <rect width="20" height="20" rx="5" fill="#1f6feb"/>
-        <path d="M5 14V6l5 4 5-4v8" stroke="#e6edf3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      my-hermes-skills
-    </div>
-    <div class="header-links">
-      <a href="reports.html">Reports</a>
-      <a href="{GH}" target="_blank">GitHub</a>
-      <a href="https://hermes-agent.nousresearch.com/docs" target="_blank">Hermes Docs</a>
-      <button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon">☀️</span></button>
-    </div>
-  </div>
-</header>
-
-<main>
-
-  <!-- Hero -->
-  <div class="hero">
-    <div class="hero-eyebrow">LaansDole / my-hermes-skills</div>
-    <h1>Personal Hermes Agent Skills</h1>
-    <p class="hero-sub">
-      A curated collection of reusable skills for
-      <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a>
-      — covering systematic review automation, productivity utilities, and Slack tooling.
-      Each skill is self-contained with its own <code style="font-family:var(--mono);font-size:13px;color:var(--green);background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:1px 5px">SKILL.md</code> and setup instructions.
-    </p>
-    <div class="hero-stats">
-      <div class="stat">
-        <span class="stat-num">{len(skills)}</span>
-        <span class="stat-label">skills</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">{n_cats}</span>
-        <span class="stat-label">categories</span>
-      </div>
-      <div class="stat">
-        <span class="stat-num">MIT</span>
-        <span class="stat-label">license</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Quick setup -->
-  <div class="setup-box">
-    <h2>Quick Setup</h2>
-    <div class="setup-step">
-      <div class="step-num">1</div>
-      <div class="step-body">Clone or fork this repo, then symlink (or copy) any skill folder into <code>~/.hermes/skills/</code></div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">2</div>
-      <div class="step-body">Merge <code>.hermes-config/config-patch.yaml</code> into <code>~/.hermes/config.yaml</code> for auto-approvals needed by CDP browser skills</div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">3</div>
-      <div class="step-body">For skills with a <code>README.md</code>, follow the per-skill setup steps (env vars, browser profiles, criteria files)</div>
-    </div>
-    <div class="setup-step">
-      <div class="step-num">4</div>
-      <div class="step-body">Hermes auto-discovers skills in <code>~/.hermes/skills/</code> — just start a new session and the skill will be available</div>
-    </div>
-  </div>
-
-{sections_html(skills)}
-
-</main>
-
-<footer>
-  <p>
-    Built with <a href="https://hermes-agent.nousresearch.com" target="_blank">Hermes Agent</a> by Nous Research &nbsp;·&nbsp;
-    <a href="{GH}/blob/main/LICENSE" target="_blank">MIT License</a> &nbsp;·&nbsp;
-    <a href="{GH}" target="_blank">LaansDole/my-hermes-skills</a> &nbsp;·&nbsp;
-    <a href="https://laansdole.github.io/my-hermes-skills/">laansdole.github.io/my-hermes-skills</a>
-  </p>
-</footer>
-
-{TOGGLE_JS}
-</body>
-</html>
-"""
-    OUT.write_text(page)
-    print(f"wrote {OUT} ({len(skills)} skills, {n_cats} categories)")
+    OUT.write_text(index_html(skills, edition))
+    print(f"wrote {OUT} ({len(skills)} skills)")
     return 0
 
 
