@@ -568,7 +568,8 @@ INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr)
              font: 600 12px/16px var(--display); font-variant-numeric: tabular-nums; }
     .c-mark { font-weight: 700; font-size: 16px; font-variant-caps: all-small-caps;
               letter-spacing: 0.06em; }
-    .c-sym { margin-top: 8px; font: 900 48px/48px var(--display); letter-spacing: -0.02em; }
+    .c-sym { margin-top: 8px; font: 900 48px/48px var(--display); letter-spacing: -0.02em;
+             white-space: nowrap; }
     .chart .c-sym { font-size: min(48px, calc(var(--cell) * 0.36)); line-height: 1; }
     .c-child { margin-top: 2px; font: 600 12px/16px var(--display);
                font-variant-caps: small-caps; letter-spacing: 0.02em; }
@@ -617,7 +618,7 @@ INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr)
               height: 64px; padding: 4px 6px; border: 1px solid var(--keyline);
               font-family: var(--display); }
     .e-n { font: 600 11px/12px var(--display); font-variant-numeric: tabular-nums; }
-    .e-s { font: 900 28px/28px var(--display); letter-spacing: -0.02em; }
+    .e-s { font: 900 24px/24px var(--display); letter-spacing: -0.02em; white-space: nowrap; }
     .entry:target .e-cell { outline: 3px solid var(--ink); outline-offset: 2px; }
     .e-name { margin: 0; font: 800 20px/24px var(--display); overflow-wrap: anywhere; }
     .e-meta { display: flex; flex-wrap: wrap; gap: 0 12px; margin: 4px 0 0;
