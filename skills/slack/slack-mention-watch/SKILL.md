@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
-description: Use when the user asks about Slack pings, mentions, notifications or what they missed, or wants @mention alerts or a triaged mention digest while away. Read-only.
-version: 2.2.0
+description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks).
+version: 2.3.0
 author: LaansDole
 license: MIT
 metadata:
@@ -13,9 +13,10 @@ metadata:
 
 # Slack @mention watch
 
-Lists Slack messages that `@`-mention the user, on demand or as background alerts. Strictly
-read-only toward Slack. Not for: summarizing a day of Slack (use `slack-scan`), replying, keyword
-watches, or `@here`/`@channel` pings.
+Lists Slack messages that `@`-mention the user, on demand or as background alerts. Reads only,
+apart from one opt-in write: `--react` adds an emoji to each new mention (see "Auto-react"). Not
+for: summarizing a day of Slack (use `slack-scan`), replying, keyword watches, or
+`@here`/`@channel` pings.
 
 The script lives at `~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py`. If the
 skill is installed elsewhere, `skill_view` returns its `skill_dir`; use `<skill_dir>/scripts/watch_mentions.py`.
@@ -217,15 +218,50 @@ Rules:
 - Output plain text only. Do not call tools.
 - Even if every item is NO ACTION, still send the one-line list so nothing is hidden. Reply
   exactly [SILENT] only if the script output contains no mentions.
-- Read-only: never suggest posting on the user's behalf.
+- Read-only: never suggest posting on the user's behalf. Reactions shown as `Reacted:` were
+  applied by the script; do not mention adding more.
 ```
 
-## Read-only guarantee
+## Auto-react (opt-in)
 
-Every request goes through `api()`: HTTP GET only, and `ValueError` for any method outside
-`READ_METHODS` (`auth.test`, `search.messages`, `conversations.list`, `conversations.history`,
-`conversations.info`, `conversations.replies`, `users.info`, `chat.getPermalink`). It never posts,
-reacts, marks read, joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
+`--react` (or `SLACK_MENTION_REACT=1`) makes the script add one emoji, as the user, to every NEW
+mention of a default or `--digest` tick. Off by default; never in `--recent`, `--check` or history
+mode. Rules are deterministic (no LLM), first match wins, and Slack link/user markup is stripped
+before matching so a URL's `?` is not read as a question:
+
+| Mention | Signal | Reaction |
+| --- | --- | --- |
+| Question or request | `?`, or can/could/would/will you, please, pls, review, check, take a look, help, need you, PTAL, any update, lmk, let me know | `:eyes:` |
+| Thanks | thanks, thank you, thx, ty, tks, cam on | `:raised_hands:` |
+| Anything else (FYI, status) | | none |
+
+Skipped when the user already replied in that thread after the mention
+(`conversations.replies`). `already_reacted` counts as success. A failed write prints one stderr
+line `react failed on <channel>:<ts>: <error>`, the tick still advances state, and the output line
+reads `Reacted: failed (...)` -- no retry storms, no duplicate digest.
+
+Setup:
+
+1. https://api.slack.com/apps -> your app -> **OAuth & Permissions** -> **User Token Scopes** ->
+   add `reactions:write`, then **Reinstall to Workspace**.
+2. `watch_mentions.py --check` now prints `react scope: yes`.
+3. Preview without writing:
+   `python3 ~/.hermes/scripts/slack_mention_digest_cron.py --dry-run --react`
+   -> each mention shows `Reacted: :eyes: (dry run, not sent)`.
+4. Enable in the cron wrapper: `sys.argv = [TARGET, "--digest", "--react", *sys.argv[1:]]`
+   (or put `SLACK_MENTION_REACT=1` in `~/.hermes/.env`).
+
+Reactions use `SLACK_USER_REACT_TOKEN` if set, else `SLACK_USER_READ_TOKEN`; a separate token lets
+the read scope stay on a token you never grant writes to.
+
+## Write guarantee
+
+Reads go through `api()`: HTTP GET only, and `ValueError` for any method outside `READ_METHODS`
+(`auth.test`, `search.messages`, `conversations.list`, `conversations.history`,
+`conversations.info`, `conversations.replies`, `users.info`, `chat.getPermalink`). The single write
+goes through `api_write()`: POST, and `ValueError` for any method outside
+`WRITE_METHODS` = `{reactions.add}`, only when auto-react is enabled. It never posts, marks read,
+joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
 
 ## Config
 
@@ -234,6 +270,8 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | Variable | Default |
 | --- | --- |
 | `SLACK_USER_READ_TOKEN` | unset -> history mode |
+| `SLACK_USER_REACT_TOKEN` | `SLACK_USER_READ_TOKEN`; the token `reactions.add` is sent with |
+| `SLACK_MENTION_REACT` | unset -> no reactions; `1`/`true`/`yes` = same as `--react` |
 | `SLACK_MENTION_USER_ID` | owner of `SLACK_USER_READ_TOKEN` (`auth.test`), else first id in `SLACK_ALLOWED_USERS` |
 | `SLACK_MENTION_LOOKBACK_MINS` | `60` (first background run only) |
 | `SLACK_MENTION_IGNORE_USERS` | empty; comma list of extra author ids to drop (bot user always dropped) |
@@ -247,6 +285,7 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | --- | --- | --- |
 | `ERROR: search.messages: not_allowed_token_type` | An `xoxb-` bot token was pasted as `SLACK_USER_READ_TOKEN` | Use the `xoxp-` **User** OAuth Token. |
 | `ERROR: ...: missing_scope` | `search:read` not granted | Add the user scope, reinstall. |
+| Stderr `react failed on C...:...: reactions.add: missing_scope` | `reactions:write` user scope not granted (or the token predates it) | Add the scope, reinstall, re-check with `--check`; mentions themselves are unaffected. |
 | `ERROR: ...: invalid_auth` / `token_revoked` | Token wrong or app reinstalled | Copy the current token into `~/.hermes/.env`. |
 | `--check` says `member channels: 0` | History mode, bot invited nowhere | Add the user token, or `/invite` your bot. |
 | Same mention re-alerts every tick / alert quotes its own alert | Self-alert loop: search sees the bot's alert DM as a new mention | Set `SLACK_HOME_CHANNEL` and `SLACK_BOT_TOKEN` in `~/.hermes/.env`; add other relaying ids to `SLACK_MENTION_IGNORE_USERS`. |

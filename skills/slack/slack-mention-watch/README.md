@@ -28,6 +28,10 @@ for each new mention while you're away. Python stdlib only.
   plan / review / reply / no action; no LLM run when nothing is new. Thread context needs the user
   scopes `channels:history`, `groups:history`, `im:history`, `mpim:history` (wrapper, prompt,
   command, model/provider and tool-restriction notes in `SKILL.md`).
+- Auto-react (opt-in): `--react` or `SLACK_MENTION_REACT=1` adds `:eyes:` to a question or request
+  and `:raised_hands:` to thanks, as you, on each new mention of a tick. Needs the user scope
+  `reactions:write`; skipped if you already replied in the thread; `--dry-run` previews it
+  (rules and setup in `SKILL.md`).
 
 ## System design
 
@@ -35,7 +39,7 @@ for each new mention while you're away. Python stdlib only.
 
 | Component | Where | Role |
 | --- | --- | --- |
-| `watch_mentions.py` | this skill, `scripts/` | Stdlib-only Slack reader. Finds new mentions, dedupes, renders output. Every call is a GET to an allowlisted read method. |
+| `watch_mentions.py` | this skill, `scripts/` | Stdlib-only Slack client. Finds new mentions, dedupes, renders output; GET to an allowlisted read method, plus `reactions.add` when auto-react is on. |
 | Cron wrapper(s) | `~/.hermes/scripts/slack_mention_{watch,digest}_cron.py` | Real files (cron rejects symlinks) that `runpy` the skill script; the digest wrapper injects `--digest` because cron passes no args. |
 | Hermes cron job | `~/.hermes/cron/jobs.json` | Runs the wrapper on a schedule (`every 5m`), optionally wakes an LLM, delivers to Slack. |
 | State file | `~/.hermes/scripts/.slack-mention-watch.json` (600) | `last_ts` high-water mark + last 500 `channel:ts` keys. No message text. |
@@ -58,6 +62,7 @@ for each new mention while you're away. Python stdlib only.
         |  4. dedupe against state.seen
         |  5. per new mention: conversations.replies -> thread context (xoxp, *:history)
         |     users.info -> display names (xoxb, users:read); chat.getPermalink
+        |     --react: classify(text) -> reactions.add (xoxp, reactions:write)
         |  6. save new last_ts + seen                              (state advances HERE,
         |                                                           before the LLM runs)
         v
@@ -70,7 +75,7 @@ for each new mention while you're away. Python stdlib only.
    triage prompt -> ACTION PLAN | REVIEW | REPLY | NO ACTION
         |
         v
- Hermes delivers final reply -> SLACK_HOME_CHANNEL (your DM with the bot)  <- only write
+ Hermes delivers final reply -> SLACK_HOME_CHANNEL (your DM with the bot)  <- delivery write
 ```
 
 Alert mode (`--no-agent`) is the same pipeline minus thread context and the LLM: stdout is posted verbatim,
@@ -84,9 +89,12 @@ empty stdout posts nothing. Run one mode or the other, never both -- they share 
 - **Script gate before the LLM.** The script decides whether there is anything to say; the model
   never fetches data or runs commands. Idle ticks cost zero tokens, and models that misuse tools
   can't break the pipeline.
-- **Least-privilege everywhere.** Slack scopes are read-only, `api()` refuses non-allowlisted
-  methods, and the agent's toolsets are pinned to `todo,no_mcp` (an empty list would mean the
-  default toolset, including messaging as the bot). Delivery is done by the scheduler, not the model.
+- **Least-privilege everywhere.** Read scopes only unless you grant `reactions:write`, `api()`
+  refuses non-allowlisted methods and `api_write()` accepts exactly one, and the agent's toolsets
+  are pinned to `todo,no_mcp` (an empty list would mean the default toolset, including messaging
+  as the bot). Delivery is done by the scheduler, not the model.
+- **Rules, not an LLM, pick the emoji.** The digest agent stays toolless; classification runs in
+  the same tick and is unit-tested.
 - **Overlap + dedupe.** Each tick re-scans 10 minutes behind `last_ts` because search indexing lags;
   `seen` keys prevent duplicates.
 - **Self-loop guard.** Alerts quote the mention, so search would find them again; the home channel
@@ -108,7 +116,9 @@ empty stdout posts nothing. Run one mode or the other, never both -- they share 
 
 ## Privacy
 
-Read-only: GET requests to an 8-method allowlist (search, history, thread, user/permalink lookups). It never
-posts, reacts, marks read or joins channels. The only write is the cron alert, sent by Hermes to
-your own bot DM. State (`~/.hermes/scripts/.slack-mention-watch.json`, mode 600) holds timestamps
-and message keys, no message text.
+Reads only: GET requests to an 8-method allowlist (search, history, thread, user/permalink
+lookups). The one write is opt-in auto-react (`reactions.add`, POST, the only method `api_write()`
+accepts); without `--react`/`SLACK_MENTION_REACT` nothing is written at all. It never posts, marks
+read or joins channels. The cron alert itself is sent by Hermes to your own bot DM. State
+(`~/.hermes/scripts/.slack-mention-watch.json`, mode 600) holds timestamps and message keys, no
+message text.
