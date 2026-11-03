@@ -139,6 +139,48 @@ class ReadOnly(Base):
             self.assertIn(urllib.parse.urlparse(req.full_url).path.rsplit("/", 1)[1], wm.READ_METHODS)
 
 
+class Writes(Base):
+    def add(self, fake, token="xoxp-user", **params):
+        with mock.patch.object(wm, "urlopen", fake):
+            return wm.api_write("reactions.add", token,
+                                **{"channel": "C1", "timestamp": "2000.1", "name": "eyes", **params})
+
+    def test_non_allowlisted_write_rejected_before_any_request(self):
+        fake = FakeSlack({})
+        with mock.patch.object(wm, "urlopen", fake):
+            for method in ("chat.postMessage", "reactions.remove", "conversations.mark"):
+                with self.assertRaises(ValueError):
+                    wm.api_write(method, "xoxp-user", channel="C1")
+        self.assertEqual(fake.requests, [])
+
+    def test_reactions_add_posts_form_body_with_given_token(self):
+        fake = FakeSlack({"reactions.add": {"ok": True}})
+        self.add(fake, token="xoxp-react")
+        req = fake.requests[0]
+        self.assertEqual(req.get_method(), "POST")
+        self.assertNotIn("?", req.full_url)
+        self.assertEqual(req.headers["Content-type"], "application/x-www-form-urlencoded")
+        self.assertEqual(req.headers["Authorization"], "Bearer xoxp-react")
+        self.assertEqual(urllib.parse.parse_qs(req.data.decode()),
+                         {"channel": ["C1"], "timestamp": ["2000.1"], "name": ["eyes"]})
+
+    def test_already_reacted_counts_as_success(self):
+        fake = FakeSlack({"reactions.add": {"ok": False, "error": "already_reacted"}})
+        self.assertEqual(self.add(fake)["error"], "already_reacted")
+
+    def test_slack_error_raises(self):
+        fake = FakeSlack({"reactions.add": {"ok": False, "error": "missing_scope"}})
+        with self.assertRaises(wm.SlackError) as e:
+            self.add(fake)
+        self.assertEqual(str(e.exception), "reactions.add: missing_scope")
+
+    def test_api_still_refuses_the_write_method(self):
+        self.assertEqual(wm.WRITE_METHODS, frozenset({"reactions.add"}))
+        self.assertNotIn("reactions.add", wm.READ_METHODS)
+        with self.assertRaises(ValueError):
+            wm.api("reactions.add", "xoxp-user", channel="C1")
+
+
 class Modes(Base):
     def test_user_token_uses_search(self):
         fake = FakeSlack({"search.messages": search_payload()})

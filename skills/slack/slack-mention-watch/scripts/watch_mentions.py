@@ -48,6 +48,7 @@ READ_METHODS = frozenset({
     "auth.test", "search.messages", "conversations.list", "conversations.history",
     "conversations.info", "conversations.replies", "users.info", "chat.getPermalink",
 })
+WRITE_METHODS = frozenset({"reactions.add"})  # the only write, opt-in via --react
 # ponytail: re-scan this far behind last_ts each tick so late-indexed search
 # results aren't lost; `seen` dedupes the overlap.
 OVERLAP_SECS = 600
@@ -89,13 +90,8 @@ def env(name):
     return os.environ.get(name) or dotenv(name)
 
 
-def api(method, token, _headers=None, **params):
-    """GET a read-only Slack method. Retries once after a 429, then RateLimited."""
-    if method not in READ_METHODS:
-        raise ValueError(f"refusing non-read Slack method: {method}")
-    url = f"{API}/{method}?{urllib.parse.urlencode(params)}"
-    req = urllib.request.Request(url, method="GET",
-                                 headers={"Authorization": f"Bearer {token}"})
+def _send(req, method, _headers=None, ok_errors=()):
+    """One Slack call: retry once after a 429, then RateLimited; raise on `ok: false`."""
     for attempt in (1, 2):
         try:
             with urlopen(req, timeout=20) as resp:
@@ -109,11 +105,32 @@ def api(method, token, _headers=None, **params):
             if attempt == 2:
                 raise RateLimited(method)
             time.sleep(min(int(e.headers.get("Retry-After") or 30), 60))
-    if not data.get("ok"):
+    if not data.get("ok") and data.get("error") not in ok_errors:
         if data.get("error") == "ratelimited":
             raise RateLimited(method)
         raise SlackError(f"{method}: {data.get('error')}")
     return data
+
+
+def api(method, token, _headers=None, **params):
+    """GET a read-only Slack method."""
+    if method not in READ_METHODS:
+        raise ValueError(f"refusing non-read Slack method: {method}")
+    url = f"{API}/{method}?{urllib.parse.urlencode(params)}"
+    req = urllib.request.Request(url, method="GET",
+                                 headers={"Authorization": f"Bearer {token}"})
+    return _send(req, method, _headers)
+
+
+def api_write(method, token, **params):
+    """POST the one allowlisted write. `already_reacted` is success, not an error."""
+    if method not in WRITE_METHODS:
+        raise ValueError(f"refusing non-allowlisted Slack write: {method}")
+    req = urllib.request.Request(
+        f"{API}/{method}", data=urllib.parse.urlencode(params).encode(), method="POST",
+        headers={"Authorization": f"Bearer {token}",
+                 "Content-Type": "application/x-www-form-urlencoded"})
+    return _send(req, method, ok_errors=("already_reacted",))
 
 
 def load_state(path, lookback_mins):
