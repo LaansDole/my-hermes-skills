@@ -18,6 +18,8 @@ subprocess env, so the file is the real source):
   SLACK_USER_READ_TOKEN, SLACK_BOT_TOKEN
   SLACK_USER_REACT_TOKEN     token for reactions.add, default SLACK_USER_READ_TOKEN
   SLACK_MENTION_REACT        1/true/yes = auto-react, same as --react
+  SLACK_MENTION_REACT_DELAY_SECS  a reaction is never sent sooner than this many
+                             seconds after the mention, default 60; 0 = no wait
   SLACK_MENTION_USER_ID      default: owner of SLACK_USER_READ_TOKEN (auth.test),
                              else first id of SLACK_ALLOWED_USERS
   SLACK_MENTION_IGNORE_USERS extra author ids to drop (comma list); the bot's own
@@ -62,6 +64,7 @@ SEEN_MAX = 500
 TEXT_MAX = 400
 CHANNEL_SLEEP = 1.2
 RECENT_MAX = 50
+REACT_DELAY_SECS = 60.0  # an instant reaction looks like a bot; wait this long after the mention
 THREAD_MAX = 20     # messages of thread context per mention
 THREAD_TEXT_MAX = 600
 DIGEST_MAX = 12000  # chars; oldest thread lines dropped first, mentions always kept
@@ -387,9 +390,18 @@ def react_enabled(flag):
     return bool(flag) or (env("SLACK_MENTION_REACT") or "").lower() in ("1", "true", "yes")
 
 
+def react_delay():
+    """Seconds a reaction must be no sooner than; 0 disables, bad values fall back."""
+    try:
+        d = float(env("SLACK_MENTION_REACT_DELAY_SECS") or REACT_DELAY_SECS)
+    except ValueError:
+        return REACT_DELAY_SECS
+    return REACT_DELAY_SECS if d < 0 else d
+
+
 def react(new, token, uid, dry_run=False):
     """Add one emoji per new mention. Returns {channel:ts -> status}; never raises."""
-    out = {}
+    delay, out = react_delay(), {}
     for m in new:
         key = f"{m['channel_id']}:{m['ts']}"
         emoji = classify(m["text"])
@@ -398,6 +410,11 @@ def react(new, token, uid, dry_run=False):
         elif dry_run:
             out[key] = f":{emoji}: (dry run, not sent)"
         else:
+            # Mentions come oldest first, so at most one real wait per tick: by the time
+            # this one is sent the later ones are usually already due.
+            wait = float(m["ts"]) + delay - time.time()
+            if wait > 0:
+                time.sleep(min(wait, delay))
             try:
                 api_write("reactions.add", token, channel=m["channel_id"],
                           timestamp=m["ts"], name=emoji)

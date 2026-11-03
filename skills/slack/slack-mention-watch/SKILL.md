@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks).
-version: 2.3.0
+version: 2.3.1
 author: LaansDole
 license: MIT
 metadata:
@@ -236,9 +236,12 @@ before matching so a URL's `?` is not read as a question:
 | Anything else (FYI, status) | | none |
 
 Skipped when the user already replied in that thread after the mention
-(`conversations.replies`). `already_reacted` counts as success. A failed write prints one stderr
-line `react failed on <channel>:<ts>: <error>`, the tick still advances state, and the output line
-reads `Reacted: failed (...)` -- no retry storms, no duplicate digest.
+(`conversations.replies`). A reaction is never sent sooner than 60 s after the mention was posted
+(`SLACK_MENTION_REACT_DELAY_SECS`, `0` disables) -- an instant reply looks like a bot; the tick
+sleeps out the remainder. Cron ticks every 5 min, so the usual delay is 1-5 min and most mentions
+are already older than a minute, so nothing sleeps. `already_reacted` counts as success. A failed
+write prints one stderr line `react failed on <channel>:<ts>: <error>`, the tick still advances
+state, and the output line reads `Reacted: failed (...)` -- no retry storms, no duplicate digest.
 
 Setup:
 
@@ -272,6 +275,7 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | `SLACK_USER_READ_TOKEN` | unset -> history mode |
 | `SLACK_USER_REACT_TOKEN` | `SLACK_USER_READ_TOKEN`; the token `reactions.add` is sent with |
 | `SLACK_MENTION_REACT` | unset -> no reactions; `1`/`true`/`yes` = same as `--react` |
+| `SLACK_MENTION_REACT_DELAY_SECS` | `60`; a reaction waits until the mention is this old (`0` = send at once) |
 | `SLACK_MENTION_USER_ID` | owner of `SLACK_USER_READ_TOKEN` (`auth.test`), else first id in `SLACK_ALLOWED_USERS` |
 | `SLACK_MENTION_LOOKBACK_MINS` | `60` (first background run only) |
 | `SLACK_MENTION_IGNORE_USERS` | empty; comma list of extra author ids to drop (bot user always dropped) |

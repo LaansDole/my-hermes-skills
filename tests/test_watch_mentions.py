@@ -707,5 +707,87 @@ class React(Base):
         self.assertIn("react scope: no", out)
 
 
+class ReactDelay(Base):
+    """A reaction never lands sooner than SLACK_MENTION_REACT_DELAY_SECS after the mention."""
+
+    NOW = 1_700_000_000.0
+
+    def setUp(self):
+        super().setUp()
+        self.clock = [self.NOW]  # wm.time.time(); every mocked sleep advances it
+        self.sleeps = wm.time.sleep
+        self.sleeps.side_effect = lambda s: self.clock.__setitem__(0, self.clock[0] + s)
+        p = mock.patch.object(wm.time, "time", lambda: self.clock[0])
+        p.start()
+        self.addCleanup(p.stop)
+
+    def fake(self, *ages, text=React.ASK):
+        return FakeSlack({
+            "search.messages": search_payload(
+                *(match(f"{self.NOW - age:.6f}", text=text) for age in ages)),
+            "users.info": React.NAMES,
+            "conversations.replies": {"ok": True, "messages": []},
+            "reactions.add": {"ok": True},
+        })
+
+    def react(self, fake, *argv):
+        """Run a --react tick; returns the clock reading at each reactions.add."""
+        at = []
+
+        def urlopen(req, timeout=None):
+            if "reactions.add" in req.full_url:
+                at.append(self.clock[0])
+            return fake(req, timeout)
+
+        self.run_main(urlopen, "--react", *argv)
+        return at
+
+    def slept(self):
+        return [c.args[0] for c in self.sleeps.call_args_list]
+
+    def test_fresh_mention_waits_out_the_minute(self):
+        at = self.react(self.fake(10))
+        self.assertEqual(len(self.slept()), 1)
+        self.assertAlmostEqual(self.slept()[0], 50, places=3)
+        self.assertEqual(len(at), 1)
+        self.assertAlmostEqual(at[0], self.NOW + 50, places=3)
+
+    def test_mention_older_than_the_delay_reacts_at_once(self):
+        at = self.react(self.fake(300))
+        self.assertEqual((len(at), self.slept()), (1, []))
+
+    def test_two_fresh_mentions_sleep_at_most_the_delay(self):
+        at = self.react(self.fake(30, 20))  # oldest first: due at +30, then +40
+        self.assertEqual(len(at), 2)
+        self.assertLessEqual(sum(self.slept()), 60)
+        self.assertAlmostEqual(at[0], self.NOW + 30, places=3)
+        self.assertAlmostEqual(at[1], self.NOW + 40, places=3)
+
+    def test_zero_disables_the_delay(self):
+        os.environ["SLACK_MENTION_REACT_DELAY_SECS"] = "0"
+        at = self.react(self.fake(10))
+        self.assertEqual((len(at), self.slept()), (1, []))
+
+    def test_negative_or_invalid_delay_falls_back_to_the_default(self):
+        for value in ("-5", "soon"):
+            with self.subTest(value=value):
+                self.sleeps.reset_mock()
+                self.clock[0] = self.NOW
+                self.write_state("1000.000000", [])
+                os.environ["SLACK_MENTION_REACT_DELAY_SECS"] = value
+                self.assertEqual(len(self.react(self.fake(10))), 1)
+                self.assertAlmostEqual(self.slept()[0], 50, places=3)
+
+    def test_dry_run_never_sleeps(self):
+        _, out = self.run_main(self.fake(10), "--react", "--dry-run")
+        self.assertEqual(self.slept(), [])
+        self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
+
+    def test_nothing_sent_nothing_slept(self):
+        _, out = self.run_main(self.fake(10, text=f"<@{UID}> FYI deployed"), "--react")
+        self.assertEqual(self.slept(), [])
+        self.assertIn("Reacted: none", out)
+
+
 if __name__ == "__main__":
     unittest.main()

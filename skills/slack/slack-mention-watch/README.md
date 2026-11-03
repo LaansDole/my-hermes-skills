@@ -29,7 +29,8 @@ for each new mention while you're away. Python stdlib only.
   scopes `channels:history`, `groups:history`, `im:history`, `mpim:history` (wrapper, prompt,
   command, model/provider and tool-restriction notes in `SKILL.md`).
 - Auto-react (opt-in): `--react` or `SLACK_MENTION_REACT=1` adds `:eyes:` to a question or request
-  and `:raised_hands:` to thanks, as you, on each new mention of a tick. Needs the user scope
+  and `:raised_hands:` to thanks, as you, on each new mention of a tick, never sooner than 60 s
+  after the mention was posted (`SLACK_MENTION_REACT_DELAY_SECS`). Needs the user scope
   `reactions:write`; skipped if you already replied in the thread; `--dry-run` previews it
   (rules and setup in `SKILL.md`).
 
