@@ -10,14 +10,15 @@ Mnemosyne ships a read-only **local web dashboard** (`mnemosyne-browser`) for vi
 
 ## Environment
 
-Mnemosyne is installed into the Hermes venv. Always invoke its binaries through the venv PATH:
+Mnemosyne is installed into the Hermes runtime venv. That venv's path changes when `hermes update` moves the runtime, so look it up each time instead of hardcoding it:
 
 ```bash
-export PATH="$HOME/.hermes/hermes-agent/venv/bin:$PATH"
+MNEMO_VENV=$(hermes --run-module site 2>/dev/null | grep -o "/[^']*/venv/lib" | head -1 | sed 's#/lib$##')
+export PATH="$MNEMO_VENV/bin:$PATH"
 ```
 
 Key paths:
-- Venv Python: `~/.hermes/hermes-agent/venv/bin/python`
+- Venv: `$MNEMO_VENV` (currently under `~/.hermes/installs/.../venv`; the old `~/.hermes/hermes-agent/venv` is stale)
 - DB: `~/.hermes/mnemosyne/data/mnemosyne.db` (fully local, no cloud)
 - Plugin: `~/.hermes/plugins/mnemosyne` (symlink)
 - Provider: `memory.provider = mnemosyne` (already active)
@@ -27,7 +28,7 @@ Key paths:
 Prefer a Hermes-tracked background process over nohup/disown:
 
 ```bash
-export PATH="$HOME/.hermes/hermes-agent/venv/bin:$PATH"
+export PATH="$MNEMO_VENV/bin:$PATH"   # MNEMO_VENV from the Environment section
 mnemosyne-browser --port 8081   # run via terminal(background=true)
 ```
 
@@ -52,7 +53,7 @@ The dashboard supports browse, search, tier/source filtering, sort, and per-memo
 The browser is read-only. For writes use the CLI:
 
 ```bash
-export PATH="$HOME/.hermes/hermes-agent/venv/bin:$PATH"
+export PATH="$MNEMO_VENV/bin:$PATH"   # MNEMO_VENV from the Environment section
 mnemosyne store "content" [source] [importance]      # add
 mnemosyne recall "<query>" [top_k]                   # search
 mnemosyne update <id> "<content>" [importance]        # update
@@ -73,5 +74,6 @@ If it was started as a tracked process, kill that session. The loopback server i
 - Only use `mnemosyne-browser` through the venv PATH; the bare `mnemosyne-browser` may not resolve outside it.
 - macOS `grep` lacks `-P`; find memory IDs with `mnemosyne recall "<q>" 10 | grep "ID:"` instead.
 - Requires `fastapi` + `uvicorn` (both already installed in the Hermes venv).
+- `hermes memory status` says "not available" / tools return "Mnemosyne not initialized" after a `hermes update`: the new runtime venv is missing the packages. Fix: `uv pip install --python "$MNEMO_VENV/bin/python" mnemosyne-memory==<previous version> sqlite-vec fastembed`, then start a new session.
 - New session / gateway restart is required for `mnemosyne_*` provider tools to appear in an already-running session.
 - The bundled `mnemosyne-memory-override` skill handles memory ROUTING; this skill handles the VISUAL UI + CLI management.
