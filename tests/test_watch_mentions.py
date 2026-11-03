@@ -13,7 +13,7 @@ import tempfile
 import unittest
 import urllib.error
 import urllib.parse
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 from unittest import mock
 
@@ -27,9 +27,11 @@ BOT_UID = "U0HERMESBOT"
 
 
 class FakeResp(io.BytesIO):
-    def __init__(self, payload):
+    def __init__(self, payload, headers=None):
         super().__init__(json.dumps(payload).encode())
         self.headers = email.message.Message()
+        for k, v in (headers or {}).items():
+            self.headers[k] = v
 
     def __enter__(self):
         return self
@@ -41,9 +43,10 @@ class FakeResp(io.BytesIO):
 class FakeSlack:
     """Routes requests by Slack method name; records every request."""
 
-    def __init__(self, routes):
+    def __init__(self, routes, headers=None):
         # auth.test answers per token: the user token's owner is UID, the bot token's is BOT_UID
         self.routes, self.requests = {"auth.test": self.whoami, **routes}, []
+        self.headers = headers  # response headers, e.g. {"x-oauth-scopes": "..."}
 
     @staticmethod
     def whoami(req):
@@ -57,7 +60,7 @@ class FakeSlack:
         r = r(req) if callable(r) else r
         if isinstance(r, Exception):
             raise r
-        return FakeResp(r)
+        return FakeResp(r, self.headers)
 
     def methods(self):
         return [urllib.parse.urlparse(r.full_url).path.rsplit("/", 1)[1] for r in self.requests]
@@ -552,6 +555,156 @@ class Classify(unittest.TestCase):
         for text, emoji in self.CASES:
             with self.subTest(text=text):
                 self.assertEqual(wm.classify(text), emoji)
+
+
+class React(Base):
+    NAMES = {"ok": True, "user": {"profile": {"display_name": "alice"}}}
+    ASK = f"<@{UID}> can you review this?"
+
+    def fake(self, text=None, replies=(), add=None, ts="2000.1"):
+        return FakeSlack({
+            "search.messages": search_payload(match(ts, text=text or self.ASK)),
+            "users.info": self.NAMES,
+            "conversations.replies": {"ok": True, "messages": [
+                {"ts": t, "user": u, "text": "re"} for t, u in replies]},
+            "reactions.add": add or {"ok": True},
+        })
+
+    def adds(self, fake):
+        return [r for r in fake.requests if "reactions.add" in r.full_url]
+
+    def body(self, req):
+        return urllib.parse.parse_qs(req.data.decode())
+
+    def test_off_by_default(self):
+        fake = self.fake()
+        _, out = self.run_main(fake)
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Slack mention", out)
+        self.assertNotIn("Reacted:", out)
+
+    def test_flag_reacts_eyes_with_the_user_token(self):
+        fake = self.fake()
+        code, out = self.run_main(fake, "--react")
+        self.assertEqual(code, 0)
+        self.assertEqual(len(self.adds(fake)), 1)
+        self.assertEqual(self.body(self.adds(fake)[0]),
+                         {"channel": ["C1"], "timestamp": ["2000.1"], "name": ["eyes"]})
+        self.assertEqual(self.adds(fake)[0].headers["Authorization"], "Bearer xoxp-user")
+        self.assertTrue(out.rstrip().endswith("Reacted: :eyes:"), out)
+
+    def test_env_enables_react(self):
+        os.environ["SLACK_MENTION_REACT"] = "yes"
+        fake = self.fake()
+        _, out = self.run_main(fake)
+        self.assertEqual(len(self.adds(fake)), 1)
+        self.assertIn("Reacted: :eyes:", out)
+
+    def test_react_token_overrides_read_token(self):
+        os.environ["SLACK_USER_REACT_TOKEN"] = "xoxp-react"
+        fake = self.fake()
+        self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake)[0].headers["Authorization"], "Bearer xoxp-react")
+        search = [r for r in fake.requests if "search.messages" in r.full_url][0]
+        self.assertEqual(search.headers["Authorization"], "Bearer xoxp-user")
+
+    def test_thanks_gets_raised_hands(self):
+        fake = self.fake(text=f"<@{UID}> thanks a lot")
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.body(self.adds(fake)[0])["name"], ["raised_hands"])
+        self.assertIn("Reacted: :raised_hands:", out)
+
+    def test_fyi_writes_nothing_and_checks_no_thread(self):
+        fake = self.fake(text=f"<@{UID}> FYI deployed")
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertNotIn("conversations.replies", fake.methods())
+        self.assertIn("Reacted: none", out)
+
+    def test_seen_mention_is_not_reacted_twice(self):
+        self.run_main(self.fake(), "--react")
+        self.write_state("2000.1", self.read_state()["seen"])
+        fake = self.fake()
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual((self.adds(fake), out), ([], ""))
+
+    def test_dry_run_previews_without_writing(self):
+        before = self.state.read_text()
+        fake = self.fake()
+        _, out = self.run_main(fake, "--react", "--dry-run")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
+        self.assertEqual(self.state.read_text(), before)
+
+    def test_user_already_replied_in_thread(self):
+        fake = self.fake(replies=[("2000.1", "U1CAROL"), ("2000.9", UID)])
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: none", out)
+        req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
+        self.assertIn("ts=2000.1", req.full_url)
+
+    def test_reply_before_the_mention_does_not_block(self):
+        fake = self.fake(replies=[("1999.0", UID)])
+        self.run_main(fake, "--react")
+        self.assertEqual(len(self.adds(fake)), 1)
+
+    def test_write_failure_logs_and_tick_continues(self):
+        fake = self.fake(add={"ok": False, "error": "missing_scope"})
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code, out = self.run_main(fake, "--react")
+        self.assertEqual(code, 0)
+        self.assertIn("[slack-mention-watch] react failed on C1:2000.1: "
+                      "reactions.add: missing_scope", err.getvalue())
+        self.assertIn("Reacted: failed (reactions.add: missing_scope)", out)
+        self.assertEqual(self.read_state()["seen"], ["C1:2000.1"])
+        self.assertGreater(float(self.read_state()["last_ts"]), 1000.0)
+
+    def test_digest_shows_reacted_line(self):
+        fake = self.fake()
+        _, out = self.run_main(fake, "--digest", "--react")
+        self.assertEqual(len(self.adds(fake)), 1)
+        self.assertLess(out.index("Mention: "), out.index("Reacted: :eyes:"))
+        _, empty = self.run_main(FakeSlack({"search.messages": search_payload()}),
+                                 "--digest", "--react")
+        self.assertEqual(empty, '{"wakeAgent": false}\n')
+
+    def test_recent_never_reacts(self):
+        fake = self.fake(ts=f"{wm.time.time() - 3600:.6f}")
+        _, out = self.run_main(fake, "--recent", "24", "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Slack mention", out)
+
+    def test_history_mode_never_reacts(self):
+        del os.environ["SLACK_USER_READ_TOKEN"]
+        fake = FakeSlack({
+            "conversations.list": {"ok": True, "channels": [
+                {"id": "C1", "name": "general", "is_member": True}]},
+            "conversations.history": {"ok": True, "messages": [
+                {"ts": "2000.1", "user": "U1CAROL", "text": self.ASK}]},
+            "users.info": self.NAMES, "reactions.add": {"ok": True},
+            "chat.getPermalink": {"ok": True, "permalink": "https://x/perm"}})
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Slack mention", out)
+        self.assertNotIn("Reacted:", out)
+
+    def test_check_reports_react_scope(self):
+        routes = {"auth.test": {"ok": True, "user": "alice", "user_id": UID},
+                  "search.messages": search_payload()}
+        _, out = self.run_main(FakeSlack(routes), "--check")
+        self.assertIn("react scope: no", out)
+        _, out = self.run_main(FakeSlack(
+            routes, {"x-oauth-scopes": "search:read,reactions:write"}), "--check")
+        self.assertIn("react scope: yes", out)
+
+    def test_check_uses_the_react_token_scopes(self):
+        os.environ["SLACK_USER_REACT_TOKEN"] = "xoxp-react"
+        fake = FakeSlack({"search.messages": search_payload()})
+        _, out = self.run_main(fake, "--check")
+        self.assertEqual(fake.auth_tokens()[-1], "Bearer xoxp-react")  # scopes of the react token
+        self.assertIn("react scope: no", out)
 
 
 if __name__ == "__main__":

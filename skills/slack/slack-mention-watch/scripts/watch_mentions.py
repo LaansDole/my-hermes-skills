@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only Slack poller: print NEW messages that @-mention one user.
+"""Slack mention poller: print NEW messages that @-mention one user.
 
 Built for a Hermes cron job with --no-agent: empty stdout = nothing delivered.
 
@@ -9,12 +9,15 @@ Modes (auto-selected):
   history -- fallback, SLACK_BOT_TOKEN -> conversations.history over channels
              the bot is a member of. Top-level messages only (no thread replies).
 
-Read-only guarantee: every request goes through api(), which only issues HTTP
-GET to methods in READ_METHODS and raises on anything else.
+Write guarantee: reads go through api() -- HTTP GET to READ_METHODS only, raising
+on anything else. The one write is opt-in (--react / SLACK_MENTION_REACT) and goes
+through api_write(), which POSTs only WRITE_METHODS ({"reactions.add"}).
 
 Env (process env first, then the dotenv file -- Hermes strips SLACK_* from
 subprocess env, so the file is the real source):
   SLACK_USER_READ_TOKEN, SLACK_BOT_TOKEN
+  SLACK_USER_REACT_TOKEN     token for reactions.add, default SLACK_USER_READ_TOKEN
+  SLACK_MENTION_REACT        1/true/yes = auto-react, same as --react
   SLACK_MENTION_USER_ID      default: owner of SLACK_USER_READ_TOKEN (auth.test),
                              else first id of SLACK_ALLOWED_USERS
   SLACK_MENTION_IGNORE_USERS extra author ids to drop (comma list); the bot's own
@@ -28,7 +31,10 @@ Flags: --dry-run (don't save state), --check (diagnostics, no state),
        --recent [HOURS] (list all mentions in the last HOURS, default 24; ignores
        and never writes state),
        --digest (same tick/state as default, but print a context block with each
-       mention's thread for an LLM cron agent; nothing new -> {"wakeAgent": false}).
+       mention's thread for an LLM cron agent; nothing new -> {"wakeAgent": false}),
+       --react (react to each new mention: :eyes: to questions/requests,
+       :raised_hands: to thanks; default and --digest ticks only, needs the user
+       scope reactions:write).
 """
 import argparse
 import json
@@ -268,12 +274,14 @@ def when(ts, f="%a %Y-%m-%d %H:%M"):
     return datetime.fromtimestamp(float(ts)).strftime(f)
 
 
-def fmt(m, name, token):
+def fmt(m, name, token, status=None):
     link = permalink(m, token)
     lines = [f"Slack mention in {m['channel']} from {sender_of(m, name)} at {when(m['ts'])}",
              "> " + render_text(m["text"], name).replace("\n", "\n> ")]
     if link:
         lines.append(link)
+    if status:
+        lines.append(f"Reacted: {status}")
     return "\n".join(lines)
 
 
@@ -303,7 +311,7 @@ def digest_text(text, name):
     return render_text(text, name, THREAD_TEXT_MAX, unescape=True).replace("\n", "\n    ")
 
 
-def digest(new, name, token, uid):
+def digest(new, name, token, uid, reacted=None):
     """Plain-text context block for the cron agent, oldest mention first."""
     items = []
     for m in new:
@@ -313,6 +321,9 @@ def digest(new, name, token, uid):
         if link:
             head.append(f"Permalink: {link}")
         head.append("Mention: " + digest_text(m["text"], name))
+        status = (reacted or {}).get(f"{m['channel_id']}:{m['ts']}")
+        if status:
+            head.append(f"Reacted: {status}")
         items.append((head, thread(m, token, name)))
 
     now = datetime.now().astimezone()
@@ -362,6 +373,42 @@ def classify(text):
     return None
 
 
+def replied_after(m, token, uid):
+    """True if the watched user already answered in this thread after the mention."""
+    try:
+        msgs = api("conversations.replies", token, channel=m["channel_id"],
+                   ts=m.get("thread_ts") or m["ts"], limit=200).get("messages", [])
+    except (SlackError, RateLimited, urllib.error.URLError):
+        return False  # unknown -> react; a duplicate-looking emoji beats a missed one
+    return any(r.get("user") == uid and float(r["ts"]) > float(m["ts"]) for r in msgs)
+
+
+def react_enabled(flag):
+    return bool(flag) or (env("SLACK_MENTION_REACT") or "").lower() in ("1", "true", "yes")
+
+
+def react(new, token, uid, dry_run=False):
+    """Add one emoji per new mention. Returns {channel:ts -> status}; never raises."""
+    out = {}
+    for m in new:
+        key = f"{m['channel_id']}:{m['ts']}"
+        emoji = classify(m["text"])
+        if not emoji or replied_after(m, token, uid):
+            out[key] = "none"
+        elif dry_run:
+            out[key] = f":{emoji}: (dry run, not sent)"
+        else:
+            try:
+                api_write("reactions.add", token, channel=m["channel_id"],
+                          timestamp=m["ts"], name=emoji)
+                out[key] = f":{emoji}:"
+            except (SlackError, RateLimited, urllib.error.URLError) as e:
+                err = getattr(e, "reason", None) or e
+                print(f"{TAG} react failed on {key}: {err}", file=sys.stderr)
+                out[key] = f"failed ({err})"
+    return out
+
+
 def ignored_users(bot_tok):
     ids = {u.strip() for u in (env("SLACK_MENTION_IGNORE_USERS") or "").split(",") if u.strip()}
     if bot_tok:
@@ -399,7 +446,7 @@ def mentions(uid, mode, token, bot_tok, floor, recent=False):
     return found
 
 
-def run(dry_run=False, as_digest=False):
+def run(dry_run=False, as_digest=False, do_react=False):
     uid, mode, token = config()
     if not uid or not token:
         raise SlackError("missing SLACK_MENTION_USER_ID/SLACK_ALLOWED_USERS or token")
@@ -417,11 +464,16 @@ def run(dry_run=False, as_digest=False):
             seen.add(key)
             state["seen"].append(key)
             new.append(m)
+    reacted = {}
+    # history mode has no user token, so it can only read as the bot -- never react.
+    if new and mode == "search" and react_enabled(do_react):
+        reacted = react(new, env("SLACK_USER_REACT_TOKEN") or token, uid, dry_run)
     name = Names(bot_tok or token, uid)  # bot token has users:read; user token usually not
     if as_digest:
-        out = digest(new, name, token, uid) if new else WAKE_FALSE
+        out = digest(new, name, token, uid, reacted) if new else WAKE_FALSE
     else:
-        out = "\n\n".join(fmt(m, name, token) for m in new)
+        out = "\n\n".join(fmt(m, name, token, reacted.get(f"{m['channel_id']}:{m['ts']}"))
+                          for m in new)
     if not dry_run:
         state["last_ts"] = f"{max(started, float(state['last_ts'])):.6f}"
         state["seen"] = state["seen"][-SEEN_MAX:]
@@ -459,6 +511,12 @@ def check():
         lines.append(f"search ok: {d.get('messages', {}).get('total', 0)} total mentions indexed")
     else:
         lines.append(f"member channels: {len(member_channels(token))}")
+    rtok, rscopes = env("SLACK_USER_REACT_TOKEN") or token, scopes
+    if rtok != token:
+        rhdrs = {}
+        api("auth.test", rtok, _headers=rhdrs)
+        rscopes = {k.lower(): v for k, v in rhdrs.items()}.get("x-oauth-scopes", "?")
+    lines.append(f"react scope: {'yes' if 'reactions:write' in rscopes else 'no'}")
     return "\n".join(lines)
 
 
@@ -470,6 +528,8 @@ def main(argv=None):
                     help="list all mentions in the last HOURS (default 24); no state")
     ap.add_argument("--digest", action="store_true",
                     help="new mentions + thread context for an LLM cron agent")
+    ap.add_argument("--react", action="store_true",
+                    help="add :eyes:/:raised_hands: to new mentions (needs reactions:write)")
     a = ap.parse_args(argv)
     # A skipped tick must not wake the digest agent with empty context.
     skip = WAKE_FALSE if a.digest and not (a.check or a.recent is not None) else None
@@ -479,7 +539,7 @@ def main(argv=None):
         elif a.recent is not None:
             out = recent(a.recent)
         else:
-            out = run(a.dry_run, a.digest)
+            out = run(a.dry_run, a.digest, a.react)
     except RateLimited as e:
         print(f"{TAG} rate limited on {e}; skipping tick", file=sys.stderr)
         out = skip
