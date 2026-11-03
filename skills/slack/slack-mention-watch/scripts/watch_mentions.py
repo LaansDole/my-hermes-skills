@@ -323,6 +323,28 @@ def digest(new, name, token, uid):
     return out
 
 
+# ponytail: deterministic rules, no LLM -- the digest cron agent is toolless on purpose.
+MARKUP_RE = re.compile(r"<(?:https?:|mailto:)[^>]*>|<[@#!][^>]*>")
+ASK = ("can you", "could you", "would you", "will you", "please", "pls", "plz", "review",
+       "check", "take a look", "have a look", "help", "need you", "ptal", "any update",
+       "any updates", "lmk", "let me know")
+THANKS = ("thanks", "thank you", "thank u", "thx", "ty", "tks",
+          "c\u1ea3m \u01a1n", "c\u00e1m \u01a1n", "cam on")
+ASK_RE = re.compile(r"\b(?:%s)\b" % "|".join(ASK), re.I)
+THANKS_RE = re.compile(r"\b(?:%s)\b" % "|".join(THANKS), re.I)
+
+
+def classify(text):
+    """Emoji for a mention, or None. Link/user markup is stripped first so a URL's
+    "?" doesn't read as a question."""
+    plain = MARKUP_RE.sub(" ", text or "")
+    if "?" in plain or ASK_RE.search(plain):
+        return "eyes"
+    if THANKS_RE.search(plain):
+        return "raised_hands"
+    return None
+
+
 def ignored_users(bot_tok):
     ids = {u.strip() for u in (env("SLACK_MENTION_IGNORE_USERS") or "").split(",") if u.strip()}
     if bot_tok:

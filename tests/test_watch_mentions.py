@@ -493,5 +493,24 @@ class Digest(Base):
             wm.api("chat.postMessage", "xoxp-user", channel="C1")
 
 
+class Classify(unittest.TestCase):
+    CASES = [
+        (f"<@{UID}> can you review this?", "eyes"),
+        (f"<@{UID}> PTAL", "eyes"),
+        (f"<@{UID}> any update on the deploy", "eyes"),
+        (f"<@{UID}> thanks a lot", "raised_hands"),
+        (f"<@{UID}> c\u1ea3m \u01a1n anh", "raised_hands"),
+        (f"<@{UID}> thanks, can you check X", "eyes"),   # request beats thanks
+        (f"<@{UID}> FYI deployed", None),
+        (f"<@{UID}> see <https://x.com/a?b=1|link>", None),  # "?" inside a URL ignored
+        (f"<@{UID}> checked in", None),                  # word boundary, not "check"
+    ]
+
+    def test_rules(self):
+        for text, emoji in self.CASES:
+            with self.subTest(text=text):
+                self.assertEqual(wm.classify(text), emoji)
+
+
 if __name__ == "__main__":
     unittest.main()
