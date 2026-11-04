@@ -376,14 +376,21 @@ def classify(text):
     return None
 
 
-def replied_after(m, token, uid):
-    """True if the watched user already answered in this thread after the mention."""
+def handled(m, token, uid):
+    """Why this mention needs no reaction ("already reacted"/"already replied"), or None.
+    One conversations.replies call: the watched user's own emoji on the mention counts, as
+    does any answer of theirs after it."""
     try:
         msgs = api("conversations.replies", token, channel=m["channel_id"],
                    ts=m.get("thread_ts") or m["ts"], limit=200).get("messages", [])
     except (SlackError, RateLimited, urllib.error.URLError):
-        return False  # unknown -> react; a duplicate-looking emoji beats a missed one
-    return any(r.get("user") == uid and float(r["ts"]) > float(m["ts"]) for r in msgs)
+        return None  # unknown -> react; a duplicate-looking emoji beats a missed one
+    mine = [r for r in msgs if r["ts"] == m["ts"]]
+    if any(uid in (rx.get("users") or []) for r in mine for rx in r.get("reactions") or []):
+        return "already reacted"
+    if any(r.get("user") == uid and float(r["ts"]) > float(m["ts"]) for r in msgs):
+        return "already replied"
+    return None
 
 
 def react_enabled(flag):
@@ -405,16 +412,22 @@ def react(new, token, uid, dry_run=False):
     for m in new:
         key = f"{m['channel_id']}:{m['ts']}"
         emoji = classify(m["text"])
-        if not emoji or replied_after(m, token, uid):
+        if not emoji:
             out[key] = "none"
-        elif dry_run:
-            out[key] = f":{emoji}: (dry run, not sent)"
-        else:
+            continue
+        if not dry_run:
             # Mentions come oldest first, so at most one real wait per tick: by the time
-            # this one is sent the later ones are usually already due.
+            # this one is sent the later ones are usually already due. The wait runs before
+            # handled() so an emoji the user adds meanwhile still cancels ours.
             wait = float(m["ts"]) + delay - time.time()
             if wait > 0:
                 time.sleep(min(wait, delay))
+        skip = handled(m, token, uid)
+        if skip:
+            out[key] = f"none ({skip})"
+        elif dry_run:
+            out[key] = f":{emoji}: (dry run, not sent)"
+        else:
             try:
                 api_write("reactions.add", token, channel=m["channel_id"],
                           timestamp=m["ts"], name=emoji)

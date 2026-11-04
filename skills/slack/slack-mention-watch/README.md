@@ -31,7 +31,7 @@ for each new mention while you're away. Python stdlib only.
 - Auto-react (opt-in): `--react` or `SLACK_MENTION_REACT=1` adds `:eyes:` to a question or request
   and `:raised_hands:` to thanks, as you, on each new mention of a tick, never sooner than 60 s
   after the mention was posted (`SLACK_MENTION_REACT_DELAY_SECS`). Needs the user scope
-  `reactions:write`; skipped if you already replied in the thread; `--dry-run` previews it
+  `reactions:write`; skipped if you already reacted to or replied to it; `--dry-run` previews it
   (rules and setup in `SKILL.md`).
 
 ## System design

@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks).
-version: 2.3.1
+version: 2.3.2
 author: LaansDole
 license: MIT
 metadata:
@@ -235,8 +235,14 @@ before matching so a URL's `?` is not read as a question:
 | Thanks | thanks, thank you, thx, ty, tks, cam on | `:raised_hands:` |
 | Anything else (FYI, status) | | none |
 
-Skipped when the user already replied in that thread after the mention
-(`conversations.replies`). A reaction is never sent sooner than 60 s after the mention was posted
+Skipped (one `conversations.replies` call, checked after the wait below), output
+`Reacted: none (...)`:
+
+- `already reacted` -- the user's own emoji, any name, is already on the mention itself (a
+  reaction on the thread root does not count, someone else's reaction does not count);
+- `already replied` -- the user posted in that thread after the mention.
+
+A reaction is never sent sooner than 60 s after the mention was posted
 (`SLACK_MENTION_REACT_DELAY_SECS`, `0` disables) -- an instant reply looks like a bot; the tick
 sleeps out the remainder. Cron ticks every 5 min, so the usual delay is 1-5 min and most mentions
 are already older than a minute, so nothing sleeps. `already_reacted` counts as success. A failed

@@ -80,6 +80,12 @@ def match(ts, user="U1CAROL", text=f"hey <@{UID}> look", **kw):
     return m
 
 
+def reacted(ts, *users, name="thumbsup", user="U1CAROL", text="re"):
+    """A conversations.replies message carrying one reaction by `users`."""
+    return {"ts": ts, "user": user, "text": text,
+            "reactions": [{"name": name, "users": list(users), "count": len(users)}]}
+
+
 def http_429():
     hdrs = email.message.Message()
     hdrs["Retry-After"] = "1"
@@ -561,11 +567,11 @@ class React(Base):
     NAMES = {"ok": True, "user": {"profile": {"display_name": "alice"}}}
     ASK = f"<@{UID}> can you review this?"
 
-    def fake(self, text=None, replies=(), add=None, ts="2000.1"):
+    def fake(self, text=None, replies=(), add=None, ts="2000.1", msgs=None, **kw):
         return FakeSlack({
-            "search.messages": search_payload(match(ts, text=text or self.ASK)),
+            "search.messages": search_payload(match(ts, text=text or self.ASK, **kw)),
             "users.info": self.NAMES,
-            "conversations.replies": {"ok": True, "messages": [
+            "conversations.replies": {"ok": True, "messages": msgs if msgs is not None else [
                 {"ts": t, "user": u, "text": "re"} for t, u in replies]},
             "reactions.add": add or {"ok": True},
         })
@@ -640,7 +646,7 @@ class React(Base):
         fake = self.fake(replies=[("2000.1", "U1CAROL"), ("2000.9", UID)])
         _, out = self.run_main(fake, "--react")
         self.assertEqual(self.adds(fake), [])
-        self.assertIn("Reacted: none", out)
+        self.assertIn("Reacted: none (already replied)", out)
         req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
         self.assertIn("ts=2000.1", req.full_url)
 
@@ -648,6 +654,40 @@ class React(Base):
         fake = self.fake(replies=[("1999.0", UID)])
         self.run_main(fake, "--react")
         self.assertEqual(len(self.adds(fake)), 1)
+
+    def test_user_already_reacted_is_skipped(self):
+        fake = self.fake(msgs=[reacted("2000.1", UID)])
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: none (already reacted)", out)
+
+    def test_someone_elses_reaction_does_not_block(self):
+        fake = self.fake(msgs=[reacted("2000.1", "U9OTHER")])
+        self.run_main(fake, "--react")
+        self.assertEqual(len(self.adds(fake)), 1)
+
+    def test_reaction_on_the_mention_reply_is_skipped(self):
+        fake = self.fake(thread_ts="1999.0",
+                         msgs=[{"ts": "1999.0", "user": "U1CAROL", "text": "root"},
+                               reacted("2000.1", UID)])
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: none (already reacted)", out)
+        req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
+        self.assertIn("ts=1999.0", req.full_url)
+
+    def test_reaction_on_the_thread_root_only_still_reacts(self):
+        fake = self.fake(thread_ts="1999.0",
+                         msgs=[reacted("1999.0", UID),
+                               {"ts": "2000.1", "user": "U1CAROL", "text": self.ASK}])
+        self.run_main(fake, "--react")
+        self.assertEqual(len(self.adds(fake)), 1)
+
+    def test_dry_run_reports_the_skip(self):
+        fake = self.fake(msgs=[reacted("2000.1", UID)])
+        _, out = self.run_main(fake, "--react", "--dry-run")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: none (already reacted)", out)
 
     def test_write_failure_logs_and_tick_continues(self):
         fake = self.fake(add={"ok": False, "error": "missing_scope"})
@@ -778,9 +818,27 @@ class ReactDelay(Base):
                 self.assertEqual(len(self.react(self.fake(10))), 1)
                 self.assertAlmostEqual(self.slept()[0], 50, places=3)
 
-    def test_dry_run_never_sleeps(self):
-        _, out = self.run_main(self.fake(10), "--react", "--dry-run")
+    def test_reaction_added_during_the_wait_is_seen(self):
+        fake = self.fake(10)
+        slept_at_lookup = []
+
+        def replies(req):
+            slept_at_lookup.append(self.sleeps.call_count)  # 0 = read before the wait
+            return {"ok": True,
+                    "messages": [reacted(f"{self.NOW - 10:.6f}", UID)] if self.sleeps.called
+                    else []}
+
+        fake.routes["conversations.replies"] = replies
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(slept_at_lookup, [1])  # the thread is read after the wait, once
+        self.assertEqual([r for r in fake.requests if "reactions.add" in r.full_url], [])
+        self.assertIn("Reacted: none (already reacted)", out)
+
+    def test_dry_run_checks_the_thread_but_never_sleeps(self):
+        fake = self.fake(10)
+        _, out = self.run_main(fake, "--react", "--dry-run")
         self.assertEqual(self.slept(), [])
+        self.assertIn("conversations.replies", fake.methods())
         self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
 
     def test_nothing_sent_nothing_slept(self):
