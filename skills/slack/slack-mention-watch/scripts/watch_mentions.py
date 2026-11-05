@@ -288,11 +288,17 @@ def fmt(m, name, token, status=None):
     return "\n".join(lines)
 
 
+def thread_root(m):
+    """ts of the mention's thread root. search.messages matches never carry thread_ts;
+    for a thread reply it is only in the permalink's query string."""
+    query = urllib.parse.urlparse(m["permalink"]).query
+    return (m.get("thread_ts") or urllib.parse.parse_qs(query).get("thread_ts", [None])[0]
+            or m["ts"])
+
+
 def thread(m, token, name):
     """[(ts, line)] oldest first: the thread root plus its latest replies, or an error string."""
-    query = urllib.parse.urlparse(m["permalink"]).query
-    root = (m.get("thread_ts") or urllib.parse.parse_qs(query).get("thread_ts", [None])[0]
-            or m["ts"])
+    root = thread_root(m)
     try:
         msgs = api("conversations.replies", token, channel=m["channel_id"], ts=root,
                    limit=200).get("messages", [])
@@ -388,11 +394,12 @@ def classify(text):
 
 def handled(m, token, uid):
     """Why this mention needs no reaction ("already reacted"/"already replied"), or None.
-    One conversations.replies call: the watched user's own emoji on the mention counts, as
-    does any answer of theirs after it."""
+    One conversations.replies call from the thread root, starting at the mention (Slack
+    returns only the message itself for a non-root ts): the watched user's own emoji on
+    the mention counts, as does any answer of theirs after it."""
     try:
-        msgs = api("conversations.replies", token, channel=m["channel_id"],
-                   ts=m.get("thread_ts") or m["ts"], limit=200).get("messages", [])
+        msgs = api("conversations.replies", token, channel=m["channel_id"], ts=thread_root(m),
+                   oldest=m["ts"], inclusive="true", limit=200).get("messages", [])
     except (SlackError, RateLimited, urllib.error.URLError):
         return None  # unknown -> react; a duplicate-looking emoji beats a missed one
     mine = [r for r in msgs if r["ts"] == m["ts"]]

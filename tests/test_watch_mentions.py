@@ -86,6 +86,22 @@ def reacted(ts, *users, name="thumbsup", user="U1CAROL", text="re"):
             "reactions": [{"name": name, "users": list(users), "count": len(users)}]}
 
 
+def replies_route(msgs):
+    """conversations.replies route that behaves like Slack: the thread root is the oldest
+    message; a `ts` that is not the root returns only that message; `oldest`+`inclusive`
+    returns the root plus every message with ts >= oldest."""
+    def route(req):
+        q = {k: v[0] for k, v in urllib.parse.parse_qs(urllib.parse.urlparse(req.full_url).query).items()}
+        root = min(msgs, key=lambda r: float(r["ts"]))["ts"] if msgs else None
+        if q["ts"] != root:
+            return {"ok": True, "messages": [r for r in msgs if r["ts"] == q["ts"]]}
+        if "oldest" in q and q.get("inclusive") == "true":
+            return {"ok": True, "messages": [r for r in msgs if r["ts"] == root
+                                             or float(r["ts"]) >= float(q["oldest"])]}
+        return {"ok": True, "messages": list(msgs)}
+    return route
+
+
 def http_429():
     hdrs = email.message.Message()
     hdrs["Retry-After"] = "1"
@@ -596,8 +612,8 @@ class React(Base):
         return FakeSlack({
             "search.messages": search_payload(match(ts, text=text or self.ASK, **kw)),
             "users.info": self.NAMES,
-            "conversations.replies": {"ok": True, "messages": msgs if msgs is not None else [
-                {"ts": t, "user": u, "text": "re"} for t, u in replies]},
+            "conversations.replies": replies_route(msgs if msgs is not None else [
+                {"ts": t, "user": u, "text": "re"} for t, u in replies]),
             "reactions.add": add or {"ok": True},
         })
 
@@ -606,6 +622,36 @@ class React(Base):
 
     def body(self, req):
         return urllib.parse.parse_qs(req.data.decode())
+
+    def replies_params(self, fake):
+        req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
+        return urllib.parse.parse_qs(urllib.parse.urlparse(req.full_url).query)
+
+    THREAD_LINK = "https://x.slack.com/archives/C1/p2000100000?thread_ts=1999.0"
+
+    def thread_reply_fake(self, reply_ts):
+        """Search match for a thread reply: no thread_ts field, only the permalink has it."""
+        return self.fake(permalink=self.THREAD_LINK,
+                         replies=[("1999.0", "U1CAROL"), ("2000.1", "U1CAROL"), (reply_ts, UID)])
+
+    def test_thread_reply_mention_already_replied_reads_from_the_root(self):
+        fake = self.thread_reply_fake("2000.9")
+        _, out = self.run_main(fake, "--react")
+        self.assertEqual(self.adds(fake), [])
+        self.assertIn("Reacted: none (already replied)", out)
+        q = self.replies_params(fake)
+        self.assertEqual((q["ts"], q["oldest"], q["inclusive"]), (["1999.0"], ["2000.1"], ["true"]))
+
+    def test_thread_reply_before_the_mention_does_not_block(self):
+        fake = self.thread_reply_fake("1999.5")
+        self.run_main(fake, "--react")
+        self.assertEqual(len(self.adds(fake)), 1)
+
+    def test_top_level_mention_reads_its_own_thread(self):
+        fake = self.fake()
+        self.run_main(fake, "--react")
+        q = self.replies_params(fake)
+        self.assertEqual((q["ts"], q["oldest"]), (["2000.1"], ["2000.1"]))
 
     def test_off_by_default(self):
         fake = self.fake()
@@ -674,11 +720,6 @@ class React(Base):
         self.assertIn("Reacted: none (already replied)", out)
         req = [r for r in fake.requests if "conversations.replies" in r.full_url][0]
         self.assertIn("ts=2000.1", req.full_url)
-
-    def test_reply_before_the_mention_does_not_block(self):
-        fake = self.fake(replies=[("1999.0", UID)])
-        self.run_main(fake, "--react")
-        self.assertEqual(len(self.adds(fake)), 1)
 
     def test_user_already_reacted_is_skipped(self):
         fake = self.fake(msgs=[reacted("2000.1", UID)])
