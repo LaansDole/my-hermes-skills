@@ -553,12 +553,37 @@ class Classify(unittest.TestCase):
         (f"<@{UID}> c\u1ea3m \u01a1n anh", "raised_hands"),
         (f"<@{UID}> thanks, can you check X", "eyes"),   # request beats thanks
         (f"<@{UID}> FYI deployed", None),
-        (f"<@{UID}> see <https://x.com/a?b=1|link>", None),  # "?" inside a URL ignored
-        (f"<@{UID}> checked in", None),                  # word boundary, not "check"
+        (f"<@{UID}> see <https://x.com/a?b=1|link>", "eyes"),  # "?" in a URL ignored; default
+        (f"<@{UID}> checked in", "eyes"),                # not "check", but a ping defaults to eyes
+    ]
+    P = f"<@{UID}> "
+    TABLE = [
+        (P + "one UX question. After I add more evidence I expected to go back to the summary page.",
+         "eyes"),
+        ("*Alex Doe* mentioned you in a comment on <https://linear.app/x#c-1|feat(auth)>  "
+         f"Let's separate the email flow also, use the job client <@{UID}>", "eyes"),
+        (P + "Could you please create deployment PRs?", "eyes"),
+        (P + "see <https://x.com/a?b=1|link> about the signup flow", "eyes"),
+        (f"<@{UID}>", "eyes"),
+        (P + "thanks, can you also check?", "eyes"),
+        (P + "done. can you review?", "eyes"),
+        (P + "thx this is less confusing with the counters removed. "
+         "I'm happy with these new changes", "raised_hands"),
+        (P + "merged, thanks", "raised_hands"),
+        (P + "c\u1ea3m \u01a1n anh", "raised_hands"),
+        (P + "I've commented in the sign in/sign up", None),
+        (P + "FYI the release is out", None),
+        (P + "deployed v2 to prod", None),
+        (P + "lgtm", None),
+        (P + "*Alex Doe* approved <https://github.com/x/pull/1|feat: done>", None),
+        # apostrophe variants
+        (P + "let\u2019s ship the email flow", "eyes"),
+        (P + "lets ship the email flow", "eyes"),
+        (P + "I\u2019ve commented on the PR", None),
     ]
 
     def test_rules(self):
-        for text, emoji in self.CASES:
+        for text, emoji in self.CASES + self.TABLE:
             with self.subTest(text=text):
                 self.assertEqual(wm.classify(text), emoji)
 

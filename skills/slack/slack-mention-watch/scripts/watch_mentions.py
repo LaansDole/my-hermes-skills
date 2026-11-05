@@ -356,24 +356,34 @@ def digest(new, name, token, uid, reacted=None):
 
 # ponytail: deterministic rules, no LLM -- the digest cron agent is toolless on purpose.
 MARKUP_RE = re.compile(r"<(?:https?:|mailto:)[^>]*>|<[@#!][^>]*>")
+# Entries are regex fragments; ['\u2019] covers straight and curly apostrophes.
 ASK = ("can you", "could you", "would you", "will you", "please", "pls", "plz", "review",
        "check", "take a look", "have a look", "help", "need you", "ptal", "any update",
-       "any updates", "lmk", "let me know")
+       "any updates", "lmk", "let me know", "question", "let['\u2019]?s", "can we",
+       "could we", "should we", "can i", "could i", "is it ok", "is it okay", "are you able",
+       "wdyt", "thoughts")
 THANKS = ("thanks", "thank you", "thank u", "thx", "ty", "tks",
           "c\u1ea3m \u01a1n", "c\u00e1m \u01a1n", "cam on")
+FYI = ("fyi", "i['\u2019]ve commented", "i have commented", "i commented", "commented on",
+       "commented in", "done", "merged", "deployed", "released", "approved", "lgtm",
+       "resolved", "nvm")
 ASK_RE = re.compile(r"\b(?:%s)\b" % "|".join(ASK), re.I)
 THANKS_RE = re.compile(r"\b(?:%s)\b" % "|".join(THANKS), re.I)
+FYI_RE = re.compile(r"\b(?:%s)\b" % "|".join(FYI), re.I)
 
 
 def classify(text):
     """Emoji for a mention, or None. Link/user markup is stripped first so a URL's
-    "?" doesn't read as a question."""
+    "?" doesn't read as a question. Ask beats thanks beats FYI; anything else is a
+    direct ping, which is a request by default."""
     plain = MARKUP_RE.sub(" ", text or "")
     if "?" in plain or ASK_RE.search(plain):
         return "eyes"
     if THANKS_RE.search(plain):
         return "raised_hands"
-    return None
+    if FYI_RE.search(plain):
+        return None
+    return "eyes"
 
 
 def handled(m, token, uid):
