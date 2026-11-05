@@ -568,7 +568,7 @@ class Classify(unittest.TestCase):
         (f"<@{UID}> thanks a lot", "raised_hands"),
         (f"<@{UID}> c\u1ea3m \u01a1n anh", "raised_hands"),
         (f"<@{UID}> thanks, can you check X", "eyes"),   # request beats thanks
-        (f"<@{UID}> FYI deployed", None),
+        (f"<@{UID}> FYI deployed", "memo"),
         (f"<@{UID}> see <https://x.com/a?b=1|link>", "eyes"),  # "?" in a URL ignored; default
         (f"<@{UID}> checked in", "eyes"),                # not "check", but a ping defaults to eyes
     ]
@@ -587,15 +587,18 @@ class Classify(unittest.TestCase):
          "I'm happy with these new changes", "raised_hands"),
         (P + "merged, thanks", "raised_hands"),
         (P + "c\u1ea3m \u01a1n anh", "raised_hands"),
-        (P + "I've commented in the sign in/sign up", None),
-        (P + "FYI the release is out", None),
-        (P + "deployed v2 to prod", None),
-        (P + "lgtm", None),
-        (P + "*Alex Doe* approved <https://github.com/x/pull/1|feat: done>", None),
+        (P + "I've commented in the sign in/sign up", "memo"),
+        (P + "FYI the release is out", "memo"),
+        (P + "deployed v2 to prod", "memo"),
+        (P + "lgtm", "memo"),
+        (P + "*Alex Doe* approved <https://github.com/x/pull/1|feat: done>", "memo"),
+        (P + "a couple of questions about the signup flow", "eyes"),  # question* prefix
         # apostrophe variants
         (P + "let\u2019s ship the email flow", "eyes"),
         (P + "lets ship the email flow", "eyes"),
-        (P + "I\u2019ve commented on the PR", None),
+        (P + "lets ship it after lunch", "eyes"),
+        (P + "let\u2019s sync later", "eyes"),
+        (P + "I\u2019ve commented on the PR", "memo"),
     ]
 
     def test_rules(self):
@@ -691,12 +694,11 @@ class React(Base):
         self.assertEqual(self.body(self.adds(fake)[0])["name"], ["raised_hands"])
         self.assertIn("Reacted: :raised_hands:", out)
 
-    def test_fyi_writes_nothing_and_checks_no_thread(self):
+    def test_fyi_gets_memo(self):
         fake = self.fake(text=f"<@{UID}> FYI deployed")
         _, out = self.run_main(fake, "--react")
-        self.assertEqual(self.adds(fake), [])
-        self.assertNotIn("conversations.replies", fake.methods())
-        self.assertIn("Reacted: none", out)
+        self.assertEqual(self.body(self.adds(fake)[0])["name"], ["memo"])
+        self.assertIn("Reacted: :memo:", out)
 
     def test_seen_mention_is_not_reacted_twice(self):
         self.run_main(self.fake(), "--react")
@@ -906,11 +908,6 @@ class ReactDelay(Base):
         self.assertEqual(self.slept(), [])
         self.assertIn("conversations.replies", fake.methods())
         self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
-
-    def test_nothing_sent_nothing_slept(self):
-        _, out = self.run_main(self.fake(10, text=f"<@{UID}> FYI deployed"), "--react")
-        self.assertEqual(self.slept(), [])
-        self.assertIn("Reacted: none", out)
 
 
 if __name__ == "__main__":

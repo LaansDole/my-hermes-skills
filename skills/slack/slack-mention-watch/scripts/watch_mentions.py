@@ -35,8 +35,8 @@ Flags: --dry-run (don't save state), --check (diagnostics, no state),
        --digest (same tick/state as default, but print a context block with each
        mention's thread for an LLM cron agent; nothing new -> {"wakeAgent": false}),
        --react (react to each new mention: :eyes: to questions/requests,
-       :raised_hands: to thanks; default and --digest ticks only, needs the user
-       scope reactions:write).
+       :raised_hands: to thanks, :memo: to FYI; default and --digest ticks only,
+       needs the user scope reactions:write).
 """
 import argparse
 import json
@@ -365,7 +365,7 @@ MARKUP_RE = re.compile(r"<(?:https?:|mailto:)[^>]*>|<[@#!][^>]*>")
 # Entries are regex fragments; ['\u2019] covers straight and curly apostrophes.
 ASK = ("can you", "could you", "would you", "will you", "please", "pls", "plz", "review",
        "check", "take a look", "have a look", "help", "need you", "ptal", "any update",
-       "any updates", "lmk", "let me know", "question", "let['\u2019]?s", "can we",
+       "any updates", "lmk", "let me know", "question\\w*", "let['\u2019]?s", "can we",
        "could we", "should we", "can i", "could i", "is it ok", "is it okay", "are you able",
        "wdyt", "thoughts")
 THANKS = ("thanks", "thank you", "thank u", "thx", "ty", "tks",
@@ -379,16 +379,16 @@ FYI_RE = re.compile(r"\b(?:%s)\b" % "|".join(FYI), re.I)
 
 
 def classify(text):
-    """Emoji for a mention, or None. Link/user markup is stripped first so a URL's
-    "?" doesn't read as a question. Ask beats thanks beats FYI; anything else is a
-    direct ping, which is a request by default."""
+    """Emoji for a mention. Link/user markup is stripped first so a URL's "?" doesn't
+    read as a question. Ask -> eyes beats thanks -> raised_hands beats FYI -> memo;
+    anything else is a direct ping, which is a request by default (eyes)."""
     plain = MARKUP_RE.sub(" ", text or "")
     if "?" in plain or ASK_RE.search(plain):
         return "eyes"
     if THANKS_RE.search(plain):
         return "raised_hands"
     if FYI_RE.search(plain):
-        return None
+        return "memo"
     return "eyes"
 
 
@@ -576,7 +576,7 @@ def main(argv=None):
     ap.add_argument("--digest", action="store_true",
                     help="new mentions + thread context for an LLM cron agent")
     ap.add_argument("--react", action="store_true",
-                    help="add :eyes:/:raised_hands: to new mentions (needs reactions:write)")
+                    help="add :eyes:/:raised_hands:/:memo: to new mentions (needs reactions:write)")
     a = ap.parse_args(argv)
     # A skipped tick must not wake the digest agent with empty context.
     skip = WAKE_FALSE if a.digest and not (a.check or a.recent is not None) else None
