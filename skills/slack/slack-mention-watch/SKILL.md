@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks).
-version: 2.3.2
+version: 2.4.0
 author: LaansDole
 license: MIT
 metadata:
@@ -231,9 +231,10 @@ before matching so a URL's `?` is not read as a question:
 
 | Mention | Signal | Reaction |
 | --- | --- | --- |
-| Question or request | `?`, or can/could/would/will you, please, pls, review, check, take a look, help, need you, PTAL, any update, lmk, let me know | `:eyes:` |
+| Question or request | `?`, or can/could/would/will you, please, pls, review, check, take a look, help, need you, PTAL, any update, lmk, let me know, question, let's, can/could/should we, can/could I, is it ok(ay), are you able, wdyt, thoughts | `:eyes:` |
 | Thanks | thanks, thank you, thx, ty, tks, cam on | `:raised_hands:` |
-| Anything else (FYI, status) | | none |
+| Clear FYI | fyi, I've/I have/I commented, commented on/in, done, merged, deployed, released, approved, lgtm, resolved, nvm | none |
+| Anything else | a direct ping is a request by default (follow-ups like "one UX question. I expected..." or "Let's ... use X") | `:eyes:` |
 
 Skipped (one `conversations.replies` call, checked after the wait below), output
 `Reacted: none (...)`:
@@ -241,6 +242,11 @@ Skipped (one `conversations.replies` call, checked after the wait below), output
 - `already reacted` -- the user's own emoji, any name, is already on the mention itself (a
   reaction on the thread root does not count, someone else's reaction does not count);
 - `already replied` -- the user posted in that thread after the mention.
+
+The lookup is `conversations.replies(ts=<thread root>, oldest=<mention ts>, inclusive=true)`.
+`search.messages` matches never carry `thread_ts` -- the root is only in the permalink's
+`?thread_ts=` -- and `conversations.replies` with a reply's own ts returns just that one message,
+so passing the mention ts would never see the user's later replies.
 
 A reaction is never sent sooner than 60 s after the mention was posted
 (`SLACK_MENTION_REACT_DELAY_SECS`, `0` disables) -- an instant reply looks like a bot; the tick
@@ -302,5 +308,6 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | `notify/heartbeat only apply to background commands`, then `identical_call_streak_halt` | The model passes background-only args on a foreground call and retries it | Use `/pings`, or a different model. |
 | Names show as `U...` | `users.info` failed: no `SLACK_BOT_TOKEN` or no `users:read` | Check the bot token in `~/.hermes/.env`. |
 | `$SLACK_BOT_TOKEN` empty in the terminal | Hermes strips gateway `SLACK_*` vars from subprocesses | Nothing; the script reads `~/.hermes/.env` itself. |
+| Only one of several close pings got an emoji | Not a queue/timing bug (every new mention of a tick is processed oldest first); the others matched a no-emoji rule -- check their `Reacted:` line (`none` = classify, `none (already ...)` = skip) | Run `classify()` on the text; adjust ASK/FYI lists. |
 | Mention in a thread never alerts | History mode skips thread replies | Use the user token. |
 | Stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. |
