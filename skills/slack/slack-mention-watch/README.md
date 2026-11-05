@@ -28,7 +28,7 @@ for each new mention while you're away. Python stdlib only.
   plan / review / reply / no action; no LLM run when nothing is new. Thread context needs the user
   scopes `channels:history`, `groups:history`, `im:history`, `mpim:history` (wrapper, prompt,
   command, model/provider and tool-restriction notes in `SKILL.md`).
-- Auto-react (opt-in): `--react` or `SLACK_MENTION_REACT=1` adds `:raised_hands:` to thanks, nothing
+- Auto-react (opt-in): `--react` or `SLACK_MENTION_REACT=1` adds `:raised_hands:` to thanks, `:memo:`
   to a clear FYI (fyi, done, merged, lgtm, ...), and `:eyes:` to every other ping, as you, on each new mention of a tick, never sooner than 60 s
   after the mention was posted (`SLACK_MENTION_REACT_DELAY_SECS`). Needs the user scope
   `reactions:write`; skipped if you already reacted to or replied to it; `--dry-run` previews it
