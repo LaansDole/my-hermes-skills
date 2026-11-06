@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
-description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks).
-version: 2.4.1
+description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
+version: 2.5.0
 author: LaansDole
 license: MIT
 metadata:
@@ -269,6 +269,131 @@ Setup:
 Reactions use `SLACK_USER_REACT_TOKEN` if set, else `SLACK_USER_READ_TOKEN`; a separate token lets
 the read scope stay on a token you never grant writes to.
 
+## Background review agent (opt-in)
+
+`scripts/review_spawn.py` wraps the digest: it runs `watch_mentions.py --digest --react <args>`,
+and when `SLACK_REVIEW_AGENT` is set, each new mention that names a GitHub PR
+(`github.com/<owner>/<repo>/pull/<n>`, optionally also ticket keys) starts a detached,
+headless, read-only coding-agent session that reviews it. A `review:` line with the session id
+and resume command goes into that mention's block, so the digest shows it. Without
+`SLACK_REVIEW_AGENT` the output is byte-identical to the plain digest. Reactions only stays the
+default.
+
+### Setup interview (ask, don't assume)
+
+Before enabling it, ask the user, one question at a time:
+
+1. Reactions only, or reactions + background review agent? Recommend reactions only if unsure.
+   Warn: every review is an unattended agent run that costs tokens and reads the code of the
+   PRs (up to `SLACK_REVIEW_MAX_SPAWNS` per tick).
+2. Which agent: `omp` (Oh My Pi), `claude` (Claude Code), or a custom command?
+3. Workdir: the directory the agent runs in, usually the folder holding the clones of the
+   repos it will review.
+4. Model (and for omp, thinking effort)? Unset = the agent's default.
+5. PRs only, or ticket keys too? If tickets: a regex for the keys (e.g.
+   `\b[A-Z][A-Z0-9]+-\d+\b`), and optionally Jira Cloud credentials so done tickets are skipped.
+6. Optional: a text file with the user's own review rules (skills to follow, focus areas).
+
+Then:
+
+1. Write the answers into `~/.hermes/.env`, e.g.
+
+   ```
+   SLACK_REVIEW_AGENT=omp
+   SLACK_REVIEW_WORKDIR=~/code
+   SLACK_REVIEW_MODEL=<model>
+   SLACK_REVIEW_TICKET_RE=\b[A-Z][A-Z0-9]+-\d+\b
+   ```
+
+2. Point the digest wrapper at the review script (it adds `--digest --react` itself):
+
+   ```bash
+   cat > ~/.hermes/scripts/slack_mention_digest_cron.py <<'EOF'
+   #!/usr/bin/env python3
+   import os, runpy, sys
+   TARGET = os.path.expanduser(
+       "~/.hermes/skills/slack/slack-mention-watch/scripts/review_spawn.py")
+   sys.argv = [TARGET, *sys.argv[1:]]  # extra args (e.g. --dry-run) pass through
+   runpy.run_path(TARGET, run_name="__main__")
+   EOF
+   ```
+
+3. Add this rule to the cron prompt (`~/.hermes/scripts/slack_mention_digest_prompt.txt`):
+   `- Copy any "review:" line from a mention verbatim into that mention's item.`
+4. Preview: `python3 ~/.hermes/scripts/slack_mention_digest_cron.py --dry-run` -> eligible
+   mentions show `review: (dry run, would spawn for: ...)`. Nothing is spawned or saved.
+
+Going back to reactions only: remove `SLACK_REVIEW_AGENT` (the wrapper may stay).
+
+### Agents
+
+| Agent | Command | Session id | Resume |
+| --- | --- | --- | --- |
+| `omp` | `omp -p --mode json --config <dir>/omp-noresume.yml [--model M] [--thinking E] --cwd <workdir> @<brief>` | `id` of the first `type: session` JSON line | `cd <workdir> && omp --resume <id>` |
+| `claude` | `claude -p <brief text> --output-format stream-json --verbose [--model M] --permission-mode default --allowedTools <read-only list> --disallowedTools Edit Write NotebookEdit` | `session_id` of the first `type: system`, `subtype: init` line | `cd <workdir> && claude --resume <id>` |
+| `custom` | `SLACK_REVIEW_CMD`, shlex-split, `{brief}` (path) and `{workdir}` replaced | none | log path shown instead |
+
+The claude allowlist is `Read Grep Glob "Bash(gh pr view:*)" "Bash(gh pr diff:*)"
+"Bash(gh pr checks:*)" "Bash(gh api:*)" "Bash(git fetch:*)" "Bash(git show:*)"
+"Bash(git diff:*)" "Bash(git log:*)"`. `omp-noresume.yml` holds exactly `autoResume: false`:
+with `autoResume` on, `omp -p` would resume the user's latest session in that directory instead
+of starting a fresh one.
+
+Each run is detached (own session, stdin closed), started in the workdir. The brief, stdout and
+stderr go to `SLACK_REVIEW_DIR` as `<time>-<targets>.md` / `.jsonl` (custom: `.log`) / `.err`.
+The brief holds the Slack block verbatim, the targets, read-only rules (gh view/diff/checks, gh
+api GET, git fetch + show/diff/log; never edit, commit, checkout, push, comment, approve or post
+anywhere) and asks for P0/P1 findings only (severity, file:line, problem, impact, fix), else
+"No P0/P1 findings". The `SLACK_REVIEW_INSTRUCTIONS` file is appended under "Additional
+instructions". The review result stays in the agent session; nothing is posted.
+
+### Skip rules and output
+
+No spawn and no `review:` line when the mention's `Reacted:` line says `already replied` /
+`already reacted` or is `:raised_hands:` / `:memo:` (dry-run variants too). Per target, checks
+fail open (any error = review it):
+
+- PR merged / closed / approved, or reviewed by `SLACK_REVIEW_GH_LOGIN` at or after its last
+  commit -> `merged` / `closed` / `approved` / `already reviewed by you` (via `gh pr view`);
+- ticket in a done status category -> `done (<status>)`, only when `JIRA_URL`, `JIRA_EMAIL`
+  and `JIRA_TOKEN` are set (`GET /rest/api/2/issue/<key>?fields=status`).
+
+A target is spawned at most once per 24 h (`SLACK_REVIEW_STATE`). Lines, inserted after
+`Reacted:`:
+
+```
+review: <id> (acme/api#12) -> cd ~/code && omp --resume <id>
+review: already running <id> (acme/api#12) -> cd ~/code && omp --resume <id>
+review: skipped (acme/api#9 merged)
+review: skipped (spawn cap reached)
+review: failed (<reason>; log <path>)
+review: (dry run, would spawn for: acme/api#12)
+review: started (log <path>)                          (custom agent)
+```
+
+Partly skipped mentions get ` [skipped: <target> <reason>; ...]` appended. Any error in the
+review layer prints `[slack-review] error: ...` to stderr and the raw digest; the exit code is
+always `watch_mentions.py`'s.
+
+| Variable | Default |
+| --- | --- |
+| `SLACK_REVIEW_AGENT` | unset -> feature off; `omp` / `claude` / `custom` |
+| `SLACK_REVIEW_WORKDIR` | required when on; directory the agent runs in |
+| `SLACK_REVIEW_MODEL` | unset -> agent default; passed as `--model` |
+| `SLACK_REVIEW_EFFORT` | unset; omp only, passed as `--thinking` |
+| `SLACK_REVIEW_CMD` | custom agent command template |
+| `SLACK_REVIEW_MAX_SPAWNS` | `3` per tick |
+| `SLACK_REVIEW_TICKET_RE` | unset -> PRs only; regex for ticket keys |
+| `SLACK_REVIEW_INSTRUCTIONS` | unset; text file appended to the brief |
+| `SLACK_REVIEW_STATE` | `~/.hermes/scripts/.slack-review-spawn.json` (chmod 600) |
+| `SLACK_REVIEW_DIR` | `~/.hermes/cache/slack-review-spawns` (briefs + logs) |
+| `SLACK_REVIEW_ID_TIMEOUT` | `30` s to wait for the session id |
+| `SLACK_REVIEW_GH` | `gh` on PATH, else `/opt/homebrew/bin/gh`, else `/usr/local/bin/gh` |
+| `SLACK_REVIEW_GH_LOGIN` | `gh api user --jq .login` |
+| `JIRA_URL`, `JIRA_EMAIL`, `JIRA_TOKEN` | unset -> tickets not checked (Jira Cloud API token, basic auth) |
+
+Agent binaries are looked up on PATH, then in `~/.local/bin`.
+
 ## Write guarantee
 
 Reads go through `api()`: HTTP GET only, and `ValueError` for any method outside `READ_METHODS`
@@ -277,6 +402,13 @@ Reads go through `api()`: HTTP GET only, and `ValueError` for any method outside
 goes through `api_write()`: POST, and `ValueError` for any method outside
 `WRITE_METHODS` = `{reactions.add}`, only when auto-react is enabled. It never posts, marks read,
 joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
+
+`review_spawn.py` makes no Slack calls; its only network use is `gh pr view` / `gh api user` and
+the optional Jira GET. What the spawned agent may do is limited by its own flags (see "Agents"):
+`claude` is held to the read-only tool allowlist; `omp` and `custom` agents only get the
+read-only rules as instructions in the brief (they may still use scratch files such as `/tmp`).
+Pick `claude` when enforced read-only matters.
+Covered by `tests/test_review_spawn.py`.
 
 ## Config
 
@@ -311,3 +443,8 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | Only one of several close pings got an emoji | Not a queue/timing bug (every new mention of a tick is processed oldest first); the others were skipped -- check their `Reacted:` line (`none (already reacted/replied)` = you had already handled it) | Expected; every ping now gets `:eyes:`, `:raised_hands:` or `:memo:` unless already handled. Run `classify()` on the text to check the emoji. |
 | Mention in a thread never alerts | History mode skips thread replies | Use the user token. |
 | Stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. |
+| A review continued the user's own latest omp session | omp `autoResume` on: `omp -p` resumes the last session in that directory | `review_spawn.py` passes `--config <SLACK_REVIEW_DIR>/omp-noresume.yml` (`autoResume: false`) and rewrites it on every spawn; check the dir is writable and the omp version honours `--config`. |
+| Claude review log shows permission denials | Headless claude only runs the allowlisted read-only tools; `--permission-mode default` denies the rest | Expected for writes and other commands; use `omp` or a `custom` command if the review needs more. |
+| Merged/approved PRs still get reviewed, or `review: failed (cannot start omp: ...)` | Cron runs with a minimal PATH, so `gh` or the agent is not found (checks fail open), or gh is not logged in for the gateway user | Set `SLACK_REVIEW_GH` to the full gh path; put the agent on the gateway's PATH or in `~/.local/bin`; run `gh auth status` as the gateway user. |
+| `review: failed (no session id within timeout ...)` | Agent slow to start (login prompt, update check) | Read the log path in the line; raise `SLACK_REVIEW_ID_TIMEOUT`. The agent is left running. |
+| `[slack-review] error: ValueError: ...` on stderr, digest without `review:` lines | `SLACK_REVIEW_AGENT` not omp/claude/custom, or `SLACK_REVIEW_WORKDIR` / `SLACK_REVIEW_CMD` missing | Fix `~/.hermes/.env`. |

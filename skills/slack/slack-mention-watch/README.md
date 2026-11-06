@@ -33,6 +33,13 @@ for each new mention while you're away. Python stdlib only.
   after the mention was posted (`SLACK_MENTION_REACT_DELAY_SECS`). Needs the user scope
   `reactions:write`; skipped if you already reacted to or replied to it; `--dry-run` previews it
   (rules and setup in `SKILL.md`).
+- Background review agent (opt-in): `scripts/review_spawn.py` wraps the digest; with
+  `SLACK_REVIEW_AGENT=omp|claude|custom` each new mention that names a GitHub PR (optionally a
+  ticket key) starts a detached, headless, read-only review session in `SLACK_REVIEW_WORKDIR`,
+  and the digest item gets a `review: <id> (...) -> cd <workdir> && <agent> --resume <id>` line.
+  Merged/closed/approved/already-reviewed PRs and thanks/FYI mentions are skipped; 24 h dedupe,
+  max 3 spawns per tick; `--dry-run` previews. Off = digest unchanged (setup interview, config
+  and skip rules in `SKILL.md`).
 
 ## System design
 
@@ -41,6 +48,7 @@ for each new mention while you're away. Python stdlib only.
 | Component | Where | Role |
 | --- | --- | --- |
 | `watch_mentions.py` | this skill, `scripts/` | Stdlib-only Slack client. Finds new mentions, dedupes, renders output; GET to an allowlisted read method, plus `reactions.add` when auto-react is on. |
+| `review_spawn.py` | this skill, `scripts/` | Opt-in digest wrapper: runs `watch_mentions.py --digest --react`, starts a read-only review agent per new PR mention, annotates the digest. No Slack calls. |
 | Cron wrapper(s) | `~/.hermes/scripts/slack_mention_{watch,digest}_cron.py` | Real files (cron rejects symlinks) that `runpy` the skill script; the digest wrapper injects `--digest` because cron passes no args. |
 | Hermes cron job | `~/.hermes/cron/jobs.json` | Runs the wrapper on a schedule (`every 5m`), optionally wakes an LLM, delivers to Slack. |
 | State file | `~/.hermes/scripts/.slack-mention-watch.json` (600) | `last_ts` high-water mark + last 500 `channel:ts` keys. No message text. |
