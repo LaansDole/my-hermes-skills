@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="color-scheme" content="light dark" />
+  <title>Changelog — my-hermes-skills</title>
+  <link rel="canonical" href="https://laansdole.github.io/my-hermes-skills/changelog.html" />
+  <link rel="preload" href="fonts/archivo-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <link rel="preload" href="fonts/source-serif-4-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin />
+  <style>
+    @font-face { font-family: "Archivo"; src: url("fonts/archivo-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-normal.woff2") format("woff2"); font-weight: 200 900; font-style: normal; font-display: swap; }
+    @font-face { font-family: "Source Serif 4"; src: url("fonts/source-serif-4-latin-wght-italic.woff2") format("woff2"); font-weight: 200 900; font-style: italic; font-display: swap; }
+    @font-face { font-family: "JetBrains Mono"; src: url("fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2"); font-weight: 400; font-style: normal; font-display: swap; }
+    :root, :root[data-theme="light"] {
+      color-scheme: light;
+      --ground: #f6f4ee; --ink: #17171b; --muted: #5d5a52;
+      --hair: #cfcabd; --tint: #ebe7dc; --keyline: #17171b;
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --ground: #141416; --ink: #ece9e0; --muted: #9a968b;
+      --hair: #38373a; --tint: #1e1e21; --keyline: #141416;
+    }
+    :root {
+      --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+      --serif: "Source Serif 4", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+      --pad: 48px;
+      --ease: cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { background: var(--ground); color: var(--ink);
+           scrollbar-color: var(--muted) var(--ground); -webkit-text-size-adjust: 100%; }
+    body { margin: 0; font: 400 17px/28px var(--serif); caret-color: var(--ink);
+           font-optical-sizing: auto; overflow-wrap: break-word; }
+    ::selection { background: #e8a33a; color: #17171b; }
+    a { color: inherit; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+    a:hover { text-decoration-thickness: 2px; }
+    :focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
+    code, pre { font-family: var(--mono); }
+    h1, h2, h3, h4 { text-wrap: balance; }
+    .sc { font-variant-caps: small-caps; font-variant-numeric: tabular-nums;
+          letter-spacing: 0.02em; }
+    .vh { position: absolute; width: 1px; height: 1px; overflow: hidden;
+          clip-path: inset(50%); white-space: nowrap; }
+    .skip { position: absolute; left: var(--pad); top: -80px; z-index: 10;
+            padding: 8px 16px; background: var(--ink); color: var(--ground);
+            font: 700 14px/20px var(--display); text-decoration: none; }
+    .skip:focus { top: 8px; }
+
+    .mast { padding: 32px var(--pad) 0; }
+    .mast-in { display: flex; flex-wrap: wrap; align-items: flex-end;
+               justify-content: space-between; gap: 16px 40px;
+               padding-bottom: 16px; border-bottom: 3px solid var(--ink); }
+    .mast-name { margin: 0; font: 900 88px/88px var(--display); letter-spacing: -0.035em; }
+    .mast-name a { text-decoration: none; }
+    .mast-compact .mast-name { font-size: 40px; line-height: 40px; letter-spacing: -0.03em; }
+    .nav ul { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 28px;
+              margin: 0; padding: 0; list-style: none; }
+    .nav a { display: block; padding: 8px 0 4px; border-bottom: 3px solid transparent;
+             font: 600 14px/20px var(--display); letter-spacing: 0.08em;
+             text-transform: uppercase; text-decoration: none; }
+    .nav a:hover { border-bottom-color: var(--muted); }
+    .nav a[aria-current] { font-weight: 800; border-bottom-color: var(--ink); }
+    .theme-toggle { display: grid; place-items: center; width: 40px; height: 40px;
+                    padding: 0; border: 2px solid var(--ink); border-radius: 0;
+                    background: none; color: var(--ink); cursor: pointer; }
+    .theme-toggle:hover { background: var(--ink); color: var(--ground); }
+    .theme-toggle svg { display: block; width: 20px; height: 20px; }
+    :root[data-theme="dark"] .i-moon, :root[data-theme="light"] .i-sun { display: none; }
+
+    .band { margin-top: 96px; padding: 0 var(--pad) 32px; }
+    .band ul { display: flex; flex-wrap: wrap; gap: 8px 32px; margin: 0;
+               padding: 16px 0 0; border-top: 3px solid var(--ink); list-style: none;
+               font: 500 14px/20px var(--display); }
+    .band code { font-size: 13px; }
+    .band-ed { margin-left: auto; font-weight: 700; }
+
+    @media (prefers-reduced-motion: no-preference) {
+      html { scroll-behavior: smooth; }
+    }
+    @media (max-width: 1100px) {
+      .mast-name { font-size: 64px; line-height: 64px; }
+    }
+    @media (max-width: 640px) {
+      :root { --pad: 16px; }
+      .mast { padding-top: 24px; }
+      .mast-name { font-size: 40px; line-height: 40px; }
+      .mast-compact .mast-name { font-size: 32px; line-height: 32px; }
+      .nav ul { gap: 4px 20px; }
+      .nav a { font-size: 13px; }
+      .band { margin-top: 64px; }
+      .band ul { flex-direction: column; }
+      .band-ed { margin-left: 0; }
+    }
+    .f-research { background: #e8a33a; color: #17171b; }
+    .f-productivity { background: #e2643f; color: #17171b; }
+    .f-coding-agents { background: #3a63b8; color: #ffffff; }
+    .f-design { background: #7a52b3; color: #ffffff; }
+    .f-slack { background: #4f9e63; color: #17171b; }
+    .f-unfiled { background: #d8d4c8; color: #17171b; }
+    :root[data-theme="dark"] .f-unfiled { background: #8f8a7e; }
+    .page-head { padding: 48px var(--pad) 0; }
+    .page-head h1 { margin: 0; font: 900 64px/64px var(--display); letter-spacing: -0.03em; }
+    .lede { margin: 16px 0 0; }
+    .compat { margin: 8px 0 0; color: var(--muted); }
+    .ledger { --cols: 112px minmax(0, 1fr) minmax(0, 1fr); margin-top: 48px; padding: 0 var(--pad); }
+    .ledger-head { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                   padding: 0 8px 8px; border-bottom: 3px solid var(--ink);
+                   font: 700 13px/20px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+    .month h2 { margin: 32px 0 0; padding: 0 8px 8px; border-bottom: 1px solid var(--ink);
+                font: 800 20px/24px var(--display); }
+    .rows { margin: 0; padding: 0; list-style: none; }
+    .report-row { display: grid; grid-template-columns: var(--cols); gap: 32px;
+                  padding: 12px 8px; border-bottom: 1px solid var(--hair);
+                  text-decoration: none; }
+    .report-row:hover { background: var(--tint); }
+    .report-row:hover .r-title { text-decoration: underline; text-decoration-thickness: 2px; }
+    .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
+    .r-title { font: 700 17px/24px var(--display); }
+    .r-title code { font: 400 15px/24px var(--mono); }
+    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-verdict code { font-size: 14px; }
+    @media (max-width: 640px) {
+      .page-head { padding-top: 32px; }
+      .page-head h1 { font-size: 40px; line-height: 40px; }
+      .ledger-head { display: none; }
+      .report-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    }
+    .cl { --cols: 112px minmax(0, 1fr) minmax(0, 2fr); }
+    .cl-row { display: grid; grid-template-columns: var(--cols); gap: 32px;
+              padding: 12px 8px; border-bottom: 1px solid var(--hair); scroll-margin-top: 24px; }
+    .cl-row:target { outline: 3px solid var(--ink); outline-offset: -3px; }
+    .cl-skill { margin: 0; font: 700 17px/24px var(--display); overflow-wrap: anywhere; }
+    .cl-skill a { text-decoration: none; }
+    .cl-skill a:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
+    .cl-skill .sc { display: block; font-weight: 600; font-size: 15px; color: var(--muted); }
+    .cl-changes { font-size: 15px; line-height: 24px; }
+    .cl-changes p, .cl-changes ul { margin: 0; }
+    .cl-changes ul { padding-left: 20px; list-style: square; }
+    .cl-changes * + p, .cl-changes * + ul { margin-top: 8px; }
+    .cl-changes code { font-size: 14px; }
+    .cl-kind { font: 800 13px/20px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+    @media (max-width: 640px) {
+      .cl-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    }
+  </style>
+  <script>
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (!t) {
+        var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+        t = m && m.matches ? "light" : "dark";
+      }
+      document.documentElement.setAttribute("data-theme", t);
+    })();
+  </script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="mast">
+  <div class="mast-in">
+    <p class="mast-name"><a href="index.html">my-<wbr>hermes-<wbr>skills</a></p>
+    <nav class="nav" aria-label="Site">
+      <ul>
+        <li><a href="index.html#chart">Chart</a></li>
+        <li><a href="index.html#entries">Entries</a></li>
+        <li><a href="index.html#a-z">Index A–Z</a></li>
+        <li><a href="reports.html">Reports</a></li>
+        <li><a href="changelog.html" aria-current="page">Changelog</a></li>
+        <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">GitHub</a></li>
+        <li><button id="theme-toggle" class="theme-toggle" type="button" aria-label="Toggle light/dark theme" title="Toggle light/dark theme"><span id="theme-icon" aria-hidden="true"><svg class="i-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"/></svg><svg class="i-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="miter"><path d="M20 14.5A8.5 8.5 0 0 1 9.5 4 8.5 8.5 0 1 0 20 14.5Z"/></svg></span></button></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+  <div class="page-head">
+    <h1>Changelog</h1>
+    <p class="lede">
+      18 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
+      Every push that bumps a version is also published as a
+      <a href="https://github.com/LaansDole/my-hermes-skills/releases" target="_blank" rel="noopener">GitHub release</a>.
+    </p>
+  </div>
+  <div class="ledger cl">
+    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Skill</span><span>Changes</span></div>
+    <section class="month" aria-labelledby="m-november-2026">
+      <h2 id="m-november-2026">November 2026</h2>
+      <ol class="rows">
+        <li class="cl-row" id="auditing-worktrees-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-auditing-worktrees">auditing-worktrees</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="camofox-browser-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-camofox-browser">camofox-browser</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="covidence-full-text-retrieval-1.2.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-covidence-full-text-retrieval">covidence-full-text-retrieval</a><span class="sc">v1.2.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="covidence-full-text-review-2.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-covidence-full-text-review">covidence-full-text-review</a><span class="sc">v2.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="covidence-screening-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-covidence-screening">covidence-screening</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="demo-runbook-0.1.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-demo-runbook">demo-runbook</a><span class="sc">v0.1.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="hermes-deepseek-cache-1.1.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-hermes-deepseek-cache">hermes-deepseek-cache</a><span class="sc">v1.1.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="ilearning-autoadvance-5.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-ilearning-autoadvance">ilearning-autoadvance</a><span class="sc">v5.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="impeccable-4.8.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-impeccable">impeccable</a><span class="sc">v4.8.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="multi-repo-pr-review-merge-round-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-multi-repo-pr-review-merge-round">multi-repo-pr-review-merge-round</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="oh-my-ghostty-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-oh-my-ghostty">oh-my-ghostty</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="sci-hub-access-1.1.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-sci-hub-access">sci-hub-access</a><span class="sc">v1.1.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="slack-mention-watch-2.6.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.6.0</span></p>
+          <div class="cl-changes"><p class="cl-kind">Added</p><ul><li>Opt-in Jev shadow mode (<code>SLACK_MENTION_JEV_SHADOW=1</code> + <code>TYPESAFE_API_KEY</code>): logs TypeSafe Jev's emoji verdict for each new mention to <code>~/.hermes/scripts/.slack-mention-jev.jsonl</code> beside the regex result. Sends mention and thread text to <code>api.typesafe.ai</code>; off by default; changes no output or reaction.</li></ul><p class="cl-kind">Changed</p><ul><li>Digest cron example uses <code>--reasoning-effort high</code>, not <code>max</code> (<code>max</code> was ~88% of the job's spend).</li></ul></div>
+        </li>
+        <li class="cl-row" id="slack-mention-watch-2.5.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.5.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="slack-scan-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-scan">slack-scan</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="superpowers-using-superpowers-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-superpowers-using-superpowers">superpowers-using-superpowers</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="tldr-1.1.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-tldr">tldr</a><span class="sc">v1.1.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+        <li class="cl-row" id="writing-reports-1.0.0">
+          <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-writing-reports">writing-reports</a><span class="sc">v1.0.0</span></p>
+          <div class="cl-changes"><ul><li>Initial tracked version.</li></ul></div>
+        </li>
+      </ol>
+    </section>
+  </div>
+</main>
+
+<footer class="band">
+  <ul>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/LICENSE" target="_blank" rel="noopener">MIT License</a></li>
+    <li><a href="https://github.com/LaansDole/my-hermes-skills" target="_blank" rel="noopener">LaansDole/my-hermes-skills</a></li>
+    <li>Generated from <code>skills/**/CHANGELOG.md</code></li>
+    <li><a href="https://hermes-agent.nousresearch.com" target="_blank" rel="noopener">Hermes Agent</a> by Nous Research</li>
+    <li class="band-ed sc">Edition 24 Oct 2026</li>
+  </ul>
+</footer>
+  <script>
+    (function () {
+      var root = document.documentElement;
+      var btn = document.getElementById("theme-toggle");
+      var stored = null;
+      try { stored = localStorage.getItem("theme"); } catch (e) {}
+      if (!btn) return;
+      function paint() {
+        var label = root.getAttribute("data-theme") === "light"
+          ? "Switch to dark theme" : "Switch to light theme";
+        btn.setAttribute("aria-label", label);
+        btn.title = label;
+      }
+      btn.addEventListener("click", function () {
+        var next = root.getAttribute("data-theme") === "light" ? "dark" : "light";
+        root.setAttribute("data-theme", next);
+        try { localStorage.setItem("theme", next); } catch (e) {}
+        paint();
+      });
+      paint();
+      var m = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)");
+      if (m && !stored) {
+        m.addEventListener("change", function (e) {
+          root.setAttribute("data-theme", e.matches ? "light" : "dark");
+          paint();
+        });
+      }
+    })();
+  </script>
+</body>
+</html>

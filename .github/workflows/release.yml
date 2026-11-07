@@ -1,0 +1,36 @@
+name: release-skills
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "skills/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-skills
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Collect changelog entries for bumped skills
+        if: github.event.before != '0000000000000000000000000000000000000000'
+        run: python3 scripts/release_notes.py "${{ github.event.before }}" > notes.md
+
+      - name: Create release
+        if: hashFiles('notes.md') != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ ! -s notes.md ]; then echo "no skill version bumped"; exit 0; fi
+          tag="skills-$(date -u +%F)"; base="$tag"; n=1
+          while gh release view "$tag" >/dev/null 2>&1; do n=$((n+1)); tag="$base.$n"; done
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md

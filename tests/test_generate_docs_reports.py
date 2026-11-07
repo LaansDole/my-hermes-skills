@@ -451,5 +451,29 @@ class ChartTests(unittest.TestCase):
             ["name", "version", "description", "category", "path", "url"]))
 
 
+class ChangelogTests(unittest.TestCase):
+    """docs/changelog.html: dated sections only, newest first, bullets rendered."""
+
+    def test_dated_sections_sorted_and_rendered(self):
+        with tempfile.TemporaryDirectory() as d:
+            for name, text in (
+                    ("a", "# x\n\n## [Unreleased]\n\n- wip\n\n## [1.1.0] - 2026-11-02\n\n"
+                          "### Fixed\n- one `x`\n  continued\n\n## [1.0.0] - 2026-10-01\n\n- old\n"),
+                    ("b", "## [2.0.0] - 2026-11-02\n\nPlain note.\n")):
+                (Path(d) / name).mkdir()
+                (Path(d) / name / "CHANGELOG.md").write_text(text)
+            old = gd.REPO
+            gd.REPO = Path(d)
+            try:
+                entries = gd.find_changelog([{"name": n, "rel_dir": n} for n in ("b", "a")])
+            finally:
+                gd.REPO = old
+        self.assertEqual([(e["name"], e["version"]) for e in entries],
+                         [("a", "1.1.0"), ("b", "2.0.0"), ("a", "1.0.0")])
+        self.assertEqual(gd.changes_html(entries[0]["lines"]),
+                         '<p class="cl-kind">Fixed</p><ul><li>one <code>x</code> continued</li></ul>')
+        self.assertEqual(gd.changes_html(entries[1]["lines"]), "<p>Plain note.</p>")
+
+
 if __name__ == "__main__":
     unittest.main()

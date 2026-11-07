@@ -272,13 +272,16 @@ The theme toggle is the only button.
 - **Hover:** inverts to an ink fill with ground-coloured icon. **Focus:** global 3px ink outline.
 
 ### Navigation
-Uppercase tracked Archivo labels (Chart, Entries, Index A–Z, Reports, GitHub) right-aligned against the masthead name, which sits on a 3px ink rule. A 3px bottom border marks state: muted on hover, ink plus weight 800 on the current page. On mobile the row wraps at 13px.
+Uppercase tracked Archivo labels (Chart, Entries, Index A–Z, Reports, Changelog, GitHub) right-aligned against the masthead name, which sits on a 3px ink rule. A 3px bottom border marks state: muted on hover, ink plus weight 800 on the current page. On mobile the row wraps at 13px.
 
 ### Handbook Entry
 A 64px mini cell (number and 28px symbol on the family fill) beside the entry name and a muted meta line (family, small-caps version, parent link); the body holds the serif description, small-caps "Tags" line, and bold SKILL.md / Source links with the mono path. A targeted entry gets a 3px ink outline around its mini cell. Family sections open with a full-width fill band carrying the name and count.
 
 ### Report Ledger Row
 The whole row is the link: small-caps date, bold Archivo title, muted serif verdict excerpt, hairline below. Hover adds the tint and a 2px title underline.
+
+### Changelog Ledger Row
+The report ledger's grid with a wider third column (112px date, skill, 2fr changes), on `changelog.html`. Rows are not links: the skill name links to its handbook entry, with a muted small-caps version below it. Changes are 15px serif square-bulleted lists, and Keep a Changelog `### Added`/`### Fixed` kinds become uppercase Archivo labels. Each row is anchored `#<skill>-<version>`, and the targeted row gets a 3px ink outline. Achromatic, like every ledger.
 
 ### Report Reader
 Achromatic long-form page: a metadata table under the title (small-caps labels in a 144px hanging column, ink rules above and below), auto TOC in two columns under a 3px rule, h2s on 3px rules, booktabs-style tables (2px ink top and bottom, 1px under headers, hairline rows), tint code blocks, an italic blockquote on a 1px ink rule, and a three-column Older / All reports / Newer pager.

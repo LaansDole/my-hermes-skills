@@ -22,8 +22,8 @@ A working personal toolkit published as is: every skill is one someone uses day 
 
 ## Operating Context
 
-- The site is build output. `scripts/generate_docs.py` regenerates every page from `skills/**/SKILL.md` frontmatter and `reports/YYYY-MM/*.md` on each push via the GitHub Pages workflow. Pages are never hand-edited.
-- Pages: skills catalog (`index.html`), reports catalog (`reports.html`), a compatibility redirect (`daily-news.html`), and one reader page per report (`reports/YYYY-MM/<slug>.html`).
+- The site is build output. `scripts/generate_docs.py` regenerates every page from `skills/**/SKILL.md` frontmatter, `skills/**/CHANGELOG.md` and `reports/YYYY-MM/*.md` on each push via the GitHub Pages workflow. Pages are never hand-edited.
+- Pages: skills catalog (`index.html`), reports catalog (`reports.html`), skill changelog ledger (`changelog.html`), a compatibility redirect (`daily-news.html`), and one reader page per report (`reports/YYYY-MM/<slug>.html`).
 - Skills are grouped into sections by top-level folder (Research, Productivity, Coding Agents, Design, Slack); nested skills render as children of their parent.
 
 ## Capabilities and Constraints

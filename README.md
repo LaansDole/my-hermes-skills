@@ -27,6 +27,10 @@ Browser-automation skills may need the auto-approvals in [`.hermes-config/config
 
 Vendored third-party skills keep their upstream license: [impeccable](skills/creative/impeccable/README.md) (pbakaus/impeccable, Apache 2.0), [i-have-adhd](skills/productivity/i-have-adhd/SKILL.md) (ayghri/i-have-adhd, MIT), and superpowers (derived from obra/superpowers via Labhund/hermes-superpowers).
 
+### Changelogs and releases
+
+Each versioned skill keeps a `CHANGELOG.md` next to its `SKILL.md`. When you change a skill, bump `version:` in its frontmatter and add a matching `## [x.y.z] - YYYY-MM-DD` section. On push to `main`, [`release.yml`](.github/workflows/release.yml) runs `scripts/release_notes.py`, collects the sections for every bumped skill and publishes one GitHub Release (`skills-YYYY-MM-DD`, `.2`, `.3` … for later pushes that day). A bump without a matching section fails the workflow; check locally with `python3 scripts/release_notes.py origin/main`. Every dated section across all skills is also listed, newest first, on the site's [Changelog](https://laansdole.github.io/my-hermes-skills/changelog.html) page.
+
 ## Plugins
 
 Symlink into `~/.hermes/plugins/`, then `hermes plugins enable <name>`.

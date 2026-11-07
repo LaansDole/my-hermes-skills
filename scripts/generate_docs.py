@@ -478,7 +478,8 @@ def masthead(root: str, current: str, home: bool = False, compact: bool = False)
     """Name + nav. root: prefix back to docs/; current: nav label to mark."""
     index = "" if home else f"{root}index.html"
     items = [("Chart", f"{index}#chart"), ("Entries", f"{index}#entries"),
-             ("Index A–Z", f"{index}#a-z"), ("Reports", f"{root}reports.html")]
+             ("Index A–Z", f"{index}#a-z"), ("Reports", f"{root}reports.html"),
+             ("Changelog", f"{root}changelog.html")]
     cur = ' aria-current="page"'
     links = "".join(
         f'\n        <li><a href="{href}"{cur if label == current else ""}>{label}</a></li>'
@@ -1255,6 +1256,135 @@ def write_report_indexes(reports: list, edition: str) -> None:
     print(f"wrote {docs / 'reports.html'} + daily-news.html ({len(reports)} reports)")
 
 
+# ---------------------------------------------------------------------------
+# Changelog: every dated `## [x.y.z] - YYYY-MM-DD` section of skills/**/CHANGELOG.md
+# ---------------------------------------------------------------------------
+
+CHANGELOG_HEAD = re.compile(r"^## \[([^\]]+)\]\s*-\s*(\d{4}-\d{2}-\d{2})\s*$")
+
+
+def find_changelog(skills: list) -> list:
+    """One entry per dated version section, newest first, then by skill name.
+
+    Undated sections (e.g. `## [Unreleased]`) are not published.
+    """
+    out = []
+    for s in skills:
+        p = REPO / s["rel_dir"] / "CHANGELOG.md"
+        if not p.exists():
+            continue
+        cur = None
+        for line in p.read_text().splitlines():
+            m = CHANGELOG_HEAD.match(line)
+            if m:
+                cur = {"name": s["name"], "version": m[1], "date": m[2], "lines": []}
+                out.append(cur)
+            elif line.startswith("## "):
+                cur = None
+            elif cur is not None:
+                cur["lines"].append(line)
+    out.sort(key=lambda e: e["name"])
+    out.sort(key=lambda e: e["date"], reverse=True)
+    return out
+
+
+def changes_html(lines: list) -> str:
+    """Bullets (with indented continuations), `### Kind` labels, and plain paragraphs."""
+    out, items = [], []
+
+    def flush():
+        if items:
+            out.append("<ul>" + "".join(f"<li>{inline_md(i)}</li>" for i in items) + "</ul>")
+            items.clear()
+
+    for line in lines:
+        t = line.strip()
+        if not t:
+            continue
+        if t.startswith(("- ", "* ")):
+            items.append(t[2:])
+        elif items and line[:1] in (" ", "\t"):
+            items[-1] += " " + t
+        elif t.startswith("### "):
+            flush()
+            out.append(f'<p class="cl-kind">{inline_md(t[4:])}</p>')
+        else:
+            flush()
+            out.append(f"<p>{inline_md(t)}</p>")
+    flush()
+    return "".join(out)
+
+
+def changelog_row_html(e: dict) -> str:
+    name, ver = html.escape(e["name"]), html.escape(e["version"])
+    return f"""        <li class="cl-row" id="{name}-{ver}">
+          <time class="r-date sc" datetime="{e["date"]}">{short_date(e["date"])}</time>
+          <p class="cl-skill"><a href="index.html#entry-{name}">{name}</a><span class="sc">v{ver}</span></p>
+          <div class="cl-changes">{changes_html(e["lines"])}</div>
+        </li>"""
+
+
+CHANGELOG_CSS = REPORTS_CSS + """
+    .cl { --cols: 112px minmax(0, 1fr) minmax(0, 2fr); }
+    .cl-row { display: grid; grid-template-columns: var(--cols); gap: 32px;
+              padding: 12px 8px; border-bottom: 1px solid var(--hair); scroll-margin-top: 24px; }
+    .cl-row:target { outline: 3px solid var(--ink); outline-offset: -3px; }
+    .cl-skill { margin: 0; font: 700 17px/24px var(--display); overflow-wrap: anywhere; }
+    .cl-skill a { text-decoration: none; }
+    .cl-skill a:hover { text-decoration: underline 2px; text-underline-offset: 4px; }
+    .cl-skill .sc { display: block; font-weight: 600; font-size: 15px; color: var(--muted); }
+    .cl-changes { font-size: 15px; line-height: 24px; }
+    .cl-changes p, .cl-changes ul { margin: 0; }
+    .cl-changes ul { padding-left: 20px; list-style: square; }
+    .cl-changes * + p, .cl-changes * + ul { margin-top: 8px; }
+    .cl-changes code { font-size: 14px; }
+    .cl-kind { font: 800 13px/20px var(--display); letter-spacing: 0.08em; text-transform: uppercase; }
+    @media (max-width: 640px) {
+      .cl-row { grid-template-columns: minmax(0, 1fr); gap: 4px; }
+    }"""
+
+
+def changelog_html(entries: list, edition: str) -> str:
+    if not entries:
+        ledger = '    <p class="lede">No changelog entries yet.</p>'
+    else:
+        months = {}
+        for e in entries:
+            months.setdefault(month_label(e["date"]), []).append(e)
+        groups = "\n".join(
+            f"""    <section class="month" aria-labelledby="m-{slugify(m)}">
+      <h2 id="m-{slugify(m)}">{m}</h2>
+      <ol class="rows">
+{chr(10).join(changelog_row_html(e) for e in es)}
+      </ol>
+    </section>""" for m, es in months.items())
+        ledger = f"""    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Skill</span><span>Changes</span></div>
+{groups}"""
+    n, k = len(entries), len({e["name"] for e in entries})
+    count = (f"{n} {'entry' if n == 1 else 'entries'} across "
+             f"{k} {'skill' if k == 1 else 'skills'}")
+    body = f"""{masthead("", "Changelog")}
+
+<main id="main">
+  <div class="page-head">
+    <h1>Changelog</h1>
+    <p class="lede">
+      {count}, newest first, from each skill's <code>CHANGELOG.md</code>.
+      Every push that bumps a version is also published as a
+      <a href="{GH}/releases" target="_blank" rel="noopener">GitHub release</a>.
+    </p>
+  </div>
+  <div class="ledger cl">
+{ledger}
+  </div>
+</main>
+
+{foot_band("Generated from <code>skills/**/CHANGELOG.md</code>", edition)}"""
+    return page_html(title="Changelog — my-hermes-skills", root="", css=CHANGELOG_CSS, body=body,
+                     canonical="https://laansdole.github.io/my-hermes-skills/changelog.html")
+
+
+
 def main() -> int:
     skills = find_skills()
     if not skills:
@@ -1265,6 +1395,9 @@ def main() -> int:
     edition = edition_date(reports)
     write_report_pages(reports, edition)
     write_report_indexes(reports, edition)
+    entries = find_changelog(skills)
+    (REPO / "docs" / "changelog.html").write_text(changelog_html(entries, edition))
+    print(f"wrote docs/changelog.html ({len(entries)} entries)")
 
     if "--json" in sys.argv:
         manifest = manifest_json(skills)
