@@ -334,9 +334,9 @@ def digest_text(text, name):
     return render_text(text, name, THREAD_TEXT_MAX, unescape=True).replace("\n", "\n    ")
 
 
-def digest(new, name, token, uid, reacted=None):
+def digest(new, name, token, uid, reacted=None, threads=None):
     """Plain-text context block for the cron agent, oldest mention first."""
-    items = []
+    items, threads = [], threads or {}
     for m in new:
         head = [f"### Mention {len(items) + 1} -- {m['channel']} -- from {sender_of(m, name)}"
                 f" at {when(m['ts'])}"]
@@ -344,10 +344,11 @@ def digest(new, name, token, uid, reacted=None):
         if link:
             head.append(f"Permalink: {link}")
         head.append("Mention: " + digest_text(m["text"], name))
-        status = (reacted or {}).get(f"{m['channel_id']}:{m['ts']}")
+        key = f"{m['channel_id']}:{m['ts']}"
+        status = (reacted or {}).get(key)
         if status:
             head.append(f"Reacted: {status}")
-        items.append((head, thread(m, token, name)))
+        items.append((head, threads[key] if key in threads else thread(m, token, name)))
 
     now = datetime.now().astimezone()
     z = now.strftime("%z")
@@ -488,15 +489,17 @@ def jev_emoji(p):
 
 
 def jev_shadow(new, token, uid, name, reacted, dry_run=False):
-    """Log Jev's scores beside the regex result for each new mention; never raises, no stdout."""
+    """Log Jev's scores beside the regex result for each new mention; no stdout.
+    Returns {channel:ts -> thread()} so digest() can reuse them instead of refetching."""
+    threads = {}
     key = env("TYPESAFE_API_KEY")
     if not key or (env("SLACK_MENTION_JEV_SHADOW") or "").lower() not in ("1", "true", "yes"):
-        return
+        return threads
     log = _path("SLACK_MENTION_JEV_LOG", "~/.hermes/scripts/.slack-mention-jev.jsonl")
     for m in new:
         mkey = f"{m['channel_id']}:{m['ts']}"
         plain = " ".join(MARKUP_RE.sub(" ", m["text"] or "").split())
-        t = thread(m, token, name)
+        t = threads[mkey] = thread(m, token, name)
         state = {"watched_user": f"@{name(uid)}", "mention": plain,
                  "thread": t if isinstance(t, str) else [line for _, line in t]}
         row = {"logged_at": time.time(), "key": mkey, "permalink": m["permalink"],
@@ -506,19 +509,20 @@ def jev_shadow(new, token, uid, name, reacted, dry_run=False):
         t0 = time.monotonic()
         try:
             data = jev(state, key)
-            p = {k: round(float(data["answers"][k]["noul"]), 4) for k in JEV_Q}
-            row.update(jev_model=data.get("model"), p=p, jev_emoji=jev_emoji(p))
-        except urllib.error.HTTPError as e:
-            if e.code in (401, 403):
-                print(f"{TAG} jev shadow: auth rejected (HTTP {e.code})", file=sys.stderr)
-                return
-            row["error"] = f"HTTP {e.code}"
-        except urllib.error.URLError as e:
-            row["error"] = str(e.reason)[:200]
-        except (OSError, ValueError, KeyError, TypeError) as e:  # timeout, bad JSON/shape
-            row["error"] = f"{type(e).__name__}: {e}"[:200]
-        row["ms"] = int((time.monotonic() - t0) * 1000)
-        line = json.dumps(row, ensure_ascii=False)
+            raw = {k: float(data["answers"][k]["noul"]) for k in JEV_Q}
+            row.update(jev_model=data.get("model"), p={k: round(v, 4) for k, v in raw.items()},
+                       jev_emoji=jev_emoji(raw), ms=int((time.monotonic() - t0) * 1000))
+            line = json.dumps(row, ensure_ascii=False, allow_nan=False)
+        except Exception as e:
+            code = getattr(e, "code", None) if isinstance(e, urllib.error.HTTPError) else None
+            if code in (401, 403):
+                print(f"{TAG} jev shadow: auth rejected (HTTP {code})", file=sys.stderr)
+                return threads
+            # Only the type name: str(e) can echo request headers, i.e. the key.
+            row.update(jev_model=None, p=None, jev_emoji=None,
+                       ms=int((time.monotonic() - t0) * 1000),
+                       error=type(e).__name__ + (f" {code}" if code else ""))
+            line = json.dumps(row, ensure_ascii=False)
         if dry_run:
             print(f"{TAG} {line}", file=sys.stderr)
             continue
@@ -527,7 +531,8 @@ def jev_shadow(new, token, uid, name, reacted, dry_run=False):
             with os.fdopen(os.open(log, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600), "a") as f:
                 f.write(line + "\n")
         except OSError as e:
-            print(f"{TAG} jev shadow: log write failed: {e}", file=sys.stderr)
+            print(f"{TAG} jev shadow: log write failed: {type(e).__name__}", file=sys.stderr)
+    return threads
 
 
 def ignored_users(bot_tok):
@@ -590,9 +595,13 @@ def run(dry_run=False, as_digest=False, do_react=False):
     if new and mode == "search" and react_enabled(do_react):
         reacted = react(new, env("SLACK_USER_REACT_TOKEN") or token, uid, dry_run)
     name = Names(bot_tok or token, uid)  # bot token has users:read; user token usually not
-    jev_shadow(new, token, uid, name, reacted, dry_run)
+    threads = {}
+    try:  # shadow mode is observation only: it must never cost a tick or its state
+        threads = jev_shadow(new, token, uid, name, reacted, dry_run)
+    except Exception as e:
+        print(f"{TAG} jev shadow failed: {type(e).__name__}", file=sys.stderr)
     if as_digest:
-        out = digest(new, name, token, uid, reacted) if new else WAKE_FALSE
+        out = digest(new, name, token, uid, reacted, threads) if new else WAKE_FALSE
     else:
         out = "\n\n".join(fmt(m, name, token, reacted.get(f"{m['channel_id']}:{m['ts']}"))
                           for m in new)

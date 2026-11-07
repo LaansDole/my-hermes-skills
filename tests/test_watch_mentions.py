@@ -993,10 +993,55 @@ class JevShadow(Base):
     def test_policy(self):
         for (r, t, f), want in (((0.95, 0, 0), "eyes"), ((0.5, 0.95, 0), "raised_hands"),
                                 ((0.1, 0.1, 0.92), "memo"), ((0.6, 0.3, 0.5), None),
-                                ((0.9, 0, 0), "eyes"), ((0, 0, 0.9), "memo")):
+                                ((0.9, 0, 0), "eyes"), ((0, 0, 0.9), "memo"),
+                                ((0.95, 0.95, 0), "eyes"), ((0.89, 0, 0), None)):
             with self.subTest(p=(r, t, f)):
                 self.assertEqual(wm.jev_emoji({"request": r, "thanks": t, "fyi": f,
                                                "handled": 0.5}), want)
+
+    def test_policy_uses_raw_scores_and_logs_rounded(self):
+        self.on()
+        self.tick(self.fake(jev=jev_payload(request=0.89996)))
+        [row] = self.rows()
+        self.assertEqual((row["p"]["request"], row["jev_emoji"]), (0.9, None))
+
+    def test_nan_score_is_an_error_row(self):
+        self.on()
+        self.tick(self.fake(jev=jev_payload(request=float("nan"))))
+        [row] = self.rows()
+        self.assertTrue(row["error"])
+        self.assertEqual((row["p"], row["jev_model"], row["jev_emoji"]), (None,) * 3)
+
+    def test_error_row_never_contains_the_key(self):
+        os.environ.update(SLACK_MENTION_JEV_SHADOW="1", TYPESAFE_API_KEY="ts-se\ncret")
+        # what http.client raises for a header value with a newline
+        fake = self.fake(jev=lambda req: ValueError(
+            f"Invalid header value {req.headers['Authorization']!r}"))
+        _, err = self.tick(fake)
+        [row] = self.rows()
+        self.assertEqual(row["error"], "ValueError")
+        self.assertNotIn("ts-se", self.log.read_text())
+        self.assertNotIn("ts-se", err)
+
+    def test_shadow_crash_never_breaks_the_tick(self):
+        plain, _ = self.tick(self.fake())
+        self.on()
+        self.write_state("1000.000000", [])
+        err = io.StringIO()
+        with mock.patch.object(wm, "thread", side_effect=OSError("boom")), redirect_stderr(err):
+            code, out = self.run_main(self.fake())
+        self.assertEqual((code, out), (0, plain))
+        self.assertEqual(self.read_state()["seen"], ["C1:2000.1"])
+        self.assertEqual(err.getvalue().splitlines(),
+                         ["[slack-mention-watch] jev shadow failed: OSError"])
+
+    def test_digest_reuses_the_shadow_thread(self):
+        self.on()
+        fake = self.fake(n=2)
+        out, _ = self.tick(fake, "--digest")
+        self.assertEqual(fake.methods().count("conversations.replies"), 2)
+        self.assertEqual(out.count("Thread ("), 2)
+        self.assertEqual(len(self.rows()), 2)
 
     def test_jev_failure_logs_error_row_and_tick_continues(self):
         for err in (urllib.error.HTTPError("u", 500, "boom", None, None),
@@ -1014,13 +1059,15 @@ class JevShadow(Base):
                 self.assertEqual((row["p"], row["jev_model"], row["jev_emoji"]), (None,) * 3)
 
     def test_auth_rejected_stops_calling_jev(self):
-        self.on()
-        fake = self.fake(jev=urllib.error.HTTPError("u", 401, "no", None, None), n=2)
-        _, err = self.tick(fake)
-        self.assertEqual(len(self.jev_reqs(fake)), 1)
-        self.assertEqual(err.strip().splitlines(),
-                         ["[slack-mention-watch] jev shadow: auth rejected (HTTP 401)"])
-        self.assertFalse(self.log.exists() and self.log.read_text())
+        for code in (401, 403):
+            with self.subTest(code=code):
+                self.on()
+                fake = self.fake(jev=urllib.error.HTTPError("u", code, "no", None, None), n=2)
+                _, err = self.tick(fake)
+                self.assertEqual(len(self.jev_reqs(fake)), 1)
+                self.assertEqual(err.strip().splitlines(),
+                                 [f"[slack-mention-watch] jev shadow: auth rejected (HTTP {code})"])
+                self.assertFalse(self.log.exists())
 
     def test_dry_run_rows_go_to_stderr(self):
         self.on()
