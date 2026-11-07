@@ -78,6 +78,13 @@ shutdown; `kill -9` loses un-checkpointed cookies.
   that block curl (e.g. reddit) from inside an agent turn.
 
 ## Pitfalls
+- `/health` says `"ok":true` even when the Camoufox BINARY is gone; web_search then fails with
+  "Version information not found at ~/Library/Caches/camoufox/version.json". Cause on this Mac: Mole
+  (`mo clean`) sweeps ~/Library/Caches (check ~/Library/Logs/mole/operations.log for `REMOVED .../camoufox`).
+  Fix: the failed request triggers a background re-download (~1.3 GB, about 1 min; watch ~/.camofox/server.log
+  for "Camoufox successfully installed"), then retry. Prevention: `~/Library/Caches/camoufox*` is in
+  ~/.config/mole/whitelist. A user whitelist file REPLACES Mole's defaults, so keep the default rows in it.
+  Upstream: tw93/Mole#1941. The first Cloudflare test after a fresh download can fail; retry once.
 - `camofox status` right after bootstrap/restart may need its 15s wait; "server down" within seconds of start is normal.
 - Revert to Chromium: `hermes config set browser.cloud_provider local`.
 - A CDP override (BROWSER_CDP_URL / browser.cdp_url / /browser connect) wins over Camofox.
