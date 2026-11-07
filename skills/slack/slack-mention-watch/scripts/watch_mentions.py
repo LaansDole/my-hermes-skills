@@ -12,6 +12,9 @@ Modes (auto-selected):
 Write guarantee: reads go through api() -- HTTP GET to READ_METHODS only, raising
 on anything else. The one write is opt-in (--react / SLACK_MENTION_REACT) and goes
 through api_write(), which POSTs only WRITE_METHODS ({"reactions.add"}).
+Jev shadow mode (SLACK_MENTION_JEV_SHADOW) sends each new mention's text and thread to
+api.typesafe.ai, a third party, so it is opt-in. It only logs Jev's probabilities beside
+the regex result; nothing acts on them and stdout is unchanged.
 
 Env (process env first, then the dotenv file -- Hermes strips SLACK_* from
 subprocess env, so the file is the real source):
@@ -28,6 +31,9 @@ subprocess env, so the file is the real source):
   SLACK_MENTION_LOOKBACK_MINS first-run lookback, default 60
   SLACK_MENTION_STATE_FILE   default ~/.hermes/scripts/.slack-mention-watch.json
   HERMES_DOTENV              default ~/.hermes/.env
+  SLACK_MENTION_JEV_SHADOW   1/true/yes = log Jev scores per new mention (needs TYPESAFE_API_KEY)
+  SLACK_MENTION_JEV_LOG      default ~/.hermes/scripts/.slack-mention-jev.jsonl
+  TYPESAFE_API_KEY           Jev API key, shadow mode only
 
 Flags: --dry-run (don't save state), --check (diagnostics, no state),
        --recent [HOURS] (list all mentions in the last HOURS, default 24; ignores
@@ -69,6 +75,14 @@ THREAD_MAX = 20     # messages of thread context per mention
 THREAD_TEXT_MAX = 600
 DIGEST_MAX = 12000  # chars; oldest thread lines dropped first, mentions always kept
 WAKE_FALSE = '{"wakeAgent": false}'
+JEV_URL = "https://api.typesafe.ai/v1/systemone"
+JEV_HI = 0.9  # ponytail: placeholder band until the shadow log says where to cut
+JEV_Q = {k: {"type": "noul", "instructions": q} for k, q in {
+    "request": "Does the mention ask the watched user to do something, answer a question, or take an action (including implicitly, e.g. someone is blocked on them)?",
+    "thanks": "Is the mention mainly thanking or appreciating the watched user?",
+    "fyi": "Is the mention only informing the watched user (status, FYI, done, merged, approved) with nothing for them to do?",
+    "handled": "Based on the thread, has the watched user already committed to or handled this, or is it already resolved, so no further action is needed from them?",
+}.items()}
 
 
 class SlackError(Exception):
@@ -456,6 +470,66 @@ def react(new, token, uid, dry_run=False):
     return out
 
 
+def jev(state, key):
+    """One Jev call. Not api()/_send: those are Slack-only allowlists."""
+    body = json.dumps({"state": state, "model": "jev-latest", "questions": JEV_Q}).encode()
+    req = urllib.request.Request(JEV_URL, data=body, method="POST", headers={
+        "Authorization": f"Bearer {key}", "Content-Type": "application/json"})
+    with urlopen(req, timeout=15) as resp:
+        return json.loads(resp.read().decode("utf-8"))
+
+
+def jev_emoji(p):
+    """Shadow policy, same order as classify(); None = Jev unsure, regex decides."""
+    for q, emoji in (("request", "eyes"), ("thanks", "raised_hands"), ("fyi", "memo")):
+        if p[q] >= JEV_HI:
+            return emoji
+    return None
+
+
+def jev_shadow(new, token, uid, name, reacted, dry_run=False):
+    """Log Jev's scores beside the regex result for each new mention; never raises, no stdout."""
+    key = env("TYPESAFE_API_KEY")
+    if not key or (env("SLACK_MENTION_JEV_SHADOW") or "").lower() not in ("1", "true", "yes"):
+        return
+    log = _path("SLACK_MENTION_JEV_LOG", "~/.hermes/scripts/.slack-mention-jev.jsonl")
+    for m in new:
+        mkey = f"{m['channel_id']}:{m['ts']}"
+        plain = " ".join(MARKUP_RE.sub(" ", m["text"] or "").split())
+        t = thread(m, token, name)
+        state = {"watched_user": f"@{name(uid)}", "mention": plain,
+                 "thread": t if isinstance(t, str) else [line for _, line in t]}
+        row = {"logged_at": time.time(), "key": mkey, "permalink": m["permalink"],
+               "mention": plain, "regex_emoji": classify(m["text"]),
+               "react_status": reacted.get(mkey), "jev_model": None, "p": None,
+               "jev_emoji": None, "ms": 0, "error": None}
+        t0 = time.monotonic()
+        try:
+            data = jev(state, key)
+            p = {k: round(float(data["answers"][k]["noul"]), 4) for k in JEV_Q}
+            row.update(jev_model=data.get("model"), p=p, jev_emoji=jev_emoji(p))
+        except urllib.error.HTTPError as e:
+            if e.code in (401, 403):
+                print(f"{TAG} jev shadow: auth rejected (HTTP {e.code})", file=sys.stderr)
+                return
+            row["error"] = f"HTTP {e.code}"
+        except urllib.error.URLError as e:
+            row["error"] = str(e.reason)[:200]
+        except (OSError, ValueError, KeyError, TypeError) as e:  # timeout, bad JSON/shape
+            row["error"] = f"{type(e).__name__}: {e}"[:200]
+        row["ms"] = int((time.monotonic() - t0) * 1000)
+        line = json.dumps(row, ensure_ascii=False)
+        if dry_run:
+            print(f"{TAG} {line}", file=sys.stderr)
+            continue
+        try:
+            os.makedirs(os.path.dirname(log) or ".", exist_ok=True)
+            with os.fdopen(os.open(log, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600), "a") as f:
+                f.write(line + "\n")
+        except OSError as e:
+            print(f"{TAG} jev shadow: log write failed: {e}", file=sys.stderr)
+
+
 def ignored_users(bot_tok):
     ids = {u.strip() for u in (env("SLACK_MENTION_IGNORE_USERS") or "").split(",") if u.strip()}
     if bot_tok:
@@ -516,6 +590,7 @@ def run(dry_run=False, as_digest=False, do_react=False):
     if new and mode == "search" and react_enabled(do_react):
         reacted = react(new, env("SLACK_USER_REACT_TOKEN") or token, uid, dry_run)
     name = Names(bot_tok or token, uid)  # bot token has users:read; user token usually not
+    jev_shadow(new, token, uid, name, reacted, dry_run)
     if as_digest:
         out = digest(new, name, token, uid, reacted) if new else WAKE_FALSE
     else:

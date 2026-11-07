@@ -910,5 +910,126 @@ class ReactDelay(Base):
         self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
 
 
+JEV_P = {"request": 0.95, "thanks": 0.01, "fyi": 0.02, "handled": 0.3}
+
+
+def jev_payload(**p):
+    return {"model": "jev-1.13.0", "answers": {k: {"noul": v} for k, v in {**JEV_P, **p}.items()}}
+
+
+class JevShadow(Base):
+    def setUp(self):
+        super().setUp()
+        self.log = Path(self.tmp.name) / "jev.jsonl"
+        os.environ["SLACK_MENTION_JEV_LOG"] = str(self.log)
+
+    def on(self):
+        os.environ.update(SLACK_MENTION_JEV_SHADOW="1", TYPESAFE_API_KEY="ts-secret")
+
+    def fake(self, jev=None, n=1):
+        return FakeSlack({
+            "search.messages": search_payload(*[match(f"{2000 + i}.1", text=React.ASK)
+                                                for i in range(n)]),
+            "users.info": React.NAMES,
+            "conversations.replies": replies_route([{"ts": "2000.1", "user": "U1CAROL",
+                                                     "text": "re"}]),
+            "reactions.add": {"ok": True},
+            "systemone": jev_payload() if jev is None else jev,
+        })
+
+    def jev_reqs(self, fake):
+        return [r for r in fake.requests if "api.typesafe.ai" in r.full_url]
+
+    def tick(self, fake, *argv):
+        self.write_state("1000.000000", [])
+        err = io.StringIO()
+        with redirect_stderr(err):
+            _, out = self.run_main(fake, *argv)
+        return out, err.getvalue()
+
+    def rows(self):
+        return [json.loads(line) for line in self.log.read_text().splitlines()]
+
+    def test_inactive_without_flag_or_key(self):
+        for env in ({"TYPESAFE_API_KEY": "ts-secret"}, {"SLACK_MENTION_JEV_SHADOW": "1"}):
+            with self.subTest(env=env), mock.patch.dict(os.environ, env):
+                fake = self.fake()
+                _, err = self.tick(fake, "--react")
+                self.assertEqual(self.jev_reqs(fake), [])
+                self.assertFalse(self.log.exists())
+                self.assertEqual(err, "")
+
+    def test_active_logs_one_row_per_mention_and_keeps_stdout(self):
+        plain, _ = self.tick(self.fake(), "--react")
+        self.on()
+        fake = self.fake()
+        out, _ = self.tick(fake, "--react")
+        self.assertEqual(out, plain)
+        [req] = self.jev_reqs(fake)
+        self.assertEqual(req.full_url, "https://api.typesafe.ai/v1/systemone")
+        self.assertEqual(req.get_method(), "POST")
+        self.assertEqual(req.headers["Authorization"], "Bearer ts-secret")
+        body = json.loads(req.data)
+        self.assertEqual(body["model"], "jev-latest")
+        self.assertEqual(set(body["questions"]), {"request", "thanks", "fyi", "handled"})
+        self.assertTrue(all(q["type"] == "noul" for q in body["questions"].values()))
+        self.assertEqual(body["state"]["watched_user"], "@alice")
+        self.assertEqual(body["state"]["mention"], "can you review this?")
+        self.assertIsInstance(body["state"]["thread"], list)
+        [row] = self.rows()
+        self.assertEqual(row["key"], "C1:2000.1")
+        self.assertEqual((row["regex_emoji"], row["react_status"]), ("eyes", ":eyes:"))
+        self.assertEqual((row["p"], row["jev_emoji"], row["jev_model"], row["error"]),
+                         (JEV_P, "eyes", "jev-1.13.0", None))
+        self.assertEqual(self.log.stat().st_mode & 0o777, 0o600)
+        self.assertNotIn("ts-secret", self.log.read_text())
+
+    def test_digest_tick_without_react_logs_none_status(self):
+        self.on()
+        self.tick(self.fake(), "--digest")
+        [row] = self.rows()
+        self.assertIsNone(row["react_status"])
+
+    def test_policy(self):
+        for (r, t, f), want in (((0.95, 0, 0), "eyes"), ((0.5, 0.95, 0), "raised_hands"),
+                                ((0.1, 0.1, 0.92), "memo"), ((0.6, 0.3, 0.5), None),
+                                ((0.9, 0, 0), "eyes"), ((0, 0, 0.9), "memo")):
+            with self.subTest(p=(r, t, f)):
+                self.assertEqual(wm.jev_emoji({"request": r, "thanks": t, "fyi": f,
+                                               "handled": 0.5}), want)
+
+    def test_jev_failure_logs_error_row_and_tick_continues(self):
+        for err in (urllib.error.HTTPError("u", 500, "boom", None, None),
+                    urllib.error.URLError("down")):
+            with self.subTest(err=err):
+                self.log.unlink(missing_ok=True)
+                plain, _ = self.tick(self.fake())
+                self.on()
+                out, _ = self.tick(self.fake(jev=err))
+                del os.environ["SLACK_MENTION_JEV_SHADOW"]
+                self.assertEqual(out, plain)
+                self.assertEqual(self.read_state()["seen"], ["C1:2000.1"])
+                [row] = self.rows()
+                self.assertTrue(row["error"])
+                self.assertEqual((row["p"], row["jev_model"], row["jev_emoji"]), (None,) * 3)
+
+    def test_auth_rejected_stops_calling_jev(self):
+        self.on()
+        fake = self.fake(jev=urllib.error.HTTPError("u", 401, "no", None, None), n=2)
+        _, err = self.tick(fake)
+        self.assertEqual(len(self.jev_reqs(fake)), 1)
+        self.assertEqual(err.strip().splitlines(),
+                         ["[slack-mention-watch] jev shadow: auth rejected (HTTP 401)"])
+        self.assertFalse(self.log.exists() and self.log.read_text())
+
+    def test_dry_run_rows_go_to_stderr(self):
+        self.on()
+        _, err = self.tick(self.fake(), "--dry-run")
+        self.assertFalse(self.log.exists())
+        [line] = err.splitlines()
+        self.assertTrue(line.startswith("[slack-mention-watch] {"), line)
+        self.assertEqual(json.loads(line.split(" ", 1)[1])["jev_emoji"], "eyes")
+
+
 if __name__ == "__main__":
     unittest.main()
