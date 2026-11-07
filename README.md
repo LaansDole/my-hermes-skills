@@ -31,6 +31,8 @@ Vendored third-party skills keep their upstream license: [impeccable](skills/cre
 
 Each versioned skill keeps a `CHANGELOG.md` next to its `SKILL.md`. When you change a skill, bump `version:` in its frontmatter and add a matching `## [x.y.z] - YYYY-MM-DD` section. On push to `main`, [`release.yml`](.github/workflows/release.yml) runs `scripts/release_notes.py`, collects the sections for every bumped skill and publishes one GitHub Release (`skills-YYYY-MM-DD`, `.2`, `.3` … for later pushes that day). A bump without a matching section fails the workflow; check locally with `python3 scripts/release_notes.py origin/main`. Every dated section across all skills is also listed, newest first, on the site's [Changelog](https://laansdole.github.io/my-hermes-skills/changelog.html) page.
 
+Publishing a Release by hand (GitHub UI or `gh release create`) also runs [`pages.yml`](.github/workflows/pages.yml). It checks every skill bumped since the previous tag for a changelog section and fails if one is missing. If you left the Release body empty, it fills it with those sections. Then it redeploys the site from `main`, including the Changelog page. Releases that `release.yml` creates don't trigger it, because GitHub never starts workflows from `GITHUB_TOKEN` actions. Nothing writes `CHANGELOG.md`: you edit it.
+
 ## Plugins
 
 Symlink into `~/.hermes/plugins/`, then `hermes plugins enable <name>`.

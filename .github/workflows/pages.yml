@@ -9,26 +9,65 @@ on:
       - "skills/**"
       - "scripts/**"
       - ".github/workflows/pages.yml"
+  # Manually published releases only: releases created by release.yml use
+  # GITHUB_TOKEN, which never triggers workflows.
+  release:
+    types: [published]
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: "pages"
   cancel-in-progress: false
 
 jobs:
+  # Release only: every skill bumped since the previous tag needs a CHANGELOG.md
+  # section; an empty release body gets those sections as its notes.
+  check:
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout release tag
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.release.tag_name }}
+          fetch-depth: 0
+
+      - name: Check version bumps against previous tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ github.event.release.tag_name }}
+        run: |
+          prev=$(git describe --tags --abbrev=0 "$TAG^" 2>/dev/null || true)
+          if [ -z "$prev" ]; then echo "no earlier tag; nothing to compare"; exit 0; fi
+          python3 scripts/release_notes.py "$prev" > notes.md
+          if [ ! -s notes.md ]; then echo "no skill version bumped since $prev"; exit 0; fi
+          cat notes.md
+          if [ -z "$(gh release view "$TAG" --json body -q .body)" ]; then
+            gh release edit "$TAG" --notes-file notes.md
+          fi
+
   deploy:
+    needs: check
+    if: ${{ !failure() && !cancelled() }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     steps:
+      # Always main, so publishing a release for an older commit never rolls the site back.
       - name: Checkout
         uses: actions/checkout@v7
+        with:
+          ref: main
 
       - name: Generate docs site
         run: python3 scripts/generate_docs.py
