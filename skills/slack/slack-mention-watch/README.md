@@ -131,3 +131,8 @@ accepts); without `--react`/`SLACK_MENTION_REACT` nothing is written at all. It 
 read or joins channels. The cron alert itself is sent by Hermes to your own bot DM. State
 (`~/.hermes/scripts/.slack-mention-watch.json`, mode 600) holds timestamps and message keys, no
 message text.
+
+Opt-in Jev shadow mode (`SLACK_MENTION_JEV_SHADOW=1` + `TYPESAFE_API_KEY`) is the only non-Slack
+request the script itself makes: each new mention and its thread go to `api.typesafe.ai`, and a
+local log (`~/.hermes/scripts/.slack-mention-jev.jsonl`, mode 600) **does** hold message text.
+Off by default; changes no output or reaction.

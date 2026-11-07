@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
-version: 2.5.0
+version: 2.6.0
 author: LaansDole
 license: MIT
 metadata:
@@ -164,8 +164,11 @@ EOF
 python3 ~/.hermes/scripts/slack_mention_digest_cron.py --dry-run  # preview, saves nothing
 hermes cron create "every 5m" "$(cat ~/.hermes/scripts/slack_mention_digest_prompt.txt)" \
   --name slack-mention-digest --script slack_mention_digest_cron.py \
-  --model <model> --provider <provider> --reasoning-effort max --deliver slack
+  --model <model> --provider <provider> --reasoning-effort high --deliver slack
 ```
+
+Use `--reasoning-effort medium` or `high`, never `max`: on this short digest `max` made up ~88% of
+the job's spend (about 9k output tokens per run).
 
 `--model <model> --provider <provider>` pin the job's model. Anthropic-family models on a gateway
 that exposes both OpenAI-chat and Anthropic-messages APIs may need the provider's Anthropic
@@ -268,6 +271,32 @@ Setup:
 
 Reactions use `SLACK_USER_REACT_TOKEN` if set, else `SLACK_USER_READ_TOKEN`; a separate token lets
 the read scope stay on a token you never grant writes to.
+
+## Jev shadow (opt-in)
+
+Logs TypeSafe Jev's view of each new mention beside the deterministic result, to collect the
+data needed before Jev may ever decide anything. **No behaviour change**: the output, reactions
+and skips are exactly as without it. Jev's probabilities are not calibrated on Slack mentions,
+so bands get picked from this log, not guessed.
+
+Per NEW mention of a default or `--digest` tick, one Jev call (`api.typesafe.ai/v1/systemone`)
+answers four yes/no questions over the mention + its thread: `request`, `thanks`, `fyi` (the
+emoji classes) and `handled` (the user already committed to it or it is resolved). Policy in
+code: `request >= 0.9` -> `eyes`, else `thanks >= 0.9` -> `raised_hands`, else `fyi >= 0.9` ->
+`memo`, else none (Jev unsure, regex decides).
+
+Enable in `~/.hermes/.env`: `SLACK_MENTION_JEV_SHADOW=1` and `TYPESAFE_API_KEY=...`. It sends
+the mention and thread text to a third party, which is why it is off by default. One JSON line
+per mention goes to `~/.hermes/scripts/.slack-mention-jev.jsonl` (mode 600; `--dry-run` prints
+rows to stderr instead): `regex_emoji`, `react_status`, `p` (four probabilities), `jev_emoji`,
+`jev_model`, `ms`, `error`. A Jev failure is logged as an error row; a rejected key prints one
+stderr line and stops Jev calls for that tick. The tick itself never fails because of Jev.
+
+After ~2 weeks, see where Jev and the rules disagree, then label those rows by hand:
+
+```bash
+python3 -c "import json,os;[print(r['regex_emoji'],r['jev_emoji'],r['p'],r['mention'][:80]) for r in map(json.loads,open(os.path.expanduser('~/.hermes/scripts/.slack-mention-jev.jsonl'))) if r['jev_emoji'] and r['jev_emoji']!=r['regex_emoji']]"
+```
 
 ## Background review agent (opt-in)
 
@@ -403,6 +432,9 @@ goes through `api_write()`: POST, and `ValueError` for any method outside
 `WRITE_METHODS` = `{reactions.add}`, only when auto-react is enabled. It never posts, marks read,
 joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
 
+Opt-in Jev shadow mode adds one non-Slack request per new mention: a POST of the mention and
+thread text to `api.typesafe.ai`. It writes nothing to Slack and changes no output.
+
 `review_spawn.py` makes no Slack calls; its only network use is `gh pr view` / `gh api user` and
 the optional Jira GET. What the spawned agent may do is limited by its own flags (see "Agents"):
 `claude` is held to the read-only tool allowlist; `omp` and `custom` agents only get the
@@ -426,6 +458,9 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | `SLACK_HOME_CHANNEL` | alert channel; matches in it are dropped |
 | `SLACK_MENTION_STATE_FILE` | `~/.hermes/scripts/.slack-mention-watch.json` (chmod 600) |
 | `HERMES_DOTENV` | `~/.hermes/.env` |
+| `SLACK_MENTION_JEV_SHADOW` | unset -> off; `1`/`true`/`yes` + `TYPESAFE_API_KEY` = Jev shadow log |
+| `SLACK_MENTION_JEV_LOG` | `~/.hermes/scripts/.slack-mention-jev.jsonl` (chmod 600) |
+| `TYPESAFE_API_KEY` | unset -> Jev shadow off |
 
 ## Troubleshooting
 
