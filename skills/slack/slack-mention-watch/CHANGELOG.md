@@ -6,9 +6,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:
 
 ### Added
 - Opt-in Jev shadow mode (`SLACK_MENTION_JEV_SHADOW=1` + `TYPESAFE_API_KEY`): logs TypeSafe Jev's
-  emoji verdict for each new mention to `~/.hermes/scripts/.slack-mention-jev.jsonl` beside the
-  regex result. Sends mention and thread text to `api.typesafe.ai`; off by default; changes no
-  output or reaction.
+  emoji verdict and already-handled probability for each new mention to
+  `~/.hermes/scripts/.slack-mention-jev.jsonl` beside the regex result. Sends mention and
+  thread text to `api.typesafe.ai`; off by default; changes no output or reaction.
 
 ### Changed
 - Digest cron example uses `--reasoning-effort high`, not `max` (`max` was ~88% of the job's spend).
