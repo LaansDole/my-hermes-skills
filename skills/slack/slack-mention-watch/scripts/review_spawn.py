@@ -13,7 +13,14 @@ line `[slack-review] error: ...` and the raw digest.
 Skipped without a spawn: thanks/FYI/already handled mentions (`Reacted:` line), mentions that
 are no review request (`review: skipped (not a review request)`), and targets
 that are merged/closed/approved/already reviewed by you (PRs, via gh) or done (tickets, only
-with JIRA_URL/JIRA_EMAIL/JIRA_TOKEN). Checks fail open. Targets are deduped for 24 h.
+with JIRA_URL/JIRA_EMAIL/JIRA_TOKEN). Checks fail open.
+
+Session table (SLACK_REVIEW_STATE): one agent session per target. A target already reviewed is
+skipped (`already reviewed <session>`) while its PR head commit is unchanged, or for tickets and
+unknown heads within SLACK_REVIEW_DAYS (7). Otherwise omp/claude resume that same session with
+a follow-up brief (`review: resumed ...`; PRs: only the old..new diff); a session still running
+gets the block queued (`review: busy <session> (update queued)`), delivered on a later tick.
+Custom agents have no session id: always a new run. Entries without a run for 30 days drop.
 
 Optional second opinion, off by default (it sends mention + thread text to a third party):
 SLACK_REVIEW_JEV=1 + TYPESAFE_API_KEY asks TypeSafe Jev about regex-positive mentions only;
@@ -23,10 +30,10 @@ errors -> the regex decides. One row per call in SLACK_REVIEW_JEV_LOG.
 Env (process env first, then ~/.hermes/.env): SLACK_REVIEW_AGENT, SLACK_REVIEW_WORKDIR,
 SLACK_REVIEW_MODEL, SLACK_REVIEW_EFFORT (omp --thinking), SLACK_REVIEW_CMD (custom, with
 {brief} and {workdir}), SLACK_REVIEW_MAX_SPAWNS (3), SLACK_REVIEW_TICKET_RE,
-SLACK_REVIEW_INSTRUCTIONS, SLACK_REVIEW_STATE, SLACK_REVIEW_DIR, SLACK_REVIEW_ID_TIMEOUT (30),
-SLACK_REVIEW_GH, SLACK_REVIEW_GH_LOGIN, JIRA_URL, JIRA_EMAIL, JIRA_TOKEN, SLACK_REVIEW_JEV,
-SLACK_REVIEW_JEV_MIN (0.8), SLACK_REVIEW_JEV_LOG (~/.hermes/scripts/.slack-review-jev.jsonl),
-TYPESAFE_API_KEY.
+SLACK_REVIEW_INSTRUCTIONS, SLACK_REVIEW_STATE, SLACK_REVIEW_DAYS (7), SLACK_REVIEW_DIR,
+SLACK_REVIEW_ID_TIMEOUT (30), SLACK_REVIEW_GH, SLACK_REVIEW_GH_LOGIN, JIRA_URL, JIRA_EMAIL,
+JIRA_TOKEN, SLACK_REVIEW_JEV, SLACK_REVIEW_JEV_MIN (0.8), SLACK_REVIEW_JEV_LOG
+(~/.hermes/scripts/.slack-review-jev.jsonl), TYPESAFE_API_KEY.
 
 Stdlib only. Flags: all passed through to watch_mentions.py; --dry-run also spawns nothing.
 """
@@ -52,7 +59,6 @@ import watch_mentions as wm  # noqa: E402  (shared env/dotenv lookup, Jev URL + 
 
 TAG = "[slack-review]"
 AGENTS = ("omp", "claude", "custom")
-TTL = 24 * 3600
 MAX_TARGETS = 5
 CHECK_TIMEOUT = 15
 BLOCK_SPLIT = re.compile(r"\n\n(?=### Mention )")
@@ -298,11 +304,16 @@ def _ts(s):
     return datetime.fromisoformat(s.replace("Z", "+00:00"))
 
 
+HEAD_REVS = {}  # PR target -> head commit oid seen by _check_pr this tick
+
+
 def _check_pr(t):
     repo, n = t.rsplit("#", 1)
     gh = gh_bin()
     pr = json.loads(_run([gh, "pr", "view", n, "-R", repo, "--json",
-                          "state,reviewDecision,reviews,commits"]) or "null")
+                          "state,reviewDecision,reviews,commits,headRefOid"]) or "null")
+    if pr.get("headRefOid"):
+        HEAD_REVS[t] = pr["headRefOid"]
     state = pr["state"]
     if state in ("MERGED", "CLOSED"):
         return state.lower()
@@ -338,15 +349,33 @@ def check_target(t):
         return None
 
 
-# State ----------------------------------------------------------------------
+# Session table: one agent session per target --------------------------------
+
+DAY = 86400
+PRUNE = 30 * DAY
+
 
 def load_state(path, now):
+    """{target: {"session", "agent", "created", "last_run", "runs", "rev", "pid", "pending"}}
+    minus entries without a run for 30 days. The pre-2.7 shape {target: {"session", "at"}} is
+    migrated (agent unknown: never resumed). Missing/corrupt file -> {}. Never writes."""
     try:
         with open(path) as f:
             st = json.load(f)
-        return {k: v for k, v in st.items() if now - float(v["at"]) <= TTL}
-    except (OSError, ValueError, TypeError, KeyError, AttributeError):
+    except (OSError, ValueError):
         return {}
+    out = {}
+    for t, e in (st.items() if isinstance(st, dict) else ()):
+        try:
+            if "last_run" not in e:
+                at = float(e["at"])
+                e = {"session": e["session"], "agent": None, "created": at, "last_run": at,
+                     "runs": 1, "rev": None, "pid": None, "pending": []}
+            if e["session"] and now - float(e["last_run"]) <= PRUNE:
+                out[t] = e
+        except (KeyError, TypeError, ValueError):
+            continue  # ponytail: a malformed row is dropped, never fails the digest
+    return out
 
 
 def save_state(path, state):
@@ -364,7 +393,32 @@ def save_state(path, state):
         raise
 
 
+def _alive(pid):
+    """os.kill(pid, 0) liveness. ponytail: a recycled pid reads busy until it exits."""
+    try:
+        if not pid or int(pid) <= 0:
+            return False
+        os.kill(int(pid), 0)
+    except PermissionError:
+        return True
+    except (OSError, ValueError, TypeError):
+        return False
+    return True
+
+
 # Spawn ----------------------------------------------------------------------
+
+HOW = """\
+## How to review
+
+- GitHub PRs (owner/repo#n): read them with gh, read-only: `gh pr view`, `gh pr diff`,
+  `gh pr checks`, `gh api` GET requests. For more context, `git fetch origin pull/<n>/head`
+  in the matching clone under the current directory, then `git show` / `git diff` / `git log`
+  on the fetched refs.
+- Tickets: read the ticket with whatever read-only access is configured. GET/search only.
+- NEVER edit files, commit, checkout/switch branches, add/remove worktrees, or change any
+  state in the user's checkouts. NEVER push, comment, approve or request changes.
+- Never post to Slack, GitHub or the ticket tracker."""
 
 BRIEF = """\
 # Review request from Slack (headless, READ ONLY)
@@ -380,16 +434,7 @@ targets below. Produce a concise review report for the user. You work READ ONLY.
 
 {target_list}
 
-## How to review
-
-- GitHub PRs (owner/repo#n): read them with gh, read-only: `gh pr view`, `gh pr diff`,
-  `gh pr checks`, `gh api` GET requests. For more context, `git fetch origin pull/<n>/head`
-  in the matching clone under the current directory, then `git show` / `git diff` / `git log`
-  on the fetched refs.
-- Tickets: read the ticket with whatever read-only access is configured. GET/search only.
-- NEVER edit files, commit, checkout/switch branches, add/remove worktrees, or change any
-  state in the user's checkouts. NEVER push, comment, approve or request changes.
-- Never post to Slack, GitHub or the ticket tracker.
+{how}
 
 ## Report (your final message, plain text, concise)
 
@@ -398,9 +443,31 @@ findings, each with: severity, file:line, problem, why it matters (impact), sugg
 If there are none, say "No P0/P1 findings".
 """
 
+FOLLOWUP = """\
+# Review follow-up from Slack (headless, resumed session, READ ONLY)
+
+This is the same session as your earlier review of {targets}. New activity arrived since that
+run. Review only what changed; do not redo earlier work. You still work READ ONLY.
+
+## What changed since your last run
+
+{changes}
+
+## New Slack context (raw digest blocks, oldest first)
+
+{blocks}
+
+{how}
+
+## Report (your final message, plain text, concise)
+
+Per target, ONLY new P0 and P1 findings since your last report (severity, file:line, problem,
+why it matters, suggested fix). If there are none, say "No P0/P1 findings".
+"""
+
 
 def build_brief(block, tgts):
-    text = BRIEF.format(block=block.rstrip("\n"),
+    text = BRIEF.format(block=block.rstrip("\n"), how=HOW,
                         target_list="\n".join(f"- {t}" for t in tgts))
     extra = cfg("SLACK_REVIEW_INSTRUCTIONS")
     if extra:
@@ -409,25 +476,47 @@ def build_brief(block, tgts):
     return text
 
 
+def _change(t, old, new):
+    if "#" not in t:
+        return f"- {t}: see the new message(s) in the block(s) below."
+    repo, n = t.rsplit("#", 1)
+    fetch = f"`git fetch origin pull/{n}/head` in the matching clone"
+    if old and new:
+        return (f"- {t}: head {old[:7]} -> {new[:7]}. Review ONLY the delta: {fetch}, then "
+                f"`git diff {old}..{new}`.")
+    return (f"- {t}: head {old or 'unknown'} -> {new or 'unknown'}. {fetch} and review what "
+            f"changed since your last run (`gh pr diff {n} -R {repo}`, `git log`).")
+
+
+def build_followup(tgts, blocks, changes):
+    """Follow-up brief for a resumed session; changes = [(pr target, old rev, new rev)]."""
+    revs = {t: (o, n) for t, o, n in changes}
+    return FOLLOWUP.format(targets=", ".join(tgts), how=HOW,
+                           changes="\n".join(_change(t, *revs.get(t, (None, None)))
+                                             for t in tgts),
+                           blocks="\n\n".join(b.rstrip("\n") for b in blocks))
+
+
 def _bin(name):
     return shutil.which(name) or os.path.expanduser(f"~/.local/bin/{name}")
 
 
-def _argv(agent, brief, d, wd):
+def _argv(agent, brief, d, wd, resume=None):
+    again = ["--resume", resume] if resume else []
     if agent == "omp":
         overlay = os.path.join(d, "omp-noresume.yml")
         if _read(overlay) != NO_RESUME:  # without it `omp -p` resumes the user's last session
             with open(overlay, "w") as f:
                 f.write(NO_RESUME)
         model, effort = cfg("SLACK_REVIEW_MODEL"), cfg("SLACK_REVIEW_EFFORT")
-        return [_bin("omp"), "-p", "--mode", "json", "--config", overlay,
+        return [_bin("omp"), "-p", "--mode", "json", *again, "--config", overlay,
                 *(["--model", model] if model else []),
                 *(["--thinking", effort] if effort else []),
                 "--cwd", wd, "@" + brief]
     if agent == "claude":
         model = cfg("SLACK_REVIEW_MODEL")
         # prompt right after -p: --allowedTools/--disallowedTools are variadic and would eat it
-        return [_bin("claude"), "-p", _read(brief), "--output-format", "stream-json",
+        return [_bin("claude"), "-p", _read(brief), *again, "--output-format", "stream-json",
                 "--verbose", *(["--model", model] if model else []),
                 "--permission-mode", "default", "--allowedTools", *CLAUDE_ALLOW,
                 "--disallowedTools", *CLAUDE_DENY]
@@ -473,74 +562,172 @@ def _read(path):
         return None
 
 
-def spawn(block, tgts, now):
-    """Start a detached review session. Returns its session id (custom agent: its log path);
-    raises SpawnError."""
+LAUNCHED = {}  # session id (custom: log path) -> pid of a run started by this process
+
+
+def _launch(text, tgts, now, resume=None):
+    """Start a detached agent run on brief `text` (resume: continue that session id). Returns
+    its session id (custom agent: its log path); raises SpawnError."""
     agent, wd = cfg("SLACK_REVIEW_AGENT"), workdir()
     d = _path("SLACK_REVIEW_DIR", "~/.hermes/cache/slack-review-spawns")
     os.makedirs(d, exist_ok=True)
     slug = re.sub(r"[^A-Za-z0-9]+", "-", "_".join(tgts)).strip("-")[:60] or "review"
-    base = os.path.join(d, f"{datetime.fromtimestamp(now).strftime('%Y%m%d-%H%M%S')}-{slug}")
+    base = os.path.join(d, f"{datetime.fromtimestamp(now).strftime('%Y%m%d-%H%M%S')}-{slug}"
+                        + ("-followup" if resume else ""))
     brief, err = base + ".md", base + ".err"
     out = base + (".log" if agent == "custom" else ".jsonl")
     with open(brief, "w") as f:
-        f.write(build_brief(block, tgts))
+        f.write(text)
     try:
         with open(out, "w") as o, open(err, "w") as e:
-            proc = subprocess.Popen(_argv(agent, brief, d, wd), stdout=o, stderr=e,
+            proc = subprocess.Popen(_argv(agent, brief, d, wd, resume), stdout=o, stderr=e,
                                     stdin=subprocess.DEVNULL, start_new_session=True, cwd=wd)
     except OSError as e:
         raise SpawnError(f"cannot start {agent}: {e}", err)
     if agent == "custom":
+        LAUNCHED[out] = proc.pid
         return out
     deadline = time.time() + float(cfg("SLACK_REVIEW_ID_TIMEOUT", "30"))
     while True:
         sid = _session_id(out, agent)
         if sid:
-            return sid
+            break
         rc = proc.poll()
         if rc is not None:
             sid = _session_id(out, agent)
             if sid:
-                return sid
+                break
             raise SpawnError(f"{agent} exited {rc} before session id: {_tail(err)}".rstrip(": "),
                              err)
         if time.time() >= deadline:
+            if resume:  # still running, no header yet: the id is the one it resumed
+                sid = resume
+                break
             # ponytail: left running on purpose, it may still be fine; log path tells the user
             raise SpawnError(f"no session id within timeout, {agent} left running", out)
         time.sleep(0.25)
+    LAUNCHED[sid] = proc.pid
+    return sid
+
+
+def spawn(block, tgts, now):
+    """New review session for tgts: its session id (custom: log path), or SpawnError."""
+    return _launch(build_brief(block, tgts), tgts, now)
+
+
+def resume(sid, brief, tgts, now):
+    """Resume session sid (omp/claude) on follow-up `brief`: its session id, or SpawnError."""
+    return _launch(brief, tgts, now, resume=sid)
 
 
 # Orchestration --------------------------------------------------------------
 
-def _started(agent, sid, names, running=False):
-    if agent == "custom":
-        return f"already running ({names}; log {sid})" if running else f"started (log {sid})"
+def _resume_cmd(agent, sid):
     shown = workdir().replace(os.path.expanduser("~"), "~", 1)
-    return (f"{'already running ' if running else ''}{sid} ({names}) -> "
-            f"cd {shown} && {agent} --resume {sid}")
+    return (f"cd {shown} && " if shown else "") + f"{agent} --resume {sid}"
 
 
-def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target):
+def _started(agent, sid, names):
+    if agent == "custom":
+        return f"started (log {sid})"
+    return f"{sid} ({names}) -> {_resume_cmd(agent, sid)}"
+
+
+def _uniq(xs):
+    return list(dict.fromkeys(xs))
+
+
+def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, resumer=resume):
     agent = cfg("SLACK_REVIEW_AGENT")
     if not agent:
         return text
     header, blocks = parse(text)
-    if not blocks:
-        return text
+    now = time.time() if now is None else now
+    path = state_path()
+    state = load_state(path, now)
+    if not blocks and not any(e.get("pending") for e in state.values()):
+        return text  # nothing new and no queued update to deliver
     if agent not in AGENTS:
         raise ValueError(f"SLACK_REVIEW_AGENT={agent!r}, expected one of {', '.join(AGENTS)}")
     if not workdir():
         raise ValueError("SLACK_REVIEW_WORKDIR is required")
     if agent == "custom" and not cfg("SLACK_REVIEW_CMD"):
         raise ValueError("SLACK_REVIEW_CMD is required for SLACK_REVIEW_AGENT=custom")
-    now = time.time() if now is None else now
-    path = state_path()
-    state = load_state(path, now)
+    HEAD_REVS.clear()
     cap = int(cfg("SLACK_REVIEW_MAX_SPAWNS", "3"))
+    days = float(cfg("SLACK_REVIEW_DAYS", "7")) * DAY
     w = WATCHED_RE.search(header)
     watched = "@" + w[1].lstrip("@") if w else "the watched user"
-    spawned, tick = 0, {}
+    spawned, tick, touched = 0, {}, set()  # touched: sessions started/resumed this tick
+
+    def owned(sid):
+        return [(t, e) for t, e in state.items() if e["session"] == sid]
+
+    def busy(sid):
+        return sid in touched or any(_alive(e.get("pid")) for _, e in owned(sid))
+
+    def reviewed(t):
+        """`already reviewed <sid>` if t's session covers its current state, else None."""
+        e = state.get(t)
+        if not e:
+            return None
+        old, new = e.get("rev"), HEAD_REVS.get(t)
+        same = old == new if old and new else now - float(e["last_run"]) <= days
+        return f"already reviewed {e['session']}" if same else None
+
+    def launch(ts, run, sid=None):
+        """Start (sid None) or resume sid for ts -> (session id, None) or (None, fail line)."""
+        nonlocal spawned
+        spawned += 1
+        try:
+            new = run()
+        except SpawnError as e:
+            return None, f"review: failed ({str(e)[:200]}; log {e.log})"
+        for t in ts:
+            e = state.get(t)
+            if not (sid and e and e["session"] == sid):
+                e = state[t] = {"created": now, "runs": 0, "rev": None}
+            e.update(session=new, agent=agent, last_run=now, runs=e.get("runs", 0) + 1,
+                     rev=HEAD_REVS.get(t) or e.get("rev"))
+        pid = LAUNCHED.pop(new, None)
+        for _, e in owned(new):
+            e.update(pid=pid, pending=[])  # the run got every queued block
+        touched.add(new)
+        return new, None
+
+    def new_run(block, ts):
+        names = ", ".join(ts)
+        if dry_run:
+            return f"review: (dry run, would spawn for: {names})"
+        if spawned >= cap:
+            return "review: skipped (spawn cap reached)"
+        sid, fail = launch(ts, lambda: spawner(block, ts, now))
+        return fail or "review: " + _started(agent, sid, names)
+
+    def resume_run(sid, ts, block=None):
+        """Resume sid for ts + its targets with queued blocks, on all those blocks."""
+        if busy(sid):  # never a second process on one session
+            for t in ts:
+                pending = state[t].setdefault("pending", [])
+                if block and block.rstrip("\n") not in pending:
+                    pending.append(block.rstrip("\n"))
+            return f"review: busy {sid} (update queued)"
+        queued = [(t, e["pending"]) for t, e in owned(sid) if e.get("pending")]
+        ts = _uniq(ts + [t for t, _ in queued])
+        names = ", ".join(ts)
+        if dry_run:
+            return f"review: (dry run, would resume {sid} for: {names})"
+        if spawned >= cap:
+            return "review: skipped (spawn cap reached)"
+        changes = [(t, state[t].get("rev"), HEAD_REVS.get(t)) for t in ts if "#" in t]
+        brief = build_followup(ts, _uniq([b for _, bs in queued for b in bs]
+                                         + ([block.rstrip("\n")] if block else [])), changes)
+        new, fail = launch(ts, lambda: resumer(sid, brief, ts, now), sid)
+        if fail:
+            return fail
+        revs = "".join(f", {(o or '?')[:7]}..{(n or '?')[:7]}" for _, o, n in changes)
+        return f"review: resumed {new} ({names}{revs}) -> {_resume_cmd(agent, new)}"
+
     for i, block in enumerate(blocks):
         if not eligible(block):
             continue
@@ -556,7 +743,7 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target):
             continue
         tgts, skipped = [], []
         for t in cands:
-            reason = checker(t)
+            reason = checker(t) or reviewed(t)  # checker first: it learns the PR head rev
             if reason:
                 skipped.append(f"{t} {reason}")
             else:
@@ -564,30 +751,34 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target):
         if not tgts:
             blocks[i] = annotate(block, f"review: skipped ({'; '.join(skipped)})")
             continue
-        names = ", ".join(tgts)
-        if all(t in state for t in tgts):
-            sid = max((state[t] for t in tgts), key=lambda v: v["at"])["session"]
-            line = "review: " + _started(agent, sid, names, running=True)
-        elif dry_run:
-            line = f"review: (dry run, would spawn for: {names})"
-        elif spawned >= cap:
-            line = "review: skipped (spawn cap reached)"
-        else:
-            spawned += 1
-            try:
-                sid = spawner(block, tgts, now)
-            except SpawnError as e:
-                line = f"review: failed ({str(e)[:200]}; log {e.log})"
-            else:
-                for t in tgts:
-                    state[t] = {"session": sid, "at": now}
-                line = "review: " + _started(agent, sid, names)
+        groups = {}  # resumable session (None: new run) -> its targets
+        for t in tgts:
+            e = state.get(t)
+            resumable = e and e.get("agent") == agent and agent != "custom"
+            groups.setdefault(e["session"] if resumable else None, []).append(t)
+        new = groups.pop(None, [])
+        line = "\n".join(([new_run(block, new)] if new else [])
+                         + [resume_run(sid, ts, block) for sid, ts in groups.items()])
         if skipped:
             line += f" [skipped: {'; '.join(skipped)}]"
         blocks[i] = annotate(block, line)
+    # Queued updates whose session has finished: one follow-up with all of them. They have no
+    # block in this digest, so the result goes to stderr.
+    for sid in _uniq(e["session"] for e in state.values() if e.get("pending")):
+        if busy(sid) or (not dry_run and spawned >= cap):
+            continue  # still running / capped: stays queued
+        ts = [t for t, e in owned(sid) if e.get("pending")]
+        if all([checker(t) for t in ts]):  # a list: check (and learn the head rev of) each
+            line = f"review: dropped queued update for {sid} ({', '.join(ts)}: no review needed)"
+        else:
+            line = resume_run(sid, [])
+        if not dry_run:
+            for t in ts:
+                state[t]["pending"] = []  # one attempt: a failed resume is not retried each tick
+        print(f"{TAG} queued update: {line}", file=sys.stderr)
     if not dry_run:
         save_state(path, state)
-    return assemble(header, blocks)
+    return assemble(header, blocks) if blocks else text
 
 
 def main():

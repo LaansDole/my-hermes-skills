@@ -51,9 +51,32 @@ ENV_KEYS = ("SLACK_REVIEW_AGENT", "SLACK_REVIEW_WORKDIR", "SLACK_REVIEW_MODEL",
             "SLACK_REVIEW_EFFORT", "SLACK_REVIEW_CMD", "SLACK_REVIEW_MAX_SPAWNS",
             "SLACK_REVIEW_TICKET_RE", "SLACK_REVIEW_INSTRUCTIONS", "SLACK_REVIEW_ID_TIMEOUT",
             "SLACK_REVIEW_GH_LOGIN", "JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN",
-            "SLACK_REVIEW_JEV", "SLACK_REVIEW_JEV_MIN", "TYPESAFE_API_KEY")
+            "SLACK_REVIEW_JEV", "SLACK_REVIEW_JEV_MIN", "TYPESAFE_API_KEY", "SLACK_REVIEW_DAYS")
 with open(Path(__file__).resolve().parent / "fixtures_review_intent.json") as _f:
     FX = json.load(_f)  # anonymised real digest blocks: review asks and look-alikes
+A, B = "a" * 40, "b" * 40  # PR head revs
+PR812 = "acme/api#812"
+
+
+def entry(sid, at, agent="omp", rev=None, pid=None, **kw):
+    """A session-table entry as process() records it."""
+    return dict({"session": sid, "agent": agent, "created": at, "last_run": at, "runs": 1,
+                 "rev": rev, "pid": pid, "pending": []}, **kw)
+
+
+def dead_pid():
+    p = subprocess.Popen(["true"])
+    p.wait()
+    return p.pid
+
+
+def rev_checker(rev, reasons=None):
+    """Checker that reports `rev` as every PR's head commit, like check_target via gh."""
+    def check(t):
+        if "#" in t and rev:
+            rs.HEAD_REVS[t] = rev
+        return (reasons or {}).get(t)
+    return check
 
 
 class Env(unittest.TestCase):
@@ -77,6 +100,7 @@ class Env(unittest.TestCase):
             if k not in env:
                 os.environ.pop(k, None)
         rs._gh_login.cache_clear()
+        rs.LAUNCHED.clear()
 
 
 # Parsing --------------------------------------------------------------------
@@ -205,12 +229,12 @@ def fake_bin(tmp, name, out, rc=0):
     return path
 
 
-def pr_json(state="OPEN", decision="", reviews=(), commits=("2025-11-28T17:02:02Z",)):
+def pr_json(state="OPEN", decision="", reviews=(), commits=("2025-11-28T17:02:02Z",), oid=None):
     return json.dumps({
         "state": state, "reviewDecision": decision,
         "reviews": [{"author": {"login": a}, "state": "COMMENTED", "submittedAt": s}
                     for a, s in reviews],
-        "commits": [{"committedDate": c, "oid": "x"} for c in commits]})
+        "commits": [{"committedDate": c, "oid": "x"} for c in commits], "headRefOid": oid})
 
 
 class FakeResp(io.BytesIO):
@@ -238,7 +262,16 @@ class CheckTargetTest(Env):
         with open(os.path.join(self.tmp, "gh-argv")) as f:
             self.assertEqual(f.read().split("\n")[:7], [
                 "pr", "view", "471", "-R", "acme/web", "--json",
-                "state,reviewDecision,reviews,commits"])
+                "state,reviewDecision,reviews,commits,headRefOid"])
+
+    def test_head_rev_remembered(self):
+        rs.HEAD_REVS.clear()
+        self.gh(pr_json(oid=B))
+        self.assertIsNone(rs.check_target(self.PR))
+        self.assertEqual(rs.HEAD_REVS, {self.PR: B})
+        self.gh(pr_json("MERGED", oid=A))
+        self.assertEqual(rs.check_target(self.PR), "merged")
+        self.assertEqual(rs.HEAD_REVS, {self.PR: A})
 
     def test_reviewed_by_you(self):
         os.environ["SLACK_REVIEW_GH_LOGIN"] = "sam"
@@ -326,12 +359,23 @@ class StateTest(Env):
         self.assertEqual(rs.load_state(self.state, 1000), {})
 
     def test_save_prune_mode(self):
-        now = 100000.0
-        rs.save_state(self.state, {"ABC-1": {"session": "a", "at": now - 86401},
-                                   "ABC-2": {"session": "b", "at": now - 10}})
+        now = 100 * 86400.0
+        rs.save_state(self.state, {"ABC-1": entry("a", now - 31 * 86400),
+                                   "ABC-2": entry("b", now - 29 * 86400, rev=A)})
         self.assertEqual(stat.S_IMODE(os.stat(self.state).st_mode), 0o600)
         self.assertEqual(rs.load_state(self.state, now),
-                         {"ABC-2": {"session": "b", "at": now - 10}})
+                         {"ABC-2": entry("b", now - 29 * 86400, rev=A)})
+
+    def test_migrates_old_shape(self):
+        now = 100000.0
+        with open(self.state, "w") as f:  # pre-2.7: {target: {session, at}}, 24 h dedupe
+            json.dump({"ABC-1": {"session": "a", "at": now - 90000.0}, "ABC-2": 3,
+                       "ABC-3": {"at": 1.0}, "ABC-4": {"session": "", "at": now}}, f)
+        self.assertEqual(rs.load_state(self.state, now),
+                         {"ABC-1": entry("a", now - 90000.0, agent=None)})
+        with open(self.state, "w") as f:
+            f.write("[1]")
+        self.assertEqual(rs.load_state(self.state, now), {})
 
     def test_default_path(self):
         os.environ.pop("SLACK_REVIEW_STATE")
@@ -364,6 +408,16 @@ class BriefTest(Env):
         b = rs.build_brief(B1, ["acme/api#812"])
         self.assertIn("## Additional instructions\n\nCheck migrations twice.", b)
         self.assertGreater(b.index("Check migrations"), b.index("No P0/P1 findings"))
+
+    def test_followup(self):
+        b = rs.build_followup(["acme/api#812", "ABC-1"], [B1, B2], [("acme/api#812", A, B)])
+        for s in (B1, B2, f"git diff {A}..{B}", "git fetch origin pull/812/head", "ABC-1",
+                  "resumed", "READ ONLY", "No P0/P1 findings", "NEVER edit", "push",
+                  "Never post to Slack"):
+            self.assertIn(s, b)
+        self.assertLess(b.index(B1), b.index(B2))
+        b = rs.build_followup(["acme/api#812"], [B1], [("acme/api#812", A, None)])
+        self.assertIn("gh pr diff 812 -R acme/api", b)
 
 
 # Spawn ----------------------------------------------------------------------
@@ -408,13 +462,40 @@ class SpawnTest(Env):
         self.assertEqual(rs.spawn(B1, ["acme/api#812", "ABC-401"], t0), "sess-1")
         self.assertLess(time.time() - t0, 2)
         with open(os.path.join(self.tmp, "pid")) as f:
-            os.kill(int(f.read()), 0)  # still alive
+            pid = int(f.read())
+        os.kill(pid, 0)  # still alive
+        self.assertEqual(rs.LAUNCHED, {"sess-1": pid})  # process() records it for the busy guard
         overlay = os.path.join(self.dir, "omp-noresume.yml")
         self.assertEqual(self.argv(), ["-p", "--mode", "json", "--config", overlay,
                                        "--model", "m1", "--thinking", "high",
                                        "--cwd", self.tmp, "@" + self.brief()])
         with open(self.brief()) as f:
             self.assertIn(B1, f.read())
+
+    def test_omp_resume_keeps_sid(self):
+        fake_agent(self.tmp, "omp", "sleep 5\n")  # no session line before the timeout
+        os.environ.update(SLACK_REVIEW_ID_TIMEOUT="1", SLACK_REVIEW_MODEL="m1")
+        self.assertEqual(rs.resume("R0", "follow-up text", [PR812], time.time()), "R0")
+        self.assertTrue(self.brief().endswith("-acme-api-812-followup.md"), self.brief())
+        with open(self.brief()) as f:
+            self.assertEqual(f.read(), "follow-up text")
+        self.assertEqual(self.argv(), [
+            "-p", "--mode", "json", "--resume", "R0", "--config",
+            os.path.join(self.dir, "omp-noresume.yml"), "--model", "m1", "--cwd", self.tmp,
+            "@" + self.brief()])
+        self.assertIn("R0", rs.LAUNCHED)
+
+    def test_claude_resume(self):
+        os.environ["SLACK_REVIEW_AGENT"] = "claude"
+        fake_agent(self.tmp, "claude",
+                   """echo '{"type":"system","subtype":"init","session_id":"c-1"}'\n""")
+        self.assertEqual(rs.resume("c-1", "follow-up text", ["ABC-1"], time.time()), "c-1")
+        argv = self.argv()
+        self.assertEqual(argv[:6], ["-p", "follow-up text", "--resume", "c-1",
+                                    "--output-format", "stream-json"])
+        self.assertEqual(argv[argv.index("--permission-mode"):][:2],
+                         ["--permission-mode", "default"])
+        self.assertIn("--allowedTools", argv)
 
     def test_omp_no_model_no_effort(self):
         fake_agent(self.tmp, "omp", """echo '{"type":"session","id":"sess-1"}'\n""")
@@ -505,17 +586,28 @@ def mblock(mention, n=1, reacted=":eyes:"):
 class ProcBase(Env):
     def setUp(self):
         super().setUp()
-        self.calls = []
+        self.calls, self.resumes = [], []
 
     def spawner(self, block, targets, now):
         self.calls.append(targets)
         return f"S{len(self.calls)}"
 
+    def resumer(self, sid, brief, targets, now):
+        self.resumes.append((sid, targets, brief))
+        return sid
+
     def run_(self, text=SAMPLE, **kw):
         kw.setdefault("now", 100000.0)
         kw.setdefault("spawner", self.spawner)
+        kw.setdefault("resumer", self.resumer)
         kw.setdefault("checker", lambda t: None)
         return rs.process(text, **kw)
+
+    def seed(self, table):
+        rs.save_state(self.state, table)
+
+    def table(self, now=100000.0):
+        return rs.load_state(self.state, now)
 
 
 class ProcessTest(ProcBase):
@@ -574,9 +666,9 @@ class ProcessTest(ProcBase):
         self.assertEqual(blocks[0], rs.annotate(B1, SUCCESS_LINE))
         self.assertEqual(blocks[1], rs.annotate(
             B2 + "\n", "review: S2 (ABC-77) -> cd ~/code && omp --resume S2"))
-        st = rs.load_state(self.state, 100000.0)
-        self.assertEqual(st["ABC-401"], {"session": "S1", "at": 100000.0})
-        self.assertEqual(st["ABC-77"]["session"], "S2")
+        st = self.table()
+        self.assertEqual(st, {PR812: entry("S1", 100000.0), "ABC-401": entry("S1", 100000.0),
+                              "ABC-77": entry("S2", 100000.0)})
 
     def test_claude_resume_line(self):
         os.environ["SLACK_REVIEW_AGENT"] = "claude"
@@ -587,23 +679,20 @@ class ProcessTest(ProcBase):
         os.environ.update(SLACK_REVIEW_AGENT="custom", SLACK_REVIEW_CMD="rev {brief}")
         out = self.run_(spawner=lambda b, t, n: "/tmp/r.log")
         self.assertIn("review: started (log /tmp/r.log)", out)
+        self.assertEqual(self.table()["ABC-401"], entry("/tmp/r.log", 100000.0, agent="custom"))
         out = self.run_(spawner=self.spawner)
-        self.assertIn("review: already running (acme/api#812, ABC-401; log /tmp/r.log)", out)
+        self.assertIn("review: skipped (acme/api#812 already reviewed /tmp/r.log; "
+                      "ABC-401 already reviewed /tmp/r.log)", out)
         self.assertEqual(self.calls, [])
 
-    def test_already_running(self):
-        rs.save_state(self.state, {"ABC-401": {"session": "old", "at": 99000.0},
-                                   "acme/api#812": {"session": "new", "at": 99500.0},
-                                   "ABC-77": {"session": "x", "at": 1.0}})  # stale
-        out = self.run_()
-        self.assertIn("review: already running new (acme/api#812, ABC-401) -> "
-                      "cd ~/code && omp --resume new", out)
-        self.assertEqual(self.calls, [["ABC-77"]])
-
-    def test_partial_fresh_respawns(self):
-        rs.save_state(self.state, {"ABC-401": {"session": "old", "at": 99000.0}})
-        self.run_()
-        self.assertEqual(self.calls[0], ["acme/api#812", "ABC-401"])
+    def test_old_state_migrated(self):
+        with open(self.state, "w") as f:  # pre-2.7 shape
+            json.dump({"ABC-401": {"session": "old", "at": 99000.0}}, f)
+        out = self.run_(digest(B1))
+        self.assertIn("review: S1 (acme/api#812) -> cd ~/code && omp --resume S1 "
+                      "[skipped: ABC-401 already reviewed old]", out)
+        with open(self.state) as f:
+            self.assertEqual(json.load(f)["ABC-401"], entry("old", 99000.0, agent=None))
 
     def test_dry_run(self):
         out = self.run_(dry_run=True)
@@ -630,6 +719,154 @@ class ProcessTest(ProcBase):
         self.assertEqual(self.run_(t), t)
         self.assertEqual(self.run_('{"wakeAgent": false}\n'), '{"wakeAgent": false}\n')
         self.assertEqual(self.calls, [])
+
+
+RESUME = "cd ~/code && omp --resume"
+P812 = "### Mention 1 -- #dev -- from Bob at T\nMention: PTAL https://github.com/acme/api/pull/812"
+B1_813 = B1.replace("812", "813").replace("Mention 1", "Mention 2")
+
+
+class SessionTest(ProcBase):
+    def test_reviewed_targets_filtered_per_target(self):
+        self.seed({"ABC-401": entry("R0", 99000.0)})
+        out = self.run_(digest(B1))
+        self.assertEqual((self.calls, self.resumes), ([[PR812]], []))
+        self.assertIn(f"review: S1 ({PR812}) -> {RESUME} S1 [skipped: ABC-401 already reviewed R0]",
+                      out)
+        self.assertEqual(self.table(), {"ABC-401": entry("R0", 99000.0),
+                                        PR812: entry("S1", 100000.0)})
+
+    def test_pr_same_rev_skipped_at_any_age(self):
+        self.seed({PR812: entry("R0", 1000.0, rev=A)})
+        out = self.run_(digest(P812), checker=rev_checker(A))
+        self.assertIn(f"review: skipped ({PR812} already reviewed R0)", out)
+        self.assertEqual((self.calls, self.resumes), ([], []))
+
+    def test_pr_new_rev_resumes_same_session(self):
+        self.seed({PR812: entry("R0", 99000.0, rev=A)})
+        out = self.run_(digest(P812), checker=rev_checker(B))
+        self.assertIn(f"review: resumed R0 ({PR812}, aaaaaaa..bbbbbbb) -> {RESUME} R0", out)
+        self.assertEqual(self.calls, [])
+        (sid, tgts, brief), = self.resumes
+        self.assertEqual((sid, tgts), ("R0", [PR812]))
+        for s in (f"git diff {A}..{B}", P812, "NEVER edit", "Never post to Slack"):
+            self.assertIn(s, brief)
+        self.assertEqual(self.table()[PR812],
+                         entry("R0", 99000.0, rev=B, last_run=100000.0, runs=2))
+
+    def test_unknown_rev_and_tickets_use_days(self):
+        self.seed({PR812: entry("R0", 99000.0, rev=A), "ABC-5": entry("T0", 99000.0)})
+        pr, ticket = digest(P812), digest(mblock("could you review ABC-5?"))
+        for t in (pr, ticket):  # gh failed (head unknown) / ticket: reviewed 1000 s ago
+            self.assertIn("already reviewed", self.run_(t))
+        later = 99000.0 + 8 * 86400  # past SLACK_REVIEW_DAYS (7)
+        self.assertIn(f"review: resumed R0 ({PR812}, aaaaaaa..?) -> {RESUME} R0",
+                      self.run_(pr, now=later))
+        self.assertIn(f"review: resumed T0 (ABC-5) -> {RESUME} T0", self.run_(ticket, now=later))
+        os.environ["SLACK_REVIEW_DAYS"] = "0.001"  # 86 s
+        self.assertIn("review: resumed T0", self.run_(ticket, now=later + 100))
+        self.assertEqual([r[0] for r in self.resumes], ["R0", "T0", "T0"])
+        self.assertEqual(self.table(later + 100)["ABC-5"]["runs"], 3)
+
+    def test_new_and_resumed_targets_split(self):
+        now = 10 * 86400.0
+        self.seed({"ABC-401": entry("R0", now - 8 * 86400)})
+        out = self.run_(digest(B1), now=now)
+        self.assertIn(f"\nreview: S1 ({PR812}) -> {RESUME} S1\n"
+                      f"review: resumed R0 (ABC-401) -> {RESUME} R0\n", out)
+        self.assertEqual((self.calls, [r[1] for r in self.resumes]), ([[PR812]], [["ABC-401"]]))
+
+    def test_other_agent_session_gets_a_new_run(self):
+        now = 10 * 86400.0
+        self.seed({"ABC-401": entry("C0", now - 8 * 86400, agent="claude"),
+                   PR812: entry("M0", now - 8 * 86400, agent=None)})  # migrated: agent unknown
+        self.run_(digest(B1), now=now)
+        self.assertEqual((self.calls, self.resumes), ([[PR812, "ABC-401"]], []))
+        self.assertEqual(self.table(now)["ABC-401"], entry("S1", now))
+
+    def test_custom_always_new_run_no_busy_guard(self):
+        os.environ.update(SLACK_REVIEW_AGENT="custom", SLACK_REVIEW_CMD="rev {brief}")
+        now = 10 * 86400.0
+        self.seed({"ABC-401": entry("/old.log", now - 8 * 86400, agent="custom",
+                                    pid=os.getpid())})
+        out = self.run_(digest(B1), now=now)
+        self.assertIn("review: started (log S1)", out)
+        self.assertEqual((self.calls, self.resumes), ([[PR812, "ABC-401"]], []))
+
+    def test_busy_queues_then_next_tick_resumes(self):
+        self.seed({PR812: entry("R0", 99000.0, rev=A, pid=os.getpid())})  # still running
+        out = self.run_(digest(P812), checker=rev_checker(B))
+        self.assertIn("review: busy R0 (update queued)", out)
+        self.assertEqual(self.resumes, [])
+        st = self.table()
+        self.assertEqual(st[PR812]["pending"], [P812])
+        st[PR812]["pid"] = dead_pid()
+        self.seed(st)
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):  # a tick without new mentions drains the queue
+            out = self.run_('{"wakeAgent": false}\n', now=100100.0, checker=rev_checker(B))
+        self.assertEqual(out, '{"wakeAgent": false}\n')
+        self.assertEqual(err.getvalue(), f"[slack-review] queued update: review: resumed R0 "
+                                         f"({PR812}, aaaaaaa..bbbbbbb) -> {RESUME} R0\n")
+        (sid, tgts, brief), = self.resumes
+        self.assertEqual((sid, tgts), ("R0", [PR812]))
+        self.assertIn(P812, brief)
+        self.assertIn(f"git diff {A}..{B}", brief)
+        e = self.table(100100.0)[PR812]
+        self.assertEqual((e["pending"], e["runs"], e["rev"], e["last_run"]), ([], 2, B, 100100.0))
+
+    def test_queued_update_joins_the_next_resume(self):
+        q = P812.replace("PTAL", "PTAL, pushed fixes")
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[q]),
+                   "ABC-5": entry("R0", 1000.0, pid=dead_pid())})
+        now = 10 * 86400.0  # both last ran > SLACK_REVIEW_DAYS ago
+        self.run_(digest(mblock("could you review ABC-5?")), now=now)
+        (sid, tgts, brief), = self.resumes  # one resume for both targets of R0
+        self.assertEqual((sid, tgts), ("R0", ["ABC-5", PR812]))
+        self.assertLess(brief.index(q), brief.index("could you review ABC-5?"))
+        self.assertEqual([e["pending"] for e in self.table(now).values()], [[], []])
+
+    def test_queued_update_dropped_when_no_review_needed(self):
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[P812])})
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            self.run_(digest(B2), checker=lambda t: "merged" if "#" in t else None)
+        self.assertEqual(err.getvalue(), "[slack-review] queued update: review: dropped queued "
+                                         f"update for R0 ({PR812}: no review needed)\n")
+        self.assertEqual(self.resumes, [])
+        self.assertEqual(self.table()[PR812]["pending"], [])
+
+    def test_cap_counts_resumes(self):
+        os.environ["SLACK_REVIEW_MAX_SPAWNS"] = "1"
+        self.seed({PR812: entry("R0", 1000.0, rev=A)})
+        out = self.run_(digest(P812, B1_813), checker=rev_checker(B))
+        self.assertEqual((len(self.resumes), self.calls), (1, []))
+        self.assertIn("review: skipped (spawn cap reached)", out)
+
+    def test_dry_run_resume_writes_nothing(self):
+        self.seed({PR812: entry("R0", 1000.0, rev=A)})
+        out = self.run_(digest(P812, B1_813), dry_run=True, checker=rev_checker(B))
+        self.assertIn(f"review: (dry run, would resume R0 for: {PR812})", out)
+        self.assertIn("review: (dry run, would spawn for: acme/api#813, ABC-401)", out)
+        self.assertEqual((self.calls, self.resumes), ([], []))
+        self.assertEqual(self.table(), {PR812: entry("R0", 1000.0, rev=A)})
+
+    def test_failed_resume_keeps_entry(self):
+        def bad(*a):
+            raise rs.SpawnError("gone", "/tmp/l.err")
+        self.seed({PR812: entry("R0", 1000.0, rev=A)})
+        out = self.run_(digest(P812), checker=rev_checker(B), resumer=bad)
+        self.assertIn("review: failed (gone; log /tmp/l.err)", out)
+        self.assertEqual(self.table(), {PR812: entry("R0", 1000.0, rev=A)})
+
+    def test_launch_pid_recorded(self):
+        def spawner(block, targets, now):
+            rs.LAUNCHED["S9"] = 4242
+            return "S9"
+        self.run_(digest(P812), spawner=spawner)
+        self.assertEqual(self.table()[PR812]["pid"], 4242)
+        self.assertEqual(rs.LAUNCHED, {})
+
 
 
 class IntentProcessTest(ProcBase):
@@ -671,9 +908,6 @@ class FakeJev:
             raise a
         return FakeResp(json.dumps({"answers": {"review": {"noul": a}},
                                     "model": "jev-1"}).encode())
-
-
-B1_813 = B1.replace("812", "813").replace("Mention 1", "Mention 2")
 
 
 class JevTest(ProcBase):
