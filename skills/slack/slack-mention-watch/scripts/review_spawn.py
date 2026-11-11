@@ -36,6 +36,7 @@ JIRA_TOKEN, SLACK_REVIEW_JEV, SLACK_REVIEW_JEV_MIN (0.8), SLACK_REVIEW_JEV_LOG
 (~/.hermes/scripts/.slack-review-jev.jsonl), TYPESAFE_API_KEY.
 
 Stdlib only. Flags: all passed through to watch_mentions.py; --dry-run also spawns nothing.
+`review_spawn.py --sessions` alone prints the session table (read only, no watcher run).
 """
 import base64
 import json
@@ -781,8 +782,27 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
     return assemble(header, blocks) if blocks else text
 
 
+def sessions_table(now=None):
+    """The session table as aligned text, newest run first. Read only."""
+    now = time.time() if now is None else now
+    rows = [("TARGET", "AGENT", "SESSION", "RUNS", "LAST RUN", "REV", "STATUS", "RESUME")]
+    st = load_state(state_path(), now)
+    for t, e in sorted(st.items(), key=lambda kv: -float(kv[1]["last_run"])):
+        agent, sid = e.get("agent"), e["session"]
+        rows.append((t, agent or "?", sid, str(e.get("runs", 1)),
+                     datetime.fromtimestamp(float(e["last_run"])).strftime("%Y-%m-%d %H:%M"),
+                     (e.get("rev") or "-")[:7], "running" if _alive(e.get("pid")) else "idle",
+                     _resume_cmd(agent, sid) if agent in ("omp", "claude") else "-"))
+    w = [max(len(r[i]) for r in rows) for i in range(len(rows[0]) - 1)]
+    return "".join("  ".join(c.ljust(n) for c, n in zip(r, w)) + "  " + r[-1] + "\n"
+                   for r in rows)
+
+
 def main():
     args = sys.argv[1:]
+    if args == ["--sessions"]:  # inspect only: no watcher, no Slack
+        sys.stdout.write(sessions_table())
+        return 0
     child = subprocess.run([sys.executable, os.path.join(HERE, "watch_mentions.py"),
                             "--digest", "--react", *args],
                            stdout=subprocess.PIPE, text=True)  # no timeout: react may sleep

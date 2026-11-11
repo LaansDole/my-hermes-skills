@@ -9,6 +9,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 import shutil
 import signal
 import stat
@@ -1060,8 +1061,7 @@ class WrapperTest(Env):
         r = subprocess.run([sys.executable, os.path.join(d, "review_spawn.py"), *args],
                            env=dict(os.environ, PATH="/nonexistent"),
                            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-        with open(os.path.join(d, "args")) as f:
-            r.child_args = f.read()
+        r.child_args = rs._read(os.path.join(d, "args"))  # None: the watcher never ran
         return r
 
     def test_feature_off_byte_identical(self):
@@ -1083,6 +1083,26 @@ class WrapperTest(Env):
         self.assertEqual(r.stdout, SAMPLE)
         self.assertRegex(r.stderr, r"^\[slack-review\] error: ValueError: .*vim")
         self.assertEqual(r.returncode, 3)
+
+    def test_sessions_table(self):
+        now = time.time()
+        rs.save_state(self.state, {
+            PR812: entry("R0", now - 3600, rev=A, runs=2, pid=os.getpid()),  # alive: running
+            "ABC-5": entry("/x.log", now - 60, agent="custom"),
+            "ABC-6": entry("M0", now - 86400, agent=None)})  # migrated pre-2.7 row
+        with open(self.state) as f:
+            before = f.read()
+        r = self.run_main("--sessions")
+        self.assertEqual((r.returncode, r.child_args, r.stderr), (0, None, ""))
+        at = lambda s: time.strftime("%Y-%m-%d %H:%M", time.localtime(s))  # noqa: E731
+        self.assertEqual([re.split(r" {2,}", l) for l in r.stdout.splitlines()], [
+            ["TARGET", "AGENT", "SESSION", "RUNS", "LAST RUN", "REV", "STATUS", "RESUME"],
+            ["ABC-5", "custom", "/x.log", "1", at(now - 60), "-", "idle", "-"],
+            [PR812, "omp", "R0", "2", at(now - 3600), "aaaaaaa", "running",
+             "cd ~/code && omp --resume R0"],
+            ["ABC-6", "?", "M0", "1", at(now - 86400), "-", "idle", "-"]])
+        with open(self.state) as f:
+            self.assertEqual(f.read(), before)
 
 
 if __name__ == "__main__":
