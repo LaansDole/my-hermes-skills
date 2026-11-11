@@ -910,7 +910,7 @@ class ReactDelay(Base):
         self.assertIn("Reacted: :eyes: (dry run, not sent)", out)
 
 
-JEV_P = {"request": 0.95, "thanks": 0.01, "fyi": 0.02, "handled": 0.3}
+JEV_P = {"request": 0.95, "thanks": 0.01, "fyi": 0.02, "handled": 0.3, "review": 0.9}
 
 
 def jev_payload(**p):
@@ -971,7 +971,8 @@ class JevShadow(Base):
         self.assertEqual(req.headers["Authorization"], "Bearer ts-secret")
         body = json.loads(req.data)
         self.assertEqual(body["model"], "jev-latest")
-        self.assertEqual(set(body["questions"]), {"request", "thanks", "fyi", "handled"})
+        self.assertEqual(set(body["questions"]), {"request", "thanks", "fyi", "handled", "review"})
+        self.assertIn("not edit their own message", body["questions"]["review"]["instructions"])
         self.assertTrue(all(q["type"] == "noul" for q in body["questions"].values()))
         self.assertEqual(body["state"]["watched_user"], "@alice")
         self.assertEqual(body["state"]["mention"], "can you review this?")

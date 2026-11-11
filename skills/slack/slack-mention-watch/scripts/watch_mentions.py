@@ -82,6 +82,8 @@ JEV_Q = {k: {"type": "noul", "instructions": q} for k, q in {
     "thanks": "Is the mention mainly thanking or appreciating the watched user?",
     "fyi": "Is the mention only informing the watched user (status, FYI, done, merged, approved) with nothing for them to do?",
     "handled": "Based on the thread, has the watched user already committed to or handled this, or is it already resolved, so no further action is needed from them?",
+    # same text as review_spawn.py's review gate, so the shadow log calibrates its threshold
+    "review": "Is the watched user being asked to review, check, test, verify or approve a specific pull request, ticket, fix or deployment (not edit their own message, update a list, answer a question, or do other work)?",
 }.items()}
 
 

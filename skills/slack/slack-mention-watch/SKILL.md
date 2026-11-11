@@ -280,15 +280,16 @@ and skips are exactly as without it. Jev's probabilities are not calibrated on S
 so bands get picked from this log, not guessed.
 
 Per NEW mention of a default or `--digest` tick, one Jev call (`api.typesafe.ai/v1/systemone`)
-answers four yes/no questions over the mention + its thread: `request`, `thanks`, `fyi` (the
-emoji classes) and `handled` (the user already committed to it or it is resolved). Policy in
+answers five yes/no questions over the mention + its thread: `request`, `thanks`, `fyi` (the
+emoji classes), `handled` (the user already committed to it or it is resolved) and `review`
+(the same question the review gate asks, see "Background review agent"; logged only). Policy in
 code: `request >= 0.9` -> `eyes`, else `thanks >= 0.9` -> `raised_hands`, else `fyi >= 0.9` ->
 `memo`, else none (Jev unsure, regex decides).
 
 Enable in `~/.hermes/.env`: `SLACK_MENTION_JEV_SHADOW=1` and `TYPESAFE_API_KEY=...`. It sends
 the mention and thread text to a third party, which is why it is off by default. One JSON line
 per mention goes to `~/.hermes/scripts/.slack-mention-jev.jsonl` (mode 600; `--dry-run` prints
-rows to stderr instead): `regex_emoji`, `react_status`, `p` (four probabilities), `jev_emoji`,
+rows to stderr instead): `regex_emoji`, `react_status`, `p` (five probabilities), `jev_emoji`,
 `jev_model`, `ms`, `error`. A Jev failure is logged as an error row; a rejected key prints one
 stderr line and stops Jev calls for that tick. The tick itself never fails because of Jev.
 
