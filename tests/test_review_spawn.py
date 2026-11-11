@@ -52,7 +52,8 @@ ENV_KEYS = ("SLACK_REVIEW_AGENT", "SLACK_REVIEW_WORKDIR", "SLACK_REVIEW_MODEL",
             "SLACK_REVIEW_EFFORT", "SLACK_REVIEW_CMD", "SLACK_REVIEW_MAX_SPAWNS",
             "SLACK_REVIEW_TICKET_RE", "SLACK_REVIEW_INSTRUCTIONS", "SLACK_REVIEW_ID_TIMEOUT",
             "SLACK_REVIEW_GH_LOGIN", "JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN",
-            "SLACK_REVIEW_JEV", "SLACK_REVIEW_JEV_MIN", "TYPESAFE_API_KEY", "SLACK_REVIEW_DAYS")
+            "SLACK_REVIEW_JEV", "SLACK_REVIEW_JEV_MIN", "TYPESAFE_API_KEY", "SLACK_REVIEW_DAYS",
+            "SLACK_REVIEW_GUARD", "SLACK_REVIEW_GUARD_DIR")
 with open(Path(__file__).resolve().parent / "fixtures_review_intent.json") as _f:
     FX = json.load(_f)  # anonymised real digest blocks: review asks and look-alikes
 A, B = "a" * 40, "b" * 40  # PR head revs
@@ -400,6 +401,7 @@ class BriefTest(Env):
                   "Never post to Slack", "file:line"):
             self.assertIn(s, b)
         self.assertNotIn("Additional instructions", b)
+        self.assertNotIn("gh api", b)  # claude may not run it; the gh guard only allows GET
 
     def test_instructions_appended(self):
         path = os.path.join(self.tmp, "rules.md")
@@ -532,7 +534,7 @@ class SpawnTest(Env):
             "--output-format", "stream-json", "--verbose", "--model", "m2",
             "--permission-mode", "default", "--allowedTools", "Read", "Grep", "Glob",
             "Bash(gh pr view:*)", "Bash(gh pr diff:*)", "Bash(gh pr checks:*)",
-            "Bash(gh api:*)", "Bash(git fetch:*)", "Bash(git show:*)", "Bash(git diff:*)",
+            "Bash(git fetch:*)", "Bash(git show:*)", "Bash(git diff:*)",
             "Bash(git log:*)", "--disallowedTools", "Edit", "Write", "NotebookEdit"])
         self.assertEqual("\n".join(argv[1:argv.index("--output-format")]), brief)
         with open(os.path.join(self.tmp, "cwd")) as f:
@@ -571,6 +573,114 @@ class SpawnTest(Env):
         with self.assertRaises(rs.SpawnError) as cm:
             rs.spawn(B1, ["ABC-401"], time.time())
         self.assertIn("cannot start", str(cm.exception))
+
+    ENV_PROBE = 'printf "%s\\n" "$PATH" "$GIT_TERMINAL_PROMPT" "$PI_BASH_NO_LOGIN" > "{}/env"\n'
+
+    def child_env(self):
+        with open(os.path.join(self.tmp, "env")) as f:
+            return f.read().split("\n")[:3]
+
+    def test_child_env_guarded(self):
+        guard = os.path.join(self.dir, "guard-bin")  # default: <SLACK_REVIEW_DIR>/guard-bin
+        fake_agent(self.tmp, "omp", self.ENV_PROBE.format(self.tmp)
+                   + """echo '{"type":"session","id":"sess-1"}'\n""")
+        os.environ["PATH"] = guard + os.pathsep + os.environ["PATH"]  # never baked as "real"
+        rs.spawn(B1, ["ABC-401"], time.time())
+        path, prompt, no_login = self.child_env()
+        self.assertEqual(path.split(os.pathsep)[0], guard)
+        self.assertNotIn(guard, path.split(os.pathsep)[1:])
+        self.assertEqual((prompt, no_login), ("0", "1"))
+        for name in ("git", "gh"):
+            self.assertEqual(stat.S_IMODE(os.stat(os.path.join(guard, name)).st_mode), 0o755)
+        r = subprocess.run([os.path.join(guard, "git"), "--version"], stdout=subprocess.PIPE,
+                           text=True, timeout=10)  # the real git, not a loop into the guard
+        self.assertTrue(r.stdout.startswith("git version"), r.stdout)
+        r = subprocess.run([os.path.join(guard, "git"), "push"], stderr=subprocess.PIPE, text=True)
+        self.assertEqual(r.returncode, 1)
+
+    def test_guard_off(self):
+        os.environ["SLACK_REVIEW_GUARD"] = "0"  # not recommended, documented
+        fake_agent(self.tmp, "omp", self.ENV_PROBE.format(self.tmp)
+                   + """echo '{"type":"session","id":"sess-1"}'\n""")
+        rs.spawn(B1, ["ABC-401"], time.time())
+        self.assertEqual(self.child_env()[0], os.environ["PATH"])
+        self.assertFalse(os.path.exists(os.path.join(self.dir, "guard-bin")))
+
+    def test_guard_unwritable_fails_closed(self):
+        blocker = os.path.join(self.tmp, "file")
+        open(blocker, "w").close()
+        os.environ["SLACK_REVIEW_GUARD_DIR"] = os.path.join(blocker, "guard")
+        fake_agent(self.tmp, "omp", """echo '{"type":"session","id":"sess-1"}'\n""")
+        with self.assertRaises(rs.SpawnError) as cm:
+            rs.spawn(B1, ["ABC-401"], time.time())
+        self.assertIn("guard", str(cm.exception))
+        self.assertFalse(os.path.exists(os.path.join(self.tmp, "argv")))  # agent never started
+
+
+class ShimTest(Env):
+    def setUp(self):
+        super().setUp()
+        self.real = os.path.join(self.tmp, "real")
+        with open(self.real, "w") as f:
+            f.write('#!/bin/sh\necho "REAL $*"\n')
+        os.chmod(self.real, 0o755)
+        self.d = os.path.join(self.tmp, "guard")
+        rs.write_shims(self.d, git=self.real, gh=self.real)
+
+    def run_shim(self, name, args):
+        return subprocess.run([os.path.join(self.d, name), *args], stdout=subprocess.PIPE,
+                              stderr=subprocess.PIPE, text=True)
+
+    def check(self, name, allow, deny):
+        for args in allow:
+            r = self.run_shim(name, args)
+            self.assertEqual((r.returncode, r.stdout), (0, "REAL " + " ".join(args) + "\n"), args)
+        for args in deny:
+            r = self.run_shim(name, args)
+            self.assertEqual((r.returncode, r.stdout), (1, ""), args)
+            self.assertIn("blocked", r.stderr)
+
+    def test_git(self):
+        self.check("git", allow=[
+            ["status"], ["-C", "/x", "log", "--oneline"], ["fetch", "origin", "pull/1/head"],
+            ["--no-pager", "diff", "a..b"], ["log", "push"], ["-C", "push", "status"],
+            ["-c", "a=b", "show", "HEAD"], ["branch"], ["branch", "-a"], ["branch", "--list"],
+            ["rev-parse", "HEAD"]], deny=[
+            ["push"], ["-C", "/x", "push", "origin", "HEAD"], ["-c", "x=y", "--git-dir", "/g", "push"],
+            ["--git-dir=/g", "push", "-f"], ["--no-pager", "send-email", "x"], ["-C", "push", "push"],
+            *[[a, "x"] for a in ("commit", "reset", "checkout", "switch", "rebase", "merge", "stash",
+                                 "worktree", "tag", "pull", "cherry-pick", "revert", "restore",
+                                 "clean", "am", "apply")],
+            ["-c", "a=b", "commit", "-m", "x"], ["branch", "-D", "x"], ["branch", "x", "-d"],
+            ["branch", "--delete", "x"], ["branch", "-m", "a", "b"], ["branch", "--move", "a"],
+            ["branch", "-f", "x", "y"], ["branch", "--force", "x"], ["-C", "/x", "branch", "-M", "a"]])
+
+    def test_gh(self):
+        self.check("gh", allow=[
+            ["pr", "view", "1"], ["pr", "diff", "1", "-R", "o/r"], ["pr", "-R", "o/r", "view", "1"],
+            ["pr", "checks", "1"], ["pr", "list"], ["pr", "status"], ["issue", "view", "3"],
+            ["issue", "list"], ["api", "repos/o/r/pulls/1/comments"], ["api", "-X", "GET", "repos/o/r"],
+            ["api", "--method=get", "x"], ["api", "user", "--jq", ".login"], ["repo", "view", "o/r"],
+            ["search", "prs", "x"]], deny=[
+            *[["pr", a, "1"] for a in ("comment", "review", "edit", "merge", "close", "reopen",
+                                       "ready", "create", "checkout", "lock")],
+            ["pr", "-R", "o/r", "comment", "1", "-b", "x"], ["issue", "comment", "3"],
+            ["issue", "create"], ["issue", "close", "1"], ["release", "list"],
+            ["release", "create", "v1"], ["repo", "edit"], ["repo", "delete", "x"],
+            ["repo", "create", "x"], ["api", "-X", "POST", "x"], ["api", "--method", "PATCH", "x"],
+            ["api", "--method=DELETE", "x"], ["api", "-XPOST", "x"], ["api", "x", "-f", "a=b"],
+            ["api", "x", "-F", "a=b"], ["api", "x", "--field", "a=b"],
+            ["api", "x", "--raw-field", "a=b"], ["api", "x", "--input", "f"],
+            ["api", "x", "--input=f"], ["api", "graphql", "-fquery=x"]])
+
+    def test_refresh_bakes_new_real(self):
+        other = os.path.join(self.tmp, "other dir")
+        os.makedirs(other)
+        with open(os.path.join(other, "git"), "w") as f:
+            f.write('#!/bin/sh\necho "OTHER $*"\n')
+        os.chmod(os.path.join(other, "git"), 0o755)
+        rs.write_shims(self.d, git=os.path.join(other, "git"), gh=self.real)
+        self.assertEqual(self.run_shim("git", ["status"]).stdout, "OTHER status\n")
 
 
 # Orchestration --------------------------------------------------------------

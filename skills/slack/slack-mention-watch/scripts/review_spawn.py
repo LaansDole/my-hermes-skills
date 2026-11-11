@@ -27,13 +27,18 @@ SLACK_REVIEW_JEV=1 + TYPESAFE_API_KEY asks TypeSafe Jev about regex-positive men
 p(review) < SLACK_REVIEW_JEV_MIN (0.8) -> `skipped (not a review request (jev p))`. Jev
 errors -> the regex decides. One row per call in SLACK_REVIEW_JEV_LOG.
 
+Every agent runs with git/gh guard wrappers first on PATH (SLACK_REVIEW_GUARD_DIR): they refuse
+git writes (push, commit, checkout, ...) and gh writes (pr comment/review/merge, issue writes,
+release, non-GET api). SLACK_REVIEW_GUARD=0 turns that off (not recommended).
+
 Env (process env first, then ~/.hermes/.env): SLACK_REVIEW_AGENT, SLACK_REVIEW_WORKDIR,
 SLACK_REVIEW_MODEL, SLACK_REVIEW_EFFORT (omp --thinking), SLACK_REVIEW_CMD (custom, with
 {brief} and {workdir}), SLACK_REVIEW_MAX_SPAWNS (3), SLACK_REVIEW_TICKET_RE,
 SLACK_REVIEW_INSTRUCTIONS, SLACK_REVIEW_STATE, SLACK_REVIEW_DAYS (7), SLACK_REVIEW_DIR,
 SLACK_REVIEW_ID_TIMEOUT (30), SLACK_REVIEW_GH, SLACK_REVIEW_GH_LOGIN, JIRA_URL, JIRA_EMAIL,
 JIRA_TOKEN, SLACK_REVIEW_JEV, SLACK_REVIEW_JEV_MIN (0.8), SLACK_REVIEW_JEV_LOG
-(~/.hermes/scripts/.slack-review-jev.jsonl), TYPESAFE_API_KEY.
+(~/.hermes/scripts/.slack-review-jev.jsonl), TYPESAFE_API_KEY, SLACK_REVIEW_GUARD,
+SLACK_REVIEW_GUARD_DIR (<SLACK_REVIEW_DIR>/guard-bin).
 
 Stdlib only. Flags: all passed through to watch_mentions.py; --dry-run also spawns nothing.
 `review_spawn.py --sessions` alone prints the session table (read only, no watcher run).
@@ -66,7 +71,7 @@ BLOCK_SPLIT = re.compile(r"\n\n(?=### Mention )")
 PR_RE = r"(?i:github\.com/(?P<o>[\w.-]+)/(?P<r>[\w.-]+)/pull/(?P<n>\d+))"
 NO_RESUME = "autoResume: false\n"
 CLAUDE_ALLOW = ("Read", "Grep", "Glob", "Bash(gh pr view:*)", "Bash(gh pr diff:*)",
-                "Bash(gh pr checks:*)", "Bash(gh api:*)", "Bash(git fetch:*)",
+                "Bash(gh pr checks:*)", "Bash(git fetch:*)",
                 "Bash(git show:*)", "Bash(git diff:*)", "Bash(git log:*)")
 CLAUDE_DENY = ("Edit", "Write", "NotebookEdit")
 
@@ -413,9 +418,8 @@ HOW = """\
 ## How to review
 
 - GitHub PRs (owner/repo#n): read them with gh, read-only: `gh pr view`, `gh pr diff`,
-  `gh pr checks`, `gh api` GET requests. For more context, `git fetch origin pull/<n>/head`
-  in the matching clone under the current directory, then `git show` / `git diff` / `git log`
-  on the fetched refs.
+  `gh pr checks`. For more context, `git fetch origin pull/<n>/head` in the matching clone
+  under the current directory, then `git show` / `git diff` / `git log` on the fetched refs.
 - Tickets: read the ticket with whatever read-only access is configured. GET/search only.
 - NEVER edit files, commit, checkout/switch branches, add/remove worktrees, or change any
   state in the user's checkouts. NEVER push, comment, approve or request changes.
@@ -502,6 +506,111 @@ def _bin(name):
     return shutil.which(name) or os.path.expanduser(f"~/.local/bin/{name}")
 
 
+# Guard wrappers first on every agent's PATH; @REAL@ = the real binary, baked in at write time.
+# ponytail: argv guards, not a sandbox (e.g. `git -c alias.x=push x` or a gh subcommand outside
+# pr/issue/release/repo/api passes); upgrade to a read-only GitHub token if a run routes around.
+GIT_SHIM = """\
+#!/bin/sh
+# slack-review guard, rewritten by review_spawn.py on every launch (edits are lost).
+real=@REAL@
+deny() {
+  echo "slack-review guard: 'git $*' is blocked: review sessions are read-only." >&2
+  exit 1
+}
+skip= branch=
+for a in "$@"; do
+  if [ -n "$skip" ]; then skip=; continue; fi
+  if [ -n "$branch" ]; then
+    case "$a" in -d|-D|--delete|-m|-M|--move|-f|--force) deny "$@" ;; esac
+    continue
+  fi
+  case "$a" in
+    -C|-c|--git-dir|--work-tree|--namespace|--config-env) skip=1 ;;
+    -*) ;;
+    push|send-email|commit|reset|checkout|switch|rebase|merge|stash|worktree|tag|pull|\\
+cherry-pick|revert|restore|clean|am|apply) deny "$@" ;;
+    branch) branch=1 ;;
+    *) break ;;
+  esac
+done
+exec "$real" "$@"
+"""
+GH_SHIM = """\
+#!/bin/sh
+# slack-review guard, rewritten by review_spawn.py on every launch (edits are lost).
+real=@REAL@
+deny() {
+  echo "slack-review guard: 'gh $*' is blocked: review sessions are read-only on GitHub." >&2
+  exit 1
+}
+cmd= sub= skip=
+for a in "$@"; do
+  if [ -n "$skip" ]; then skip=; continue; fi
+  case "$a" in
+    -R|--repo) skip=1 ;;
+    -*) ;;
+    *) if [ -z "$cmd" ]; then cmd=$a; else sub=$a; break; fi ;;
+  esac
+done
+case "$cmd" in
+  pr) case "$sub" in ""|view|diff|checks|list|status) ;; *) deny "$@" ;; esac ;;
+  issue) case "$sub" in ""|view|list) ;; *) deny "$@" ;; esac ;;
+  release) deny "$@" ;;
+  repo) case "$sub" in ""|view|list|clone) ;; *) deny "$@" ;; esac ;;
+  api)
+    prev=
+    for a in "$@"; do
+      case "$prev" in
+        -X|--method) case "$a" in [Gg][Ee][Tt]) ;; *) deny "$@" ;; esac ;;
+      esac
+      case "$a" in
+        -f|-F|--field|--raw-field|--input|-f?*|-F?*|--field=*|--raw-field=*|--input=*)
+          deny "$@" ;;
+        -X?*) case "${a#-X}" in [Gg][Ee][Tt]) ;; *) deny "$@" ;; esac ;;
+        --method=*) case "${a#--method=}" in [Gg][Ee][Tt]) ;; *) deny "$@" ;; esac ;;
+      esac
+      prev=$a
+    done ;;
+esac
+exec "$real" "$@"
+"""
+
+
+def write_shims(d, git, gh):
+    """(Re)write the git/gh guard wrappers in d around the real binaries git and gh."""
+    os.makedirs(d, exist_ok=True)
+    for name, body, real in (("git", GIT_SHIM, git), ("gh", GH_SHIM, gh)):
+        text, path = body.replace("@REAL@", shlex.quote(real)), os.path.join(d, name)
+        if _read(path) == text and os.access(path, os.X_OK):
+            continue
+        fd, tmp = tempfile.mkstemp(dir=d, prefix=f".{name}-")
+        with os.fdopen(fd, "w") as f:
+            f.write(text)
+        os.chmod(tmp, 0o755)
+        os.replace(tmp, path)  # atomic: running sessions never see a half-written guard
+
+
+def _guard_env(spawn_dir):
+    """Child env: guard dir (refreshed) first on PATH, no git credential prompts. None (inherit)
+    with SLACK_REVIEW_GUARD=0. A guard that cannot be written raises SpawnError (fail closed)."""
+    if cfg("SLACK_REVIEW_GUARD") == "0":
+        return None
+    d = _path("SLACK_REVIEW_GUARD_DIR", os.path.join(spawn_dir, "guard-bin"))
+    clean = os.pathsep.join(p for p in os.environ.get("PATH", os.defpath).split(os.pathsep)
+                            if p and os.path.realpath(os.path.expanduser(p))
+                            != os.path.realpath(d))
+    git = shutil.which("git", path=clean) or "/usr/bin/git"
+    gh = shutil.which(cfg("SLACK_REVIEW_GH") or "gh", path=clean) or "/opt/homebrew/bin/gh"
+    try:  # absolute: a relative "real" binary would resolve back into the guard dir (loop)
+        write_shims(d, os.path.abspath(git), os.path.abspath(gh))
+    except OSError as e:
+        raise SpawnError(f"cannot write the git/gh guard: {e}", d)
+    # PI_BASH_NO_LOGIN: omp's PTY bash runs `$SHELL -l -c`; macOS path_helper would then put
+    # /usr/bin ahead of the guard dir. Non-login keeps the guard first.
+    return dict(os.environ, PATH=d + os.pathsep + clean, GIT_TERMINAL_PROMPT="0",
+                PI_BASH_NO_LOGIN="1")
+
+
 def _argv(agent, brief, d, wd, resume=None):
     again = ["--resume", resume] if resume else []
     if agent == "omp":
@@ -579,10 +688,12 @@ def _launch(text, tgts, now, resume=None):
     out = base + (".log" if agent == "custom" else ".jsonl")
     with open(brief, "w") as f:
         f.write(text)
+    env = _guard_env(d)
     try:
         with open(out, "w") as o, open(err, "w") as e:
             proc = subprocess.Popen(_argv(agent, brief, d, wd, resume), stdout=o, stderr=e,
-                                    stdin=subprocess.DEVNULL, start_new_session=True, cwd=wd)
+                                    stdin=subprocess.DEVNULL, start_new_session=True, cwd=wd,
+                                    env=env)
     except OSError as e:
         raise SpawnError(f"cannot start {agent}: {e}", err)
     if agent == "custom":
