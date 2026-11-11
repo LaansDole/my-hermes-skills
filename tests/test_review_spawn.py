@@ -30,15 +30,15 @@ HEADER = "NEW MENTIONS: 2   (watched user: @sam)   now: Fri 2026-11-06 10:30 +07
 B1 = "\n".join([
     "### Mention 1 -- #dev -- from Bob at Fri 2026-11-06 10:20",
     "Permalink: https://x.slack.com/archives/C1/p123?thread_ts=1.2",
-    "Mention: @sam can you review <https://github.com/acme/api/pull/812|#812>?",
+    "Mention: @sam can you review <https://github.com/acme/api/pull/812|#812> for ABC-401?",
     "Reacted: :eyes:",
     "Thread (3 messages):",
-    "[Fri 11-06 10:18] Bob: ABC-401 is ready",
+    "[Fri 11-06 10:18] Bob: ABC-400 is ready",
     "    continuation lines are indented 4 spaces",
 ])
 B2 = "\n".join([
     "### Mention 2 -- #qa -- from Eve at Fri 2026-11-06 10:25",
-    "Mention: @sam please look at ABC-77",
+    "Mention: @sam please take a look at ABC-77",
     "    second line",
     "(thread context unavailable: ratelimited)",
 ])
@@ -50,6 +50,8 @@ ENV_KEYS = ("SLACK_REVIEW_AGENT", "SLACK_REVIEW_WORKDIR", "SLACK_REVIEW_MODEL",
             "SLACK_REVIEW_EFFORT", "SLACK_REVIEW_CMD", "SLACK_REVIEW_MAX_SPAWNS",
             "SLACK_REVIEW_TICKET_RE", "SLACK_REVIEW_INSTRUCTIONS", "SLACK_REVIEW_ID_TIMEOUT",
             "SLACK_REVIEW_GH_LOGIN", "JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN")
+with open(Path(__file__).resolve().parent / "fixtures_review_intent.json") as _f:
+    FX = json.load(_f)  # anonymised real digest blocks: review asks and look-alikes
 
 
 class Env(unittest.TestCase):
@@ -98,7 +100,7 @@ class ParseTest(unittest.TestCase):
 
 class TargetsTest(Env):
     def test_sample(self):
-        self.assertEqual(rs.targets(B1), ["acme/api#812", "ABC-401"])
+        self.assertEqual(rs.targets(B1), ["acme/api#812", "ABC-401", "ABC-400"])
         self.assertEqual(rs.targets(B2), ["ABC-77"])
 
     def test_ticket_regex_off_by_default(self):
@@ -127,6 +129,62 @@ class EligibleTest(Env):
                   ":raised_hands: (dry run, not sent)", ":memo:", ":memo: (dry run, not sent)"):
             self.assertFalse(rs.eligible(B1.replace(":eyes:", r)), r)
         self.assertFalse(rs.eligible("### Mention 1 -- x\nMention: hi\nReacted: :eyes:"))
+
+
+class IntentTest(Env):
+    POS = ("can you review <https://github.com/o/r/pull/1|#1>?", "PTAL", "ptal when free",
+           "pls re-review, I pushed fixes", "please review the auth change",
+           "Hi, help me to review this", "could you take a look at ABC-1",
+           "have a quick look when free", "Could you verify it on staging?",
+           "would you approve this", "review this PR when you can", "re-review the fix pls",
+           "<https://github.com/o/r/pull/1> ?", "<https://github.com/o/r/pull/9> check pls",
+           "Hi could you help to review the hotfix?", "Could you review this one ?",
+           "Can you check this?", "could you test it on staging", "can you check on staging",
+           "could you verify the fix", "can you test the build pls", "can you check the PRs",
+           "please check the pull request", "Could you review it so I can merge?")
+    NEG = ("Review to move:\n◦ To dev → In dev",
+           "Could you update the list based on what we discussed @sam",
+           "Could you edit message to include today’s tickets in the section What i do: @sam",
+           "could you edit your message", "can you edit the message?",
+           "I reviewed with comment", "it is in review", "No need ticket for “Admin sidebar” @sam",
+           "What are the items should be done today?", "thanks for abc-77",
+           "Review items in the doc before standup",
+           "deploy tomorrow, what items? <https://example.atlassian.net/browse/ABC-1|x>",
+           "<https://github.com/o/r/pull/3> merged, see "
+           "<https://x.slack.com/archives/C1/p1?thread_ts=1.2|thread>",
+           "@sam There are many tickets in review, I’ve commented in some of them. Can you "
+           "check and assign the remaining ones so I can review?",
+           "Can you check and assign them?", "could you test and deploy it",
+           "Could you assign ABC-1 so I can review?", "can you move it, then we will review",
+           "pls move the tickets in review", "Could you assign ABC-2 so that I'll review it",
+           "would you approve ABC-3")  # approve needs an object word, a bare key is not one
+
+    def block(self, mention):
+        """The thread asks for a review too: only the Mention text may count."""
+        return ("### Mention 1 -- #x -- from B at T\nMention: " + mention.replace("\n", "\n    ")
+                + "\nReacted: :eyes:\nThread (2 messages):\n[T] B: could you review ABC-9 pls"
+                + "\n[T] B: " + mention.split("\n")[0])
+
+    def test_phrases_mention_only(self):
+        for m in self.POS:
+            self.assertTrue(rs.review_intent(self.block(m)), m)
+        for m in self.NEG:
+            self.assertFalse(rs.review_intent(self.block(m)), m)
+
+    def test_fixture(self):
+        for name, b in FX["negatives"].items():
+            self.assertIsNone(rs.review_intent(b), name)
+        for name, p in FX["positives"].items():
+            self.assertTrue(rs.review_intent(p["block"]), name)
+            self.assertEqual(rs.scoped_targets(p["block"]), p["targets"], name)
+
+    def test_scoped_targets(self):
+        self.assertEqual(rs.scoped_targets(B1), ["acme/api#812", "ABC-401"])  # not ABC-400
+        self.assertEqual(rs.scoped_targets(B2), ["ABC-77"])
+        root = ("### M\nMention: could you review this?\nReacted: :eyes:\nThread (3 messages):\n"
+                "[T] Bob: root\n    links ABC-5\n[T] Bob: ABC-6 too\n[T] Eve: could you review this?")
+        self.assertEqual(rs.scoped_targets(root), ["ABC-5"])  # root continuation counts
+        self.assertEqual(rs.scoped_targets(root.replace("links ABC-5", "no key")), [])
 
 
 # Target checks --------------------------------------------------------------
@@ -246,7 +304,7 @@ class AnnotateTest(unittest.TestCase):
         out = rs.annotate(B2 + "\n", "X")
         self.assertEqual(out, "\n".join([
             "### Mention 2 -- #qa -- from Eve at Fri 2026-11-06 10:25",
-            "Mention: @sam please look at ABC-77",
+            "Mention: @sam please take a look at ABC-77",
             "    second line",
             "X",
             "(thread context unavailable: ratelimited)",
@@ -432,7 +490,16 @@ class SpawnTest(Env):
 
 # Orchestration --------------------------------------------------------------
 
-class ProcessTest(Env):
+def digest(*blocks, header=HEADER):
+    return header + "\n\n" + "\n\n".join(b.rstrip("\n") for b in blocks) + "\n"
+
+
+def mblock(mention, n=1, reacted=":eyes:"):
+    return "\n".join([f"### Mention {n} -- #dev -- from Bob at Fri 2026-11-06 10:2{n}",
+                      f"Mention: {mention}", f"Reacted: {reacted}"])
+
+
+class ProcBase(Env):
     def setUp(self):
         super().setUp()
         self.calls = []
@@ -447,6 +514,8 @@ class ProcessTest(Env):
         kw.setdefault("checker", lambda t: None)
         return rs.process(text, **kw)
 
+
+class ProcessTest(ProcBase):
     def test_feature_off_identical(self):
         os.environ.pop("SLACK_REVIEW_AGENT")
         self.assertIs(self.run_(), SAMPLE)
@@ -558,6 +627,32 @@ class ProcessTest(Env):
         self.assertEqual(self.run_(t), t)
         self.assertEqual(self.run_('{"wakeAgent": false}\n'), '{"wakeAgent": false}\n')
         self.assertEqual(self.calls, [])
+
+
+class IntentProcessTest(ProcBase):
+    def test_real_negatives_skipped(self):
+        for name, b in FX["negatives"].items():
+            out = self.run_(digest(b, header=FX["header"]))
+            self.assertEqual(rs.parse(out)[1][0], rs.annotate(
+                b + "\n", "review: skipped (not a review request)"), name)
+        self.assertEqual(self.calls, [])
+        self.assertEqual(rs.load_state(self.state, 100000.0), {})
+
+    def test_positives_spawn_scoped_targets(self):
+        for p in FX["positives"].values():
+            self.run_(digest(p["block"], header=FX["header"]))
+        self.assertEqual(self.calls, [p["targets"] for p in FX["positives"].values()])
+
+    def test_intent_without_scoped_target(self):
+        b = (mblock("@sam could you review this?")
+             + "\nThread (2 messages):\n[T] Bob: hello\n[T] Eve: ABC-5 maybe")
+        out = self.run_(digest(b))
+        self.assertIn("review: skipped (no target in mention or thread root)", out)
+        self.assertEqual(self.calls, [])
+
+    def test_no_target_anywhere_untouched(self):
+        t = digest(mblock("@sam could you review this?"))
+        self.assertEqual(self.run_(t), t)
 
 
 # CLI wrapper ----------------------------------------------------------------

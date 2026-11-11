@@ -2,13 +2,16 @@
 """Digest wrapper with an opt-in background PR-review agent.
 
 Runs `watch_mentions.py --digest --react <args>` (stderr inherited, exit code passed through).
-If SLACK_REVIEW_AGENT is set (omp / claude / custom), every new mention that names a GitHub
-PR (or a ticket key matching SLACK_REVIEW_TICKET_RE) starts a detached, read-only review
-session, and a `review:` line with its resume command goes into that mention's block.
+If SLACK_REVIEW_AGENT is set (omp / claude / custom), every new mention whose Mention text asks
+the user to review (PTAL, "could you review ...", "can you check this", ...) starts a detached,
+read-only review session for the GitHub PRs (and ticket keys matching SLACK_REVIEW_TICKET_RE)
+named in the Mention text, else in the thread root only; a `review:` line with its resume
+command goes into that mention's block.
 Feature off -> the digest is printed unchanged. Any error in the review layer -> one stderr
 line `[slack-review] error: ...` and the raw digest.
 
-Skipped without a spawn: thanks/FYI/already handled mentions (`Reacted:` line), and targets
+Skipped without a spawn: thanks/FYI/already handled mentions (`Reacted:` line), mentions that
+are no review request (`review: skipped (not a review request)`), and targets
 that are merged/closed/approved/already reviewed by you (PRs, via gh) or done (tickets, only
 with JIRA_URL/JIRA_EMAIL/JIRA_TOKEN). Checks fail open. Targets are deduped for 24 h.
 
@@ -120,6 +123,78 @@ def annotate(block, line):
             idx += 1
     lines.insert(idx + 1, line)
     return "\n".join(lines)
+
+
+# Review intent (deterministic gate over the Mention text only) ---------------
+
+SLACK_LINK = re.compile(r"<((?:https?|mailto):[^|>]*)(?:\|([^>]*))?>")
+URL_RE = re.compile(r"https?://\S+")
+_OBJ = (r"(?:this|that|it|the\s+(?:PRs?|pull\s+requests?|fix(?:es)?|hotfix(?:es)?|tickets?"
+        r"|changes?|builds?)|on\s+(?:staging|prod|dev))")
+# Must NOT match "Review to move:", "update the list", "edit message", "reviewed with comment",
+# "check and assign ... so I can review" (tests pin both sides).
+INTENT_RES = tuple(re.compile(p, re.I) for p in (
+    r"\bptal\b",
+    r"\b(?:take|have) a (?:quick )?look\b",
+    r"\b(?:can|could|would|will) you\b[^.?!\n]{0,40}\b(?:re-?)?review(?!ed)",
+    r"\b(?:please|pls|plz|help(?: me)?(?: to)?)\b[^.?!\n]{0,30}\b(?:re-?)?review(?!ed)",
+    r"\b(?:re-?)?review\s+(?:this|that|it|the|my|our|these|those|PRs?|pull|tickets?"
+    r"|hotfix(?:es)?|fix(?:es)?|changes?)\b",
+    # check/test/verify/approve only with an object ("check and assign" is triage)
+    r"\b(?:(?:can|could|would|will) you|please|pls|plz)\b[^.?!\n]{0,40}"
+    r"\b(?:check|test|verify|approve)\s+" + _OBJ + r"\b",
+))
+# A review whose subject is not the reader never counts: removed before matching.
+NOT_MINE_RE = re.compile(
+    r"\b(?:I|we|they|he|she)(?:['’](?:ll|d)|\s+(?:can|could|will|would|should|may|might|shall))?"
+    r"\s+(?:re-?)?review|\bin\s+review\b|\breview\s+to\s+move\b", re.I)
+PR_ASK_RE = re.compile(r"\b(?:review|ptal|look|check|approve|verify|test)|\?", re.I)
+
+
+def mention_text(block):
+    """The `Mention:` line + its 4-space continuation lines (never the thread)."""
+    lines = block.split("\n")
+    i = next((i for i, l in enumerate(lines) if l.startswith("Mention:")), None)
+    if i is None:
+        return ""
+    out = [lines[i][len("Mention:"):].strip()]
+    for l in lines[i + 1:]:
+        if not l.startswith("    "):
+            break
+        out.append(l[4:])
+    return "\n".join(out)
+
+
+def thread_msgs(block):
+    """Thread messages, each with its continuation lines; [0] is the thread root."""
+    lines = block.split("\n")
+    i = next((i for i, l in enumerate(lines) if l.startswith("Thread (")), None)
+    msgs = []
+    for l in lines[i + 1:] if i is not None else ():
+        if l.startswith("    ") and msgs:
+            msgs[-1] += "\n" + l[4:]
+        elif l.startswith("["):
+            msgs.append(l)
+        else:
+            break
+    return msgs
+
+
+def review_intent(block):
+    """The request phrase if the Mention text asks the reader to review/check, else None."""
+    raw = mention_text(block)
+    # link labels stay, URLs go (a URL's `?` is no question)
+    ask = NOT_MINE_RE.sub(" ", URL_RE.sub(" ", SLACK_LINK.sub(lambda m: m[2] or " ", raw)))
+    for r in ((PR_ASK_RE,) if re.search(PR_RE, raw) else ()) + INTENT_RES:
+        m = r.search(ask)
+        if m:
+            return m.group(0)
+    return None
+
+
+def scoped_targets(block):
+    """Targets in the Mention text, else in the thread root only; never the rest of the thread."""
+    return targets(mention_text(block)) or targets((thread_msgs(block) or [""])[0])
 
 
 # Target checks (read only, fail open) ---------------------------------------
@@ -393,8 +468,15 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target):
     for i, block in enumerate(blocks):
         if not eligible(block):
             continue
+        hit = review_intent(block)
+        cands = scoped_targets(block) if hit else []
+        why = ("not a review request" if not hit else
+               "no target in mention or thread root" if not cands else None)
+        if why:
+            blocks[i] = annotate(block, f"review: skipped ({why})")
+            continue
         tgts, skipped = [], []
-        for t in targets(block):
+        for t in cands:
             reason = checker(t)
             if reason:
                 skipped.append(f"{t} {reason}")

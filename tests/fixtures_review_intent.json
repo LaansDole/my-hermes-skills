@@ -1,0 +1,34 @@
+{
+ "header": "NEW MENTIONS: 1   (watched user: @sam)   now: Tue 2026-11-10 13:00 +07",
+ "negatives": {
+  "update_list": "### Mention 1 -- #dev -- from Alice at Tue 2026-11-10 10:10\nPermalink: https://x.slack.com/archives/C1/p1?thread_ts=1.1\nMention: Could you update the list based on what we discussed @sam\n    • Test to move issues from “Testing” to “To Release”. Comment tested cases, should be short (bullet points)\n        ◦ If you need someone to verify with you, please comment\n    • Review to move: \n        ◦ To dev → In dev\n        ◦ To do → In dev\n    • ABC-143: Let’s confirm the UX solution first.\nReacted: :eyes:\nThread (3 messages):\n[Tue 11-10 09:26] sam: Daily 10/11:\n    Done:\n    • <https://example.atlassian.net/browse/ABC-142|Login page polish> follow ups (Staging)\n    • <https://example.atlassian.net/browse/ABC-123|Dashboard redesign> (Staging)\n    • <https://example.atlassian.net/browse/ABC-144|Shorter onboarding copy> (Staging)\n    What i do:\n    • <https://example.atlassian.net/browse/ABC-143|Signup form fields> (In Dev)\n    In Review. CC: @Alice:\n    • <https://example.atlassian.net/browse/ABC-166|Help chatbot>\n    • <https…\n[Tue 11-10 09:27] Alice: No need ticket for “Admin sidebar” @sam\n    <https://example.atlassian.net/browse/ABC-183|Search page>\n[Tue 11-10 10:10] Alice: Could you update the list based on what we discussed @sam\n    • Test to move issues from “Testing” to “To Release”. Comment tested cases, should be short (bullet points)\n        ◦ If you need someone to verify with you, please comment\n    • Review to move: \n        ◦ To dev → In dev\n        ◦ To do → In dev\n    • ABC-143: Let’s confirm the UX solution first.",
+  "edit_message": "### Mention 1 -- #dev -- from Alice at Tue 2026-11-10 12:53\nPermalink: https://x.slack.com/archives/C1/p2?thread_ts=1.1\nMention: Could you edit message to include today’s tickets in the section What i do: @sam\nReacted: :eyes:\nThread (4 messages):\n[Tue 11-10 09:26] sam: Daily 10/11:\n    Done:\n    • <https://example.atlassian.net/browse/ABC-142|Login page polish> follow ups (Staging)\n    • <https://example.atlassian.net/browse/ABC-123|Dashboard redesign> (Staging)\n    • <https://example.atlassian.net/browse/ABC-144|Shorter onboarding copy> (Staging)\n    What i do:\n    • <https://example.atlassian.net/browse/ABC-143|Signup form fields> (In Dev)\n    In Review. CC: @Alice:\n    • <https://example.atlassian.net/browse/ABC-166|Help chatbot>\n    • <https…\n[Tue 11-10 09:27] Alice: No need ticket for “Admin sidebar” @sam\n    <https://example.atlassian.net/browse/ABC-183|Search page>\n[Tue 11-10 10:10] Alice: Could you update the list based on what we discussed @sam\n    • Test to move issues from “Testing” to “To Release”. Comment tested cases, should be short (bullet points)\n        ◦ If you need someone to verify with you, please comment\n    • Review to move: \n        ◦ To dev → In dev\n        ◦ To do → In dev\n    • ABC-143: Let’s confirm the UX solution first.\n[Tue 11-10 12:53] Alice: Could you edit message to include today’s tickets in the section What i do: @sam",
+  "check_assign": "### Mention 1 -- #dev -- from Alice at Fri 2026-11-06 14:07\nPermalink: https://x.slack.com/archives/C1/p3?thread_ts=1.2\nMention: @sam There are many tickets in review, I’ve commented in some of them. Can you check and assign the remaining ones so I can review?\nReacted: :eyes:\nThread (4 messages):\n[Fri 11-06 09:21] sam: Daily 6/11:\n    What i did/do:\n    • PRs review\n    • <https://example.atlassian.net/browse/ABC-151|Keep Next disabled while recording> (In Dev)\n    • <https://example.atlassian.net/browse/ABC-152|Sync completed status across views> (In Dev)\n    In Review list, refer more in the ticket comment:\n    • <https://example.atlassian.net/browse/ABC-118|ABC-118 Expiry banner scop…\n[Fri 11-06 09:44] Alice: I approved the sign in feature\n[Fri 11-06 11:10] sam: I have updated the dashboard redesign\n[Fri 11-06 14:07] Alice: @sam There are many tickets in review, I’ve commented in some of them. Can you check and assign the remaining ones so I can review?"
+ },
+ "positives": {
+  "help_review_hotfix": {
+   "block": "### Mention 1 -- #dev -- from Alice at Tue 2026-11-10 11:02\nPermalink: https://x.slack.com/archives/C1/p4?thread_ts=1.3\nMention: Hi could you help to review the hotfix? @sam\nReacted: :eyes:\nThread (3 messages):\n[Tue 11-10 11:00] Alice: Hotfix for the login loop <https://github.com/acme/web/pull/12|web#12>\n[Tue 11-10 11:01] Bob: also touches ABC-131\n[Tue 11-10 11:02] Alice: Hi could you help to review the hotfix? @sam",
+   "targets": [
+    "acme/web#12"
+   ]
+  },
+  "review_this_ticket": {
+   "block": "### Mention 2 -- #dev -- from Alice at Tue 2026-11-10 11:15\nPermalink: https://x.slack.com/archives/C1/p5?thread_ts=1.4\nMention: Hi @sam, could you review this ticket?\nReacted: :eyes:\nThread (3 messages):\n[Tue 11-10 11:10] Alice: <https://example.atlassian.net/browse/ABC-120|Invite flow> is ready\n[Tue 11-10 11:12] Bob: related to ABC-121\n[Tue 11-10 11:15] Alice: Hi @sam, could you review this ticket?",
+   "targets": [
+    "ABC-120"
+   ]
+  },
+  "review_this_one": {
+   "block": "### Mention 3 -- #dev -- from Alice at Tue 2026-11-10 11:30\nPermalink: https://x.slack.com/archives/C1/p6?thread_ts=1.5\nMention: Could you review this one ? @sam\nReacted: :eyes:\nThread (3 messages):\n[Tue 11-10 11:20] Bob: <https://github.com/acme/app/pull/30|app#30> search page\n[Tue 11-10 11:25] Bob: ABC-199 is the follow-up\n[Tue 11-10 11:30] Alice: Could you review this one ? @sam",
+   "targets": [
+    "acme/app#30"
+   ]
+  },
+  "ptal_pr": {
+   "block": "### Mention 4 -- #dev -- from Alice at Tue 2026-11-10 12:10\nPermalink: https://x.slack.com/archives/C1/p7?thread_ts=1.6\nMention: PTAL <https://github.com/acme/web/pull/14> @sam\nReacted: :eyes:\nThread (2 messages):\n[Tue 11-10 12:00] Alice: ABC-130 status?\n[Tue 11-10 12:10] Alice: PTAL <https://github.com/acme/web/pull/14> @sam",
+   "targets": [
+    "acme/web#14"
+   ]
+  }
+ }
+}
