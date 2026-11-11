@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
-version: 2.6.0
+version: 2.7.0
 author: LaansDole
 license: MIT
 metadata:
@@ -302,12 +302,60 @@ python3 -c "import json,os;[print(r['regex_emoji'],r['jev_emoji'],r['p'],r['ment
 ## Background review agent (opt-in)
 
 `scripts/review_spawn.py` wraps the digest: it runs `watch_mentions.py --digest --react <args>`,
-and when `SLACK_REVIEW_AGENT` is set, each new mention that names a GitHub PR
+and when `SLACK_REVIEW_AGENT` is set, each new mention that asks the user to review a GitHub PR
 (`github.com/<owner>/<repo>/pull/<n>`, optionally also ticket keys) starts a detached,
 headless, read-only coding-agent session that reviews it. A `review:` line with the session id
 and resume command goes into that mention's block, so the digest shows it. Without
 `SLACK_REVIEW_AGENT` the output is byte-identical to the plain digest. Reactions only stays the
 default.
+
+**Review gate.** Only the `Mention:` text (not the thread) decides whether it is a review ask:
+PTAL, "take/have a look", review/re-review asked of the reader ("can you review", "please
+review", "review this ..."), check/test/verify/approve with an object after "can you" /
+"please" ("could you check this", "please test it on staging"), or a PR link plus a request
+word. Not: "so I can review", "in review", "check and assign", "update the list", "edit your
+message". Targets come from the mention text; if it has none, from the thread's first line (its
+root) only, never the rest of the thread (max 5). A non-ask gets `review: skipped (not a review
+request)`, an ask without a target `review: skipped (no target in mention or thread root)`.
+
+**Jev second opinion (opt-in).** `SLACK_REVIEW_JEV=1` plus `TYPESAFE_API_KEY` sends each
+regex-positive mention (plain text, thread lines, watched user) to TypeSafe Jev (`jev-latest`,
+one POST to `api.typesafe.ai`) with the same `review` question as the Jev shadow log. p(review)
+below `SLACK_REVIEW_JEV_MIN` (0.8; real asks score ~0.98 with thread context, a triage false
+positive 0.68) -> `review: skipped (not a review request (jev 0.68))`. Errors -> the regex
+decides; HTTP 401/403 turns Jev off for the tick with one stderr line (never the key). One JSON
+row per call goes to `SLACK_REVIEW_JEV_LOG` (chmod 600; `--dry-run`: stderr). Off by default:
+it sends Slack text to a third party.
+
+**Session table.** `SLACK_REVIEW_STATE` keeps one entry per target: session id, agent, first
+and last run, run count, reviewed PR head commit, pid and queued updates. Per target:
+
+- PR whose head commit equals the reviewed one -> skipped as `already reviewed <id>`, any age;
+- ticket, or PR head unknown (gh failed) -> skipped while its last run is less than
+  `SLACK_REVIEW_DAYS` (7) days old;
+- otherwise, if an omp/claude session of the current agent owns the target, that session is
+  **resumed** with a follow-up brief: the new Slack block(s) and, for PRs, only the `old..new`
+  diff. Other targets get one new session; a block can get both lines.
+- A session still running (pid alive) is never started twice: the block is queued
+  (`review: busy <id> (update queued)`) and delivered by the first tick after the run ends, also
+  a tick without new mentions; that result goes to stderr as
+  `[slack-review] queued update: review: ...`. If no queued target needs a review any more
+  (merged, approved, ...), the update is dropped.
+
+Custom agents have no session id: once the dedupe lets a target through, it gets a new run.
+Entries without a run for 30 days are pruned. A pre-2.7 state file (`{target: {session, at}}`)
+is migrated on the next save; those entries dedupe but are never resumed (agent unknown).
+
+`python3 scripts/review_spawn.py --sessions` prints the table, newest run first (read only: no
+watcher run, no Slack call):
+
+```
+TARGET        AGENT  SESSION  RUNS  LAST RUN          REV      STATUS  RESUME
+acme/api#812  omp    <id>     2     2026-11-10 09:30  5d6e7f8  idle    cd ~/code && omp --resume <id>
+ABC-123       omp    <id>     1     2026-11-09 16:02  -        idle    cd ~/code && omp --resume <id>
+```
+
+STATUS is `running` while the recorded pid is alive.
 
 ### Setup interview (ask, don't assume)
 
@@ -363,19 +411,24 @@ Going back to reactions only: remove `SLACK_REVIEW_AGENT` (the wrapper may stay)
 | `claude` | `claude -p <brief text> --output-format stream-json --verbose [--model M] --permission-mode default --allowedTools <read-only list> --disallowedTools Edit Write NotebookEdit` | `session_id` of the first `type: system`, `subtype: init` line | `cd <workdir> && claude --resume <id>` |
 | `custom` | `SLACK_REVIEW_CMD`, shlex-split, `{brief}` (path) and `{workdir}` replaced | none | log path shown instead |
 
+Resumed runs add `--resume <id>`: omp right after `--mode json`, claude right after the prompt
+(`claude -p <follow-up text> --resume <id> --output-format ...`, same flags). Custom agents are
+never resumed.
+
 The claude allowlist is `Read Grep Glob "Bash(gh pr view:*)" "Bash(gh pr diff:*)"
-"Bash(gh pr checks:*)" "Bash(gh api:*)" "Bash(git fetch:*)" "Bash(git show:*)"
-"Bash(git diff:*)" "Bash(git log:*)"`. `omp-noresume.yml` holds exactly `autoResume: false`:
-with `autoResume` on, `omp -p` would resume the user's latest session in that directory instead
-of starting a fresh one.
+"Bash(gh pr checks:*)" "Bash(git fetch:*)" "Bash(git show:*)" "Bash(git diff:*)"
+"Bash(git log:*)"` (no `gh api`: it also allows POSTs). `omp-noresume.yml` holds exactly
+`autoResume: false`: with `autoResume` on, `omp -p` would resume the user's latest session in
+that directory instead of starting a fresh one.
 
 Each run is detached (own session, stdin closed), started in the workdir. The brief, stdout and
-stderr go to `SLACK_REVIEW_DIR` as `<time>-<targets>.md` / `.jsonl` (custom: `.log`) / `.err`.
-The brief holds the Slack block verbatim, the targets, read-only rules (gh view/diff/checks, gh
-api GET, git fetch + show/diff/log; never edit, commit, checkout, push, comment, approve or post
-anywhere) and asks for P0/P1 findings only (severity, file:line, problem, impact, fix), else
-"No P0/P1 findings". The `SLACK_REVIEW_INSTRUCTIONS` file is appended under "Additional
-instructions". The review result stays in the agent session; nothing is posted.
+stderr go to `SLACK_REVIEW_DIR` as `<time>-<targets>.md` / `.jsonl` (custom: `.log`) / `.err`
+(follow-ups: `<time>-<targets>-followup.*`). The brief holds the Slack block verbatim, the
+targets, read-only rules (gh pr view/diff/checks, git fetch + show/diff/log; never edit, commit,
+checkout, push, comment, approve or post anywhere) and asks for P0/P1 findings only (severity,
+file:line, problem, impact, fix), else "No P0/P1 findings"; a follow-up asks for new P0/P1
+findings only. The `SLACK_REVIEW_INSTRUCTIONS` file is appended to the first brief under
+"Additional instructions". The review result stays in the agent session; nothing is posted.
 
 ### Skip rules and output
 
@@ -388,22 +441,29 @@ fail open (any error = review it):
 - ticket in a done status category -> `done (<status>)`, only when `JIRA_URL`, `JIRA_EMAIL`
   and `JIRA_TOKEN` are set (`GET /rest/api/2/issue/<key>?fields=status`).
 
-A target is spawned at most once per 24 h (`SLACK_REVIEW_STATE`). Lines, inserted after
-`Reacted:`:
+Dedupe and resume follow the session table above. Lines, inserted after `Reacted:` (a block
+with new and resumed targets gets one line each):
 
 ```
 review: <id> (acme/api#12) -> cd ~/code && omp --resume <id>
-review: already running <id> (acme/api#12) -> cd ~/code && omp --resume <id>
+review: resumed <id> (acme/api#12, 1a2b3c4..5d6e7f8) -> cd ~/code && omp --resume <id>
+review: busy <id> (update queued)
+review: skipped (not a review request)
+review: skipped (not a review request (jev 0.41))
+review: skipped (no target in mention or thread root)
 review: skipped (acme/api#9 merged)
+review: skipped (acme/api#12 already reviewed <id>)
 review: skipped (spawn cap reached)
 review: failed (<reason>; log <path>)
 review: (dry run, would spawn for: acme/api#12)
+review: (dry run, would resume <id> for: acme/api#12)
 review: started (log <path>)                          (custom agent)
 ```
 
-Partly skipped mentions get ` [skipped: <target> <reason>; ...]` appended. Any error in the
-review layer prints `[slack-review] error: ...` to stderr and the raw digest; the exit code is
-always `watch_mentions.py`'s.
+A resumed line shows the reviewed and current head commit (`?` = unknown). Partly skipped
+mentions get ` [skipped: <target> <reason>; ...]` appended. `SLACK_REVIEW_MAX_SPAWNS` counts new
+and resumed runs. Any error in the review layer prints `[slack-review] error: ...` to stderr and
+the raw digest; the exit code is always `watch_mentions.py`'s.
 
 | Variable | Default |
 | --- | --- |
@@ -412,15 +472,21 @@ always `watch_mentions.py`'s.
 | `SLACK_REVIEW_MODEL` | unset -> agent default; passed as `--model` |
 | `SLACK_REVIEW_EFFORT` | unset; omp only, passed as `--thinking` |
 | `SLACK_REVIEW_CMD` | custom agent command template |
-| `SLACK_REVIEW_MAX_SPAWNS` | `3` per tick |
+| `SLACK_REVIEW_MAX_SPAWNS` | `3` runs (new + resumed) per tick |
 | `SLACK_REVIEW_TICKET_RE` | unset -> PRs only; regex for ticket keys |
 | `SLACK_REVIEW_INSTRUCTIONS` | unset; text file appended to the brief |
-| `SLACK_REVIEW_STATE` | `~/.hermes/scripts/.slack-review-spawn.json` (chmod 600) |
+| `SLACK_REVIEW_STATE` | `~/.hermes/scripts/.slack-review-spawn.json` (chmod 600); the session table |
+| `SLACK_REVIEW_DAYS` | `7`; tickets and PRs with unknown head are not re-reviewed sooner |
 | `SLACK_REVIEW_DIR` | `~/.hermes/cache/slack-review-spawns` (briefs + logs) |
 | `SLACK_REVIEW_ID_TIMEOUT` | `30` s to wait for the session id |
 | `SLACK_REVIEW_GH` | `gh` on PATH, else `/opt/homebrew/bin/gh`, else `/usr/local/bin/gh` |
 | `SLACK_REVIEW_GH_LOGIN` | `gh api user --jq .login` |
 | `JIRA_URL`, `JIRA_EMAIL`, `JIRA_TOKEN` | unset -> tickets not checked (Jira Cloud API token, basic auth) |
+| `SLACK_REVIEW_JEV` | unset -> off; `1` asks Jev about regex-positive mentions (needs `TYPESAFE_API_KEY`) |
+| `SLACK_REVIEW_JEV_MIN` | `0.8`; lowest p(review) that still spawns |
+| `SLACK_REVIEW_JEV_LOG` | `~/.hermes/scripts/.slack-review-jev.jsonl` (chmod 600) |
+| `SLACK_REVIEW_GUARD` | on; `0` removes the git/gh guard wrappers (not recommended) |
+| `SLACK_REVIEW_GUARD_DIR` | `<SLACK_REVIEW_DIR>/guard-bin`; rewritten on every run |
 
 Agent binaries are looked up on PATH, then in `~/.local/bin`.
 
@@ -436,11 +502,21 @@ joins or replies. Covered by `tests/test_watch_mentions.py` in the source repo.
 Opt-in Jev shadow mode adds one non-Slack request per new mention: a POST of the mention and
 thread text to `api.typesafe.ai`. It writes nothing to Slack and changes no output.
 
-`review_spawn.py` makes no Slack calls; its only network use is `gh pr view` / `gh api user` and
-the optional Jira GET. What the spawned agent may do is limited by its own flags (see "Agents"):
-`claude` is held to the read-only tool allowlist; `omp` and `custom` agents only get the
-read-only rules as instructions in the brief (they may still use scratch files such as `/tmp`).
-Pick `claude` when enforced read-only matters.
+`review_spawn.py` makes no Slack calls; its own network use is `gh pr view` / `gh api user`, the
+optional Jira GET and the optional Jev POST. Every agent (omp, claude, custom) runs with `PATH`
+starting with a guard dir (`SLACK_REVIEW_GUARD_DIR`) whose `git` and `gh` wrappers exec the real
+binaries but refuse writes: git push, send-email, commit, reset, checkout, switch, rebase,
+merge, pull, cherry-pick, revert, restore, clean, am, apply, stash, worktree, tag and
+`branch -d/-D/-m/-M/-f` (also after `-C <dir>` / `-c k=v`); gh pr anything but
+view/diff/checks/list/status, issue anything but view/list, release, repo anything but
+view/list/clone, and `gh api` with a non-GET method or a field/input flag. The child also gets
+`GIT_TERMINAL_PROMPT=0` and `PI_BASH_NO_LOGIN=1` (omp's login shell would otherwise let macOS
+`path_helper` put `/usr/bin` ahead of the guard). If the wrappers cannot be written nothing is
+started (`review: failed (cannot write the git/gh guard: ...)`). `claude` is also held to the
+read-only tool allowlist above. The wrappers check argv, they are not a sandbox (an absolute
+`/usr/bin/git`, `git -c alias.x=push x` or other gh commands pass) and agents may still write
+scratch files such as `/tmp`; for a hard guarantee give the agent's gh a read-only token.
+`SLACK_REVIEW_GUARD=0` removes the wrappers (not recommended).
 Covered by `tests/test_review_spawn.py`.
 
 ## Config
@@ -480,7 +556,10 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | Mention in a thread never alerts | History mode skips thread replies | Use the user token. |
 | Stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. |
 | A review continued the user's own latest omp session | omp `autoResume` on: `omp -p` resumes the last session in that directory | `review_spawn.py` passes `--config <SLACK_REVIEW_DIR>/omp-noresume.yml` (`autoResume: false`) and rewrites it on every spawn; check the dir is writable and the omp version honours `--config`. |
-| Claude review log shows permission denials | Headless claude only runs the allowlisted read-only tools; `--permission-mode default` denies the rest | Expected for writes and other commands; use `omp` or a `custom` command if the review needs more. |
+| Claude review log shows permission denials | Headless claude only runs the allowlisted read-only tools (no `gh api`); `--permission-mode default` denies the rest | Expected for writes and other commands; the brief only needs `gh pr view/diff/checks` and git reads. |
+| `slack-review guard: 'git ...' is blocked` / `'gh ...' is blocked` in a review log | The guard wrappers refused a write | Expected: reviews are read-only. |
 | Merged/approved PRs still get reviewed, or `review: failed (cannot start omp: ...)` | Cron runs with a minimal PATH, so `gh` or the agent is not found (checks fail open), or gh is not logged in for the gateway user | Set `SLACK_REVIEW_GH` to the full gh path; put the agent on the gateway's PATH or in `~/.local/bin`; run `gh auth status` as the gateway user. |
 | `review: failed (no session id within timeout ...)` | Agent slow to start (login prompt, update check) | Read the log path in the line; raise `SLACK_REVIEW_ID_TIMEOUT`. The agent is left running. |
 | `[slack-review] error: ValueError: ...` on stderr, digest without `review:` lines | `SLACK_REVIEW_AGENT` not omp/claude/custom, or `SLACK_REVIEW_WORKDIR` / `SLACK_REVIEW_CMD` missing | Fix `~/.hermes/.env`. |
+| A review was spawned for a ping that asks something else ("update the list", "check and assign") | Before 2.7 any PR link or ticket key in the block, thread included, started one | 2.7 gates on the Mention text (`review: skipped (not a review request)`); for a remaining false positive set `SLACK_REVIEW_JEV=1`. |
+| The same PR is reviewed again from scratch | Before 2.7: 24 h all-or-nothing dedupe. Now: a new head commit resumes the same session; a new session only when none of the current agent owns the target (other agent, custom, pre-2.7 entry) | `review_spawn.py --sessions` shows each target's session, runs and REV. |
