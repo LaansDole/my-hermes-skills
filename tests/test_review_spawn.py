@@ -999,6 +999,57 @@ class SessionTest(ProcBase):
             self.run_(digest(P812, B1_813), checker=checker)
         self.assertEqual(self.table(), {PR812: entry("S1", 100000.0)})  # no duplicate next tick
 
+    def test_queued_update_of_other_agent_dropped(self):
+        os.environ["SLACK_REVIEW_AGENT"] = "claude"  # switched since omp queued it
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[P812])})
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            self.run_('{"wakeAgent": false}\n', checker=rev_checker(B))
+        self.assertEqual(err.getvalue(), "[slack-review] queued update: review: dropped queued "
+                                         f"update for R0 ({PR812}: agent is now claude)\n")
+        self.assertEqual(self.resumes, [])
+        e = self.table()[PR812]
+        self.assertEqual((e["agent"], e["session"], e["pending"]), ("omp", "R0", []))
+
+    def test_queued_target_checked_when_joined(self):
+        now, checked = 10 * 86400.0, []
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[P812]),
+                   "ABC-5": entry("R0", 1000.0)})
+        check = rev_checker(B)
+        out = self.run_(digest(mblock("could you review ABC-5?")), now=now,
+                        checker=lambda t: checked.append(t) or check(t))
+        (sid, tgts, brief), = self.resumes
+        self.assertEqual(tgts, ["ABC-5", PR812])
+        self.assertIn(f"git diff {A}..{B}", brief)
+        self.assertIn("aaaaaaa..bbbbbbb", out)
+        self.assertEqual(self.table(now)[PR812]["rev"], B)
+        self.assertEqual(checked, ["ABC-5", PR812])  # each target once per tick
+
+    def test_queued_target_no_longer_needing_review_left_out(self):
+        now = 10 * 86400.0
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[P812]),
+                   "ABC-5": entry("R0", 1000.0)})
+        self.run_(digest(mblock("could you review ABC-5?")), now=now,
+                  checker=lambda t: "merged" if "#" in t else None)
+        (sid, tgts, brief), = self.resumes
+        self.assertEqual(tgts, ["ABC-5"])
+        self.assertNotIn(P812, brief)
+        self.assertEqual(self.table(now)[PR812]["pending"], [])
+
+    def test_failed_resume_not_retried_same_tick(self):
+        now, calls = 10 * 86400.0, []
+
+        def bad(sid, *a):
+            calls.append(sid)
+            raise rs.SpawnError("gone", "/tmp/l.err")
+        self.seed({PR812: entry("R0", 1000.0, rev=A, pid=dead_pid(), pending=[P812]),
+                   "ABC-5": entry("R0", 1000.0)})
+        out = self.run_(digest(mblock("could you review ABC-5?")), now=now, resumer=bad,
+                        checker=rev_checker(B))
+        self.assertEqual(calls, ["R0"])  # the drain does not try R0 again this tick
+        self.assertIn("review: failed (gone; log /tmp/l.err)", out)
+        self.assertEqual(self.table(now)[PR812]["pending"], [P812])  # next tick retries
+
 
 class IntentProcessTest(ProcBase):
     def test_real_negatives_skipped(self):

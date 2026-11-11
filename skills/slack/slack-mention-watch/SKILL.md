@@ -340,7 +340,8 @@ and last run, run count, reviewed PR head commit, pid and queued updates. Per ta
   (`review: busy <id> (update queued)`) and delivered by the first tick after the run ends, also
   a tick without new mentions; that result goes to stderr as
   `[slack-review] queued update: review: ...`. If no queued target needs a review any more
-  (merged, approved, ...), the update is dropped.
+  (merged, approved, ...) or `SLACK_REVIEW_AGENT` changed since, the update is dropped. A queued
+  update gets one delivery attempt; a failed one is not retried.
 
 Custom agents have no session id: once the dedupe lets a target through, it gets a new run.
 Entries without a run for 30 days are pruned. A pre-2.7 state file (`{target: {session, at}}`)

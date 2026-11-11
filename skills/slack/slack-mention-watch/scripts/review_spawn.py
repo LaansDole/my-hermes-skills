@@ -783,7 +783,14 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
     days = float(cfg("SLACK_REVIEW_DAYS", "7")) * DAY
     w = WATCHED_RE.search(header)
     watched = "@" + w[1].lstrip("@") if w else "the watched user"
-    spawned, tick, touched = 0, {}, set()  # touched: sessions started/resumed this tick
+    spawned, tick, touched = 0, {}, set()  # touched: sessions started/resumed/failed this tick
+    checked = {}
+
+    def check(t):
+        """checker(t), once per tick (it also learns the PR head rev)."""
+        if t not in checked:
+            checked[t] = checker(t)
+        return checked[t]
 
     def owned(sid):
         return [(t, e) for t, e in state.items() if e["session"] == sid]
@@ -807,6 +814,8 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
         try:
             new = run()
         except SpawnError as e:
+            if sid:
+                touched.add(sid)  # the drain must not retry it this tick; pending stays queued
             return None, f"review: failed ({str(e)[:200]}; log {e.log})"
         for t in ts:
             e = state.get(t)
@@ -838,7 +847,9 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
                 if block and block.rstrip("\n") not in pending:
                     pending.append(block.rstrip("\n"))
             return f"review: busy {sid} (update queued)"
-        queued = [(t, e["pending"]) for t, e in owned(sid) if e.get("pending")]
+        # queued targets join unless they no longer need a review (merged, approved, ...)
+        queued = [(t, e["pending"]) for t, e in owned(sid)
+                  if e.get("pending") and (t in ts or not check(t))]
         ts = _uniq(ts + [t for t, _ in queued])
         names = ", ".join(ts)
         if dry_run:
@@ -869,7 +880,7 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
             continue
         tgts, skipped = [], []
         for t in cands:
-            reason = checker(t) or reviewed(t)  # checker first: it learns the PR head rev
+            reason = check(t) or reviewed(t)  # check first: it learns the PR head rev
             if reason:
                 skipped.append(f"{t} {reason}")
             else:
@@ -891,10 +902,15 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
     # Queued updates whose session has finished: one follow-up with all of them. They have no
     # block in this digest, so the result goes to stderr.
     for sid in _uniq(e["session"] for e in state.values() if e.get("pending")):
-        if busy(sid) or (not dry_run and spawned >= cap):
-            continue  # still running / capped: stays queued
         ts = [t for t, e in owned(sid) if e.get("pending")]
-        if all([checker(t) for t in ts]):  # a list: check (and learn the head rev of) each
+        if not ts:
+            continue  # delivered by an earlier resume this tick
+        if state[ts[0]].get("agent") != agent:  # SLACK_REVIEW_AGENT changed since it queued
+            line = (f"review: dropped queued update for {sid} ({', '.join(ts)}: "
+                    f"agent is now {agent})")
+        elif busy(sid) or (not dry_run and spawned >= cap):
+            continue  # still running / capped: stays queued
+        elif all([check(t) for t in ts]):  # a list: check (and learn the head rev of) each
             line = f"review: dropped queued update for {sid} ({', '.join(ts)}: no review needed)"
         else:
             line = resume_run(sid, [])
