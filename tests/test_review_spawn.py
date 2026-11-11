@@ -18,6 +18,7 @@ import tempfile
 import textwrap
 import time
 import unittest
+import urllib.error
 from pathlib import Path
 from unittest import mock
 
@@ -49,7 +50,8 @@ SUCCESS_LINE = "review: S1 (acme/api#812, ABC-401) -> cd ~/code && omp --resume 
 ENV_KEYS = ("SLACK_REVIEW_AGENT", "SLACK_REVIEW_WORKDIR", "SLACK_REVIEW_MODEL",
             "SLACK_REVIEW_EFFORT", "SLACK_REVIEW_CMD", "SLACK_REVIEW_MAX_SPAWNS",
             "SLACK_REVIEW_TICKET_RE", "SLACK_REVIEW_INSTRUCTIONS", "SLACK_REVIEW_ID_TIMEOUT",
-            "SLACK_REVIEW_GH_LOGIN", "JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN")
+            "SLACK_REVIEW_GH_LOGIN", "JIRA_URL", "JIRA_EMAIL", "JIRA_TOKEN",
+            "SLACK_REVIEW_JEV", "SLACK_REVIEW_JEV_MIN", "TYPESAFE_API_KEY")
 with open(Path(__file__).resolve().parent / "fixtures_review_intent.json") as _f:
     FX = json.load(_f)  # anonymised real digest blocks: review asks and look-alikes
 
@@ -66,7 +68,8 @@ class Env(unittest.TestCase):
                "HERMES_DOTENV": os.path.join(self.tmp, "no.env"),
                "SLACK_REVIEW_GH": "/nonexistent/gh",  # missing binary fails open
                "SLACK_REVIEW_AGENT": "omp", "SLACK_REVIEW_WORKDIR": WORKDIR,
-               "SLACK_REVIEW_TICKET_RE": TICKET_RE}
+               "SLACK_REVIEW_TICKET_RE": TICKET_RE,
+               "SLACK_REVIEW_JEV_LOG": os.path.join(self.tmp, "jev.jsonl")}
         p = mock.patch.dict(os.environ, env)
         p.start()
         self.addCleanup(p.stop)
@@ -653,6 +656,150 @@ class IntentProcessTest(ProcBase):
     def test_no_target_anywhere_untouched(self):
         t = digest(mblock("@sam could you review this?"))
         self.assertEqual(self.run_(t), t)
+
+
+class FakeJev:
+    """urlopen stand-in: each answer is an exception or p(review)."""
+
+    def __init__(self, *answers):
+        self.answers, self.reqs = list(answers), []
+
+    def __call__(self, req, timeout=None):
+        self.reqs.append((req, timeout))
+        a = self.answers.pop(0)
+        if isinstance(a, BaseException):
+            raise a
+        return FakeResp(json.dumps({"answers": {"review": {"noul": a}},
+                                    "model": "jev-1"}).encode())
+
+
+B1_813 = B1.replace("812", "813").replace("Mention 1", "Mention 2")
+
+
+class JevTest(ProcBase):
+    def setUp(self):
+        super().setUp()
+        os.environ.update(SLACK_REVIEW_JEV="1", TYPESAFE_API_KEY="tk-secret")
+        self.log = os.environ["SLACK_REVIEW_JEV_LOG"]
+
+    def jev(self, *answers):
+        fake = FakeJev(*answers)
+        p = mock.patch("urllib.request.urlopen", fake)
+        p.start()
+        self.addCleanup(p.stop)
+        return fake
+
+    def rows(self):
+        with open(self.log) as f:
+            return [json.loads(line) for line in f]
+
+    def test_low_p_skips_and_request_shape(self):
+        fake = self.jev(0.29)
+        out = self.run_(digest(B1))
+        self.assertIn("review: skipped (not a review request (jev 0.29))", out)
+        self.assertEqual(self.calls, [])
+        (req, timeout), = fake.reqs
+        self.assertEqual((req.full_url, req.get_method(), timeout),
+                         ("https://api.typesafe.ai/v1/systemone", "POST", 15))
+        self.assertEqual(req.get_header("Authorization"), "Bearer tk-secret")
+        body = json.loads(req.data)
+        self.assertEqual(body["model"], "jev-latest")
+        self.assertEqual(body["state"], {
+            "watched_user": "@sam",
+            "mention": "@sam can you review #812 https://github.com/acme/api/pull/812 for ABC-401?",
+            "thread": ["[Fri 11-06 10:18] Bob: ABC-400 is ready\n"
+                       "continuation lines are indented 4 spaces"]})
+        self.assertEqual(list(body["questions"]), ["review"])
+        self.assertEqual(body["questions"]["review"]["type"], "noul")
+        self.assertIn("not edit their own message", body["questions"]["review"]["instructions"])
+        row, = self.rows()
+        self.assertEqual(stat.S_IMODE(os.stat(self.log).st_mode), 0o600)
+        self.assertEqual((row["p_review"], row["decision"], row["model"], row["error"]),
+                         (0.29, "skip", "jev-1", None))
+        self.assertEqual(row["permalink"], "https://x.slack.com/archives/C1/p123?thread_ts=1.2")
+        self.assertTrue(row["regex"])
+        for k in ("logged_at", "mention", "ms"):
+            self.assertIn(k, row)
+        with open(self.log) as f:
+            self.assertNotIn("tk-secret", f.read())
+
+    def test_high_p_reviews(self):
+        self.jev(0.93)
+        self.run_(digest(B1))
+        self.assertEqual(self.calls, [["acme/api#812", "ABC-401"]])
+        self.assertEqual(self.rows()[0]["decision"], "review")
+
+    def test_min_env(self):
+        os.environ["SLACK_REVIEW_JEV_MIN"] = "0.95"
+        self.jev(0.93)
+        self.assertIn("(not a review request (jev 0.93))", self.run_(digest(B1)))
+
+    def test_default_min_is_0_8(self):
+        self.jev(0.68, 0.8)  # 0.68: a triage ask that passed the old regex; real asks ~0.98
+        self.assertIn("(not a review request (jev 0.68))", self.run_(digest(B1)))
+        self.assertEqual(self.calls, [])
+        self.run_(digest(B1))
+        self.assertEqual(len(self.calls), 1)
+
+    def test_error_falls_back_to_regex(self):
+        # the exception text may echo the request header: only its type name is logged
+        self.jev(urllib.error.URLError("down"), ValueError("Bearer tk-secret leaked"))
+        self.run_(digest(B1, B1_813))
+        self.assertEqual(len(self.calls), 2)
+        rows = self.rows()
+        self.assertEqual([(r["p_review"], r["decision"], r["error"]) for r in rows],
+                         [(None, "review", "URLError"), (None, "review", "ValueError")])
+        with open(self.log) as f:
+            self.assertNotIn("tk-secret", f.read())
+
+    def test_bad_p_is_an_error(self):
+        self.jev(float("nan"), 1.5)
+        self.run_(digest(B1, B1_813))
+        self.assertEqual(len(self.calls), 2)  # regex alone
+        self.assertEqual([r["error"] for r in self.rows()], ["ValueError", "ValueError"])
+
+    def test_401_disables_for_tick(self):
+        fake = self.jev(urllib.error.HTTPError("u", 401, "no", {}, None), 0.01)
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            self.run_(digest(B1, B1_813))
+        self.assertEqual(len(fake.reqs), 1)
+        self.assertEqual(len(self.calls), 2)
+        self.assertEqual(err.getvalue(), "[slack-review] jev: auth rejected (HTTP 401)\n")
+        self.assertEqual(self.rows()[0]["error"], "HTTPError 401")
+        self.run_(digest(B1_813.replace("813", "814")))  # next tick asks Jev again
+        self.assertEqual(len(fake.reqs), 2)
+
+    def test_no_call_when_off_keyless_or_regex_negative(self):
+        fake = self.jev()
+        os.environ.pop("SLACK_REVIEW_JEV")  # off by default
+        self.run_(digest(B1))
+        os.environ["SLACK_REVIEW_JEV"] = "1"
+        os.environ.pop("TYPESAFE_API_KEY")
+        self.run_(digest(B1_813))
+        os.environ["TYPESAFE_API_KEY"] = "tk-secret"
+        self.run_(digest(FX["negatives"]["update_list"]))
+        self.assertEqual(fake.reqs, [])
+        self.assertEqual(len(self.calls), 2)
+        self.assertFalse(os.path.exists(self.log))
+
+    def test_key_from_dotenv(self):
+        os.environ.pop("TYPESAFE_API_KEY")
+        with open(os.environ["HERMES_DOTENV"], "w") as f:
+            f.write("OTHER=1\nTYPESAFE_API_KEY='tk-file'\n")
+        fake = self.jev(0.9)
+        self.run_(digest(B1))
+        self.assertEqual(fake.reqs[0][0].get_header("Authorization"), "Bearer tk-file")
+
+    def test_dry_run_logs_to_stderr(self):
+        self.jev(0.9)
+        err = io.StringIO()
+        with mock.patch("sys.stderr", err):
+            out = self.run_(digest(B1), dry_run=True)
+        self.assertIn("would spawn for", out)
+        self.assertFalse(os.path.exists(self.log))
+        tag, line = err.getvalue().split(" ", 1)
+        self.assertEqual((tag, json.loads(line)["p_review"]), ("[slack-review]", 0.9))
 
 
 # CLI wrapper ----------------------------------------------------------------

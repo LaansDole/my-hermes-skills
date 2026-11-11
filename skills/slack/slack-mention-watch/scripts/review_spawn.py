@@ -15,11 +15,18 @@ are no review request (`review: skipped (not a review request)`), and targets
 that are merged/closed/approved/already reviewed by you (PRs, via gh) or done (tickets, only
 with JIRA_URL/JIRA_EMAIL/JIRA_TOKEN). Checks fail open. Targets are deduped for 24 h.
 
+Optional second opinion, off by default (it sends mention + thread text to a third party):
+SLACK_REVIEW_JEV=1 + TYPESAFE_API_KEY asks TypeSafe Jev about regex-positive mentions only;
+p(review) < SLACK_REVIEW_JEV_MIN (0.8) -> `skipped (not a review request (jev p))`. Jev
+errors -> the regex decides. One row per call in SLACK_REVIEW_JEV_LOG.
+
 Env (process env first, then ~/.hermes/.env): SLACK_REVIEW_AGENT, SLACK_REVIEW_WORKDIR,
 SLACK_REVIEW_MODEL, SLACK_REVIEW_EFFORT (omp --thinking), SLACK_REVIEW_CMD (custom, with
 {brief} and {workdir}), SLACK_REVIEW_MAX_SPAWNS (3), SLACK_REVIEW_TICKET_RE,
 SLACK_REVIEW_INSTRUCTIONS, SLACK_REVIEW_STATE, SLACK_REVIEW_DIR, SLACK_REVIEW_ID_TIMEOUT (30),
-SLACK_REVIEW_GH, SLACK_REVIEW_GH_LOGIN, JIRA_URL, JIRA_EMAIL, JIRA_TOKEN.
+SLACK_REVIEW_GH, SLACK_REVIEW_GH_LOGIN, JIRA_URL, JIRA_EMAIL, JIRA_TOKEN, SLACK_REVIEW_JEV,
+SLACK_REVIEW_JEV_MIN (0.8), SLACK_REVIEW_JEV_LOG (~/.hermes/scripts/.slack-review-jev.jsonl),
+TYPESAFE_API_KEY.
 
 Stdlib only. Flags: all passed through to watch_mentions.py; --dry-run also spawns nothing.
 """
@@ -33,6 +40,7 @@ import subprocess
 import sys
 import tempfile
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
@@ -40,7 +48,7 @@ from functools import lru_cache
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-import watch_mentions as wm  # noqa: E402  (shared env/dotenv lookup)
+import watch_mentions as wm  # noqa: E402  (shared env/dotenv lookup, Jev URL + question)
 
 TAG = "[slack-review]"
 AGENTS = ("omp", "claude", "custom")
@@ -195,6 +203,72 @@ def review_intent(block):
 def scoped_targets(block):
     """Targets in the Mention text, else in the thread root only; never the rest of the thread."""
     return targets(mention_text(block)) or targets((thread_msgs(block) or [""])[0])
+
+
+# Jev second opinion (opt-in: SLACK_REVIEW_JEV + TYPESAFE_API_KEY) -----------
+
+WATCHED_RE = re.compile(r"\(watched user: (@?[^)\s]+)\)")
+
+
+def _plain(text):
+    """Slack `<url|label>` -> `label url`."""
+    return SLACK_LINK.sub(lambda m: f"{m[2]} {m[1]}" if m[2] else m[1], text)
+
+
+def jev_min():
+    # 0.8: with mention + thread context real asks score ~0.98, a "check and assign ... so I
+    # can review" triage ask 0.68. The intent regex is the primary guard; Jev the second.
+    return float(cfg("SLACK_REVIEW_JEV_MIN", "0.8"))
+
+
+def jev_p(block, watched, hit, dry_run, tick):
+    """Jev p(review) for a regex-positive block, or None (off, no key, error: regex alone).
+    One log row per call. A 401/403 turns Jev off for the rest of the tick (tick["off"])."""
+    key = cfg("TYPESAFE_API_KEY")
+    if (tick.get("off") or not key
+            or (cfg("SLACK_REVIEW_JEV") or "").lower() not in ("1", "true", "yes")):
+        return None
+    mention = _plain(mention_text(block))
+    body = {"state": {"watched_user": watched, "mention": mention,
+                      "thread": [_plain(m) for m in thread_msgs(block)]},
+            "model": "jev-latest", "questions": {"review": wm.JEV_Q["review"]}}
+    req = urllib.request.Request(wm.JEV_URL, data=json.dumps(body).encode(), method="POST",
+                                 headers={"Authorization": f"Bearer {key}",
+                                          "Content-Type": "application/json"})
+    row = {"logged_at": datetime.now().astimezone().isoformat(timespec="seconds"),
+           "permalink": next((l[len("Permalink:"):].strip() for l in block.split("\n")
+                              if l.startswith("Permalink:")), None),
+           "mention": mention[:300], "regex": hit, "p_review": None, "decision": "review",
+           "model": None, "ms": 0, "error": None}
+    t0 = time.monotonic()
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            data = json.loads(r.read().decode("utf-8"))
+        p = float(data["answers"]["review"]["noul"])
+        if not 0 <= p <= 1:  # also NaN
+            raise ValueError("p out of range")
+        row.update(p_review=p, model=data.get("model"),
+                   decision="review" if p >= jev_min() else "skip")
+    except Exception as e:
+        code = e.code if isinstance(e, urllib.error.HTTPError) else None
+        if code in (401, 403):
+            tick["off"] = True
+            print(f"{TAG} jev: auth rejected (HTTP {code})", file=sys.stderr)
+        # only the type name: str(e) can echo request headers, i.e. the key
+        row["error"] = type(e).__name__ + (f" {code}" if code else "")
+    row["ms"] = int((time.monotonic() - t0) * 1000)
+    line = json.dumps(row, ensure_ascii=False)
+    if dry_run:
+        print(f"{TAG} {line}", file=sys.stderr)
+        return row["p_review"]
+    path = _path("SLACK_REVIEW_JEV_LOG", "~/.hermes/scripts/.slack-review-jev.jsonl")
+    try:
+        os.makedirs(os.path.dirname(path) or ".", exist_ok=True)
+        with os.fdopen(os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600), "a") as f:
+            f.write(line + "\n")
+    except OSError as e:  # ponytail: the log is diagnostics only, never blocks the digest
+        print(f"{TAG} jev: log write failed: {type(e).__name__}", file=sys.stderr)
+    return row["p_review"]
 
 
 # Target checks (read only, fail open) ---------------------------------------
@@ -464,14 +538,19 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target):
     path = state_path()
     state = load_state(path, now)
     cap = int(cfg("SLACK_REVIEW_MAX_SPAWNS", "3"))
-    spawned = 0
+    w = WATCHED_RE.search(header)
+    watched = "@" + w[1].lstrip("@") if w else "the watched user"
+    spawned, tick = 0, {}
     for i, block in enumerate(blocks):
         if not eligible(block):
             continue
         hit = review_intent(block)
         cands = scoped_targets(block) if hit else []
+        p = jev_p(block, watched, hit, dry_run, tick) if cands else None
         why = ("not a review request" if not hit else
-               "no target in mention or thread root" if not cands else None)
+               "no target in mention or thread root" if not cands else
+               f"not a review request (jev {p:.2f})" if p is not None and p < jev_min()
+               else None)
         if why:
             blocks[i] = annotate(block, f"review: skipped ({why})")
             continue
