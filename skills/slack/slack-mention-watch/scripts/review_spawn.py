@@ -27,9 +27,9 @@ SLACK_REVIEW_JEV=1 + TYPESAFE_API_KEY asks TypeSafe Jev about regex-positive men
 p(review) < SLACK_REVIEW_JEV_MIN (0.8) -> `skipped (not a review request (jev p))`. Jev
 errors -> the regex decides. One row per call in SLACK_REVIEW_JEV_LOG.
 
-Every agent runs with git/gh guard wrappers first on PATH (SLACK_REVIEW_GUARD_DIR): they refuse
-git writes (push, commit, checkout, ...) and gh writes (pr comment/review/merge, issue writes,
-release, non-GET api). SLACK_REVIEW_GUARD=0 turns that off (not recommended).
+Every agent runs with git/gh guard wrappers first on PATH (SLACK_REVIEW_GUARD_DIR): they run only
+allowlisted read-only git/gh commands (status/diff/log/show/fetch/..., gh pr view/diff/checks,
+GET-only api, ...) and block the rest. SLACK_REVIEW_GUARD=0 turns that off (not recommended).
 
 Env (process env first, then ~/.hermes/.env): SLACK_REVIEW_AGENT, SLACK_REVIEW_WORKDIR,
 SLACK_REVIEW_MODEL, SLACK_REVIEW_EFFORT (omp --thinking), SLACK_REVIEW_CMD (custom, with
@@ -168,7 +168,7 @@ INTENT_RES = tuple(re.compile(p, re.I) for p in (
 NOT_MINE_RE = re.compile(
     r"\b(?:I|we|they|he|she)(?:['’](?:ll|d)|\s+(?:can|could|will|would|should|may|might|shall))?"
     r"\s+(?:re-?)?review|\bin\s+review\b|\breview\s+to\s+move\b", re.I)
-PR_ASK_RE = re.compile(r"\b(?:review|ptal|look|check|approve|verify|test)|\?", re.I)
+PR_ASK_RE = re.compile(r"\b(?:review|ptal|look|check|approve|verify|test)\b|\?", re.I)
 
 
 def mention_text(block):
@@ -507,8 +507,9 @@ def _bin(name):
 
 
 # Guard wrappers first on every agent's PATH; @REAL@ = the real binary, baked in at write time.
-# ponytail: argv guards, not a sandbox (e.g. `git -c alias.x=push x` or a gh subcommand outside
-# pr/issue/release/repo/api passes); upgrade to a read-only GitHub token if a run routes around.
+# Allowlists of read-only subcommands: aliases and anything unlisted are blocked.
+# ponytail: argv guards, not a sandbox (an absolute /usr/bin/git, `git -c core.pager=<cmd> log`
+# or `fetch <src>:<dst>` refspecs pass); upgrade to a read-only GitHub token if a run routes around.
 GIT_SHIM = """\
 #!/bin/sh
 # slack-review guard, rewritten by review_spawn.py on every launch (edits are lost).
@@ -517,20 +518,30 @@ deny() {
   echo "slack-review guard: 'git $*' is blocked: review sessions are read-only." >&2
   exit 1
 }
-skip= branch=
+skip= cmd=
 for a in "$@"; do
   if [ -n "$skip" ]; then skip=; continue; fi
-  if [ -n "$branch" ]; then
-    case "$a" in -d|-D|--delete|-m|-M|--move|-f|--force) deny "$@" ;; esac
-    continue
-  fi
+  case "$cmd" in
+    branch)  # listing only: a name would create/delete, other flags may write
+      case "$a" in
+        -a|--all|-r|--remotes|-l|--list|-v|-vv|--verbose|--show-current|--no-color) continue ;;
+        *) deny "$@" ;;
+      esac ;;
+    remote)
+      case "$a" in
+        -v|--verbose) continue ;;
+        show|get-url) break ;;
+        *) deny "$@" ;;
+      esac ;;
+  esac
   case "$a" in
     -C|-c|--git-dir|--work-tree|--namespace|--config-env) skip=1 ;;
     -*) ;;
-    push|send-email|commit|reset|checkout|switch|rebase|merge|stash|worktree|tag|pull|\\
-cherry-pick|revert|restore|clean|am|apply) deny "$@" ;;
-    branch) branch=1 ;;
-    *) break ;;
+    branch|remote) cmd=$a ;;
+    status|diff|log|show|fetch|rev-parse|rev-list|merge-base|ls-files|ls-tree|ls-remote|\\
+cat-file|blame|grep|describe|shortlog|for-each-ref|show-ref|range-diff|name-rev|version|\\
+help) break ;;
+    *) deny "$@" ;;
   esac
 done
 exec "$real" "$@"
@@ -553,10 +564,11 @@ for a in "$@"; do
   esac
 done
 case "$cmd" in
+  ""|help|version|status|search) ;;
   pr) case "$sub" in ""|view|diff|checks|list|status) ;; *) deny "$@" ;; esac ;;
-  issue) case "$sub" in ""|view|list) ;; *) deny "$@" ;; esac ;;
-  release) deny "$@" ;;
+  issue) case "$sub" in ""|view|list|status) ;; *) deny "$@" ;; esac ;;
   repo) case "$sub" in ""|view|list|clone) ;; *) deny "$@" ;; esac ;;
+  run|workflow) case "$sub" in ""|view|list) ;; *) deny "$@" ;; esac ;;
   api)
     prev=
     for a in "$@"; do
@@ -571,6 +583,7 @@ case "$cmd" in
       esac
       prev=$a
     done ;;
+  *) deny "$@" ;;
 esac
 exec "$real" "$@"
 """
@@ -805,6 +818,7 @@ def process(text, dry_run=False, now=None, spawner=spawn, checker=check_target, 
         for _, e in owned(new):
             e.update(pid=pid, pending=[])  # the run got every queued block
         touched.add(new)
+        save_state(path, state)  # a started run is on record even if this tick fails later
         return new, None
 
     def new_run(block, ts):

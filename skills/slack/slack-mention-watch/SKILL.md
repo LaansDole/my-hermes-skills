@@ -505,17 +505,20 @@ thread text to `api.typesafe.ai`. It writes nothing to Slack and changes no outp
 `review_spawn.py` makes no Slack calls; its own network use is `gh pr view` / `gh api user`, the
 optional Jira GET and the optional Jev POST. Every agent (omp, claude, custom) runs with `PATH`
 starting with a guard dir (`SLACK_REVIEW_GUARD_DIR`) whose `git` and `gh` wrappers exec the real
-binaries but refuse writes: git push, send-email, commit, reset, checkout, switch, rebase,
-merge, pull, cherry-pick, revert, restore, clean, am, apply, stash, worktree, tag and
-`branch -d/-D/-m/-M/-f` (also after `-C <dir>` / `-c k=v`); gh pr anything but
-view/diff/checks/list/status, issue anything but view/list, release, repo anything but
-view/list/clone, and `gh api` with a non-GET method or a field/input flag. The child also gets
+binaries only for read-only commands and refuse everything else, aliases included. git: status,
+diff, log, show, fetch, rev-parse, rev-list, merge-base, ls-files, ls-tree, ls-remote, cat-file,
+blame, grep, describe, shortlog, for-each-ref, show-ref, range-diff, name-rev, `branch` listing
+flags (`-a`, `-r`, `--list`, `-v`, `--show-current`) and `remote` (`-v`, `show`, `get-url`), also
+after `-C <dir>` / `-c k=v`. gh: pr view/diff/checks/list/status, issue view/list/status, repo
+view/list/clone, run and workflow view/list, search, status, and `gh api` without a non-GET
+method or a field/input flag. The child also gets
 `GIT_TERMINAL_PROMPT=0` and `PI_BASH_NO_LOGIN=1` (omp's login shell would otherwise let macOS
 `path_helper` put `/usr/bin` ahead of the guard). If the wrappers cannot be written nothing is
 started (`review: failed (cannot write the git/gh guard: ...)`). `claude` is also held to the
 read-only tool allowlist above. The wrappers check argv, they are not a sandbox (an absolute
-`/usr/bin/git`, `git -c alias.x=push x` or other gh commands pass) and agents may still write
-scratch files such as `/tmp`; for a hard guarantee give the agent's gh a read-only token.
+`/usr/bin/git`, `git -c core.pager=<cmd> log` or `git fetch` into a local branch pass) and
+agents may still write scratch files such as `/tmp`; for a hard guarantee give the agent's gh
+a read-only token.
 `SLACK_REVIEW_GUARD=0` removes the wrappers (not recommended).
 Covered by `tests/test_review_spawn.py`.
 
@@ -557,7 +560,7 @@ Settings come from the process env, then `~/.hermes/.env` directly.
 | Stderr `rate limited` / `network error` | 429 after one retry, or offline | Tick skipped, state not advanced; next tick catches up. |
 | A review continued the user's own latest omp session | omp `autoResume` on: `omp -p` resumes the last session in that directory | `review_spawn.py` passes `--config <SLACK_REVIEW_DIR>/omp-noresume.yml` (`autoResume: false`) and rewrites it on every spawn; check the dir is writable and the omp version honours `--config`. |
 | Claude review log shows permission denials | Headless claude only runs the allowlisted read-only tools (no `gh api`); `--permission-mode default` denies the rest | Expected for writes and other commands; the brief only needs `gh pr view/diff/checks` and git reads. |
-| `slack-review guard: 'git ...' is blocked` / `'gh ...' is blocked` in a review log | The guard wrappers refused a write | Expected: reviews are read-only. |
+| `slack-review guard: 'git ...' is blocked` / `'gh ...' is blocked` in a review log | The command is not on the guard's read-only allowlist (see "Write guarantee") | Expected for writes; reviews are read-only. |
 | Merged/approved PRs still get reviewed, or `review: failed (cannot start omp: ...)` | Cron runs with a minimal PATH, so `gh` or the agent is not found (checks fail open), or gh is not logged in for the gateway user | Set `SLACK_REVIEW_GH` to the full gh path; put the agent on the gateway's PATH or in `~/.local/bin`; run `gh auth status` as the gateway user. |
 | `review: failed (no session id within timeout ...)` | Agent slow to start (login prompt, update check) | Read the log path in the line; raise `SLACK_REVIEW_ID_TIMEOUT`. The agent is left running. |
 | `[slack-review] error: ValueError: ...` on stderr, digest without `review:` lines | `SLACK_REVIEW_AGENT` not omp/claude/custom, or `SLACK_REVIEW_WORKDIR` / `SLACK_REVIEW_CMD` missing | Fix `~/.hermes/.env`. |

@@ -14,8 +14,9 @@ Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:
   reviewed again just because 24 h passed (PRs: until the head commit changes; tickets:
   `SLACK_REVIEW_DAYS`, 7).
 - Review runs are read-only for every agent: git/gh guard wrappers first on the agent's PATH
-  refuse git writes and gh writes (incl. non-GET `gh api`); claude no longer allows `gh api`
-  (it allowed POSTs, e.g. PR comments). `SLACK_REVIEW_GUARD=0` turns the wrappers off.
+  run only an allowlist of read-only git/gh commands (gh api: GET only) and block the rest,
+  aliases included; claude no longer allows `gh api` (it allowed POSTs, e.g. PR comments).
+  Argv checks, not a sandbox (see "Write guarantee"). `SLACK_REVIEW_GUARD=0` turns them off.
 
 ### Added
 - Follow-ups resume the target's existing omp/claude session (`review: resumed <id> (...,

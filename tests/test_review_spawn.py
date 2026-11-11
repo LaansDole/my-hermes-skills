@@ -186,7 +186,9 @@ class IntentTest(Env):
            "Can you check and assign them?", "could you test and deploy it",
            "Could you assign ABC-1 so I can review?", "can you move it, then we will review",
            "pls move the tickets in review", "Could you assign ABC-2 so that I'll review it",
-           "would you approve ABC-3")  # approve needs an object word, a bare key is not one
+           "would you approve ABC-3",  # approve needs an object word, a bare key is not one
+           "<https://github.com/o/r/pull/4> looks good to me",  # request words are whole words
+           "<https://github.com/o/r/pull/5> reviewed, testing done")
 
     def block(self, mention):
         """The thread asks for a review too: only the Mention text may count."""
@@ -645,15 +647,21 @@ class ShimTest(Env):
             ["status"], ["-C", "/x", "log", "--oneline"], ["fetch", "origin", "pull/1/head"],
             ["--no-pager", "diff", "a..b"], ["log", "push"], ["-C", "push", "status"],
             ["-c", "a=b", "show", "HEAD"], ["branch"], ["branch", "-a"], ["branch", "--list"],
-            ["rev-parse", "HEAD"]], deny=[
+            ["branch", "-vv"], ["rev-parse", "HEAD"], ["merge-base", "a", "b"], ["remote"],
+            ["remote", "-v"], ["remote", "get-url", "origin"], ["--version"],
+            ["blame", "f"]], deny=[
             ["push"], ["-C", "/x", "push", "origin", "HEAD"], ["-c", "x=y", "--git-dir", "/g", "push"],
             ["--git-dir=/g", "push", "-f"], ["--no-pager", "send-email", "x"], ["-C", "push", "push"],
             *[[a, "x"] for a in ("commit", "reset", "checkout", "switch", "rebase", "merge", "stash",
                                  "worktree", "tag", "pull", "cherry-pick", "revert", "restore",
-                                 "clean", "am", "apply")],
-            ["-c", "a=b", "commit", "-m", "x"], ["branch", "-D", "x"], ["branch", "x", "-d"],
+                                 "clean", "am", "apply", "add", "rm", "mv", "config", "update-ref",
+                                 "symbolic-ref", "gc", "submodule", "init", "clone", "notes")],
+            ["-c", "a=b", "commit", "-m", "x"], ["-c", "alias.x=push", "x"], ["co", "main"],
+            ["branch", "newbr"], ["branch", "-D", "x"], ["branch", "x", "-d"],
             ["branch", "--delete", "x"], ["branch", "-m", "a", "b"], ["branch", "--move", "a"],
-            ["branch", "-f", "x", "y"], ["branch", "--force", "x"], ["-C", "/x", "branch", "-M", "a"]])
+            ["branch", "-f", "x", "y"], ["branch", "-C", "a", "b"],
+            ["-C", "/x", "branch", "-M", "a"], ["remote", "add", "evil", "u"],
+            ["remote", "-v", "set-url", "origin", "u"], ["remote", "remove", "origin"]])
 
     def test_gh(self):
         self.check("gh", allow=[
@@ -661,7 +669,8 @@ class ShimTest(Env):
             ["pr", "checks", "1"], ["pr", "list"], ["pr", "status"], ["issue", "view", "3"],
             ["issue", "list"], ["api", "repos/o/r/pulls/1/comments"], ["api", "-X", "GET", "repos/o/r"],
             ["api", "--method=get", "x"], ["api", "user", "--jq", ".login"], ["repo", "view", "o/r"],
-            ["search", "prs", "x"]], deny=[
+            ["search", "prs", "x"], ["run", "view", "1", "--log-failed"], ["workflow", "list"],
+            ["status"], ["--version"]], deny=[
             *[["pr", a, "1"] for a in ("comment", "review", "edit", "merge", "close", "reopen",
                                        "ready", "create", "checkout", "lock")],
             ["pr", "-R", "o/r", "comment", "1", "-b", "x"], ["issue", "comment", "3"],
@@ -671,7 +680,11 @@ class ShimTest(Env):
             ["api", "--method=DELETE", "x"], ["api", "-XPOST", "x"], ["api", "x", "-f", "a=b"],
             ["api", "x", "-F", "a=b"], ["api", "x", "--field", "a=b"],
             ["api", "x", "--raw-field", "a=b"], ["api", "x", "--input", "f"],
-            ["api", "x", "--input=f"], ["api", "graphql", "-fquery=x"]])
+            ["api", "x", "--input=f"], ["api", "graphql", "-fquery=x"],
+            ["co", "1"], ["mrg", "1"], ["alias", "set", "mrg", "pr merge"],  # aliases
+            ["workflow", "run", "deploy.yml"], ["run", "rerun", "1"], ["gist", "create", "x"],
+            ["extension", "install", "o/gh-x"], ["label", "create", "x"], ["secret", "set", "x"],
+            ["auth", "token"]])
 
     def test_refresh_bakes_new_real(self):
         other = os.path.join(self.tmp, "other dir")
@@ -978,6 +991,13 @@ class SessionTest(ProcBase):
         self.assertEqual(self.table()[PR812]["pid"], 4242)
         self.assertEqual(rs.LAUNCHED, {})
 
+    def test_started_run_saved_even_if_tick_crashes(self):
+        def checker(t):
+            if t == "acme/api#813":
+                raise RuntimeError("boom")  # main() then prints the raw digest
+        with self.assertRaises(RuntimeError):
+            self.run_(digest(P812, B1_813), checker=checker)
+        self.assertEqual(self.table(), {PR812: entry("S1", 100000.0)})  # no duplicate next tick
 
 
 class IntentProcessTest(ProcBase):
