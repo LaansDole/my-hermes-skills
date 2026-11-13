@@ -182,7 +182,7 @@
   <div class="page-head">
     <h1>Changelog</h1>
     <p class="lede">
-      18 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
+      20 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
       Every push that bumps a version is also published as a
       <a href="https://github.com/LaansDole/my-hermes-skills/releases" target="_blank" rel="noopener">GitHub release</a>.
     </p>
@@ -192,6 +192,16 @@
     <section class="month" aria-labelledby="m-november-2026">
       <h2 id="m-november-2026">November 2026</h2>
       <ol class="rows">
+        <li class="cl-row" id="slack-mention-watch-2.7.1">
+          <time class="r-date sc" datetime="2026-11-13">13 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.7.1</span></p>
+          <div class="cl-changes"><p class="cl-kind">Fixed</p><ul><li>A queued review update is dropped when <code>SLACK_REVIEW_AGENT</code> changed since it was queued (<code>review: dropped queued update for &lt;id&gt; (...: agent is now &lt;agent&gt;)</code>), instead of being sent to the old agent's session.</li><li>Queued targets that no longer need a review (merged, approved, ...) are no longer pulled into a follow-up run. A failed resume is not retried in the same tick; its update stays queued.</li><li>Each target's PR/ticket status is checked once per tick, not once per use.</li><li>A started review run is saved to <code>SLACK_REVIEW_STATE</code> right away, so a later error in the same tick no longer loses it and the target is not reviewed twice.</li><li>PR review asks match whole words only: "looks", "checked" or "testing" alone no longer count as a review request.</li><li>The read-only guard also allows <code>gh run</code>/<code>gh workflow</code> view/list, <code>gh search</code>, <code>gh status</code>, <code>gh issue status</code>, <code>git branch</code> listing flags and <code>git remote -v</code>/<code>show</code>/<code>get-url</code>.</li></ul></div>
+        </li>
+        <li class="cl-row" id="slack-mention-watch-2.7.0">
+          <time class="r-date sc" datetime="2026-11-10">10 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.7.0</span></p>
+          <div class="cl-changes"><p class="cl-kind">Fixed</p><ul><li>Review agent: only explicit review asks in the <code>Mention:</code> text start a review (PTAL, "can you review", "please check this", ...), not any PR link or ticket key in the block. Targets come from the mention, else the thread root only. Other pings get <code>review: skipped (not a review request)</code>; asks without a target <code>review: skipped (no target in mention or thread root)</code>.</li><li>Review dedupe is per target: one new target no longer re-reviews the others, and nothing is reviewed again just because 24 h passed (PRs: until the head commit changes; tickets: <code>SLACK_REVIEW_DAYS</code>, 7).</li><li>Review runs are read-only for every agent: git/gh guard wrappers first on the agent's PATH run only an allowlist of read-only git/gh commands (gh api: GET only) and block the rest, aliases included; claude no longer allows <code>gh api</code> (it allowed POSTs, e.g. PR comments). Argv checks, not a sandbox (see "Write guarantee"). <code>SLACK_REVIEW_GUARD=0</code> turns them off.</li></ul><p class="cl-kind">Added</p><ul><li>Follow-ups resume the target's existing omp/claude session (<code>review: resumed &lt;id&gt; (..., old..new)</code>) with a brief holding the new Slack block(s) and, for PRs, only the <code>old..new</code> diff. A session still running gets the update queued (<code>review: busy &lt;id&gt; (update queued)</code>), delivered on a later tick.</li><li><code>review_spawn.py --sessions</code> prints the session table (read only).</li><li>Opt-in Jev second opinion for review asks (<code>SLACK_REVIEW_JEV=1</code> + <code>TYPESAFE_API_KEY</code>, <code>SLACK_REVIEW_JEV_MIN</code> 0.8, log in <code>SLACK_REVIEW_JEV_LOG</code>); the Jev shadow log asks the same <code>review</code> question.</li></ul><p class="cl-kind">Changed</p><ul><li><code>SLACK_REVIEW_STATE</code> holds a session table per target (session, agent, runs, reviewed head commit, pid, queued updates); entries are pruned after 30 days without a run. Pre-2.7 files are migrated on the next save; migrated entries are never resumed. The <code>review: already running</code> line is gone.</li></ul></div>
+        </li>
         <li class="cl-row" id="auditing-worktrees-1.0.0">
           <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
           <p class="cl-skill"><a href="index.html#entry-auditing-worktrees">auditing-worktrees</a><span class="sc">v1.0.0</span></p>
@@ -255,7 +265,7 @@
         <li class="cl-row" id="slack-mention-watch-2.6.0">
           <time class="r-date sc" datetime="2026-11-07">7 Nov</time>
           <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.6.0</span></p>
-          <div class="cl-changes"><p class="cl-kind">Added</p><ul><li>Opt-in Jev shadow mode (<code>SLACK_MENTION_JEV_SHADOW=1</code> + <code>TYPESAFE_API_KEY</code>): logs TypeSafe Jev's emoji verdict for each new mention to <code>~/.hermes/scripts/.slack-mention-jev.jsonl</code> beside the regex result. Sends mention and thread text to <code>api.typesafe.ai</code>; off by default; changes no output or reaction.</li></ul><p class="cl-kind">Changed</p><ul><li>Digest cron example uses <code>--reasoning-effort high</code>, not <code>max</code> (<code>max</code> was ~88% of the job's spend).</li></ul></div>
+          <div class="cl-changes"><p class="cl-kind">Added</p><ul><li>Opt-in Jev shadow mode (<code>SLACK_MENTION_JEV_SHADOW=1</code> + <code>TYPESAFE_API_KEY</code>): logs TypeSafe Jev's emoji verdict and already-handled probability for each new mention to <code>~/.hermes/scripts/.slack-mention-jev.jsonl</code> beside the regex result. Sends mention and thread text to <code>api.typesafe.ai</code>; off by default; changes no output or reaction.</li></ul><p class="cl-kind">Changed</p><ul><li>Digest cron example uses <code>--reasoning-effort high</code>, not <code>max</code> (<code>max</code> was ~88% of the job's spend).</li></ul></div>
         </li>
         <li class="cl-row" id="slack-mention-watch-2.5.0">
           <time class="r-date sc" datetime="2026-11-07">7 Nov</time>

@@ -2,6 +2,22 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:` in SKILL.md and add a matching section; the release workflow publishes it.
 
+## [2.7.1] - 2026-11-13
+
+### Fixed
+- A queued review update is dropped when `SLACK_REVIEW_AGENT` changed since it was queued
+  (`review: dropped queued update for <id> (...: agent is now <agent>)`), instead of being sent to
+  the old agent's session.
+- Queued targets that no longer need a review (merged, approved, ...) are no longer pulled into a
+  follow-up run. A failed resume is not retried in the same tick; its update stays queued.
+- Each target's PR/ticket status is checked once per tick, not once per use.
+- A started review run is saved to `SLACK_REVIEW_STATE` right away, so a later error in the same
+  tick no longer loses it and the target is not reviewed twice.
+- PR review asks match whole words only: "looks", "checked" or "testing" alone no longer count as
+  a review request.
+- The read-only guard also allows `gh run`/`gh workflow` view/list, `gh search`, `gh status`,
+  `gh issue status`, `git branch` listing flags and `git remote -v`/`show`/`get-url`.
+
 ## [2.7.0] - 2026-11-10
 
 ### Fixed
