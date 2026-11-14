@@ -1,0 +1,5 @@
+# Per-run omp overlay for the persona A/B: no advisor, because a second model injecting notes
+# mid-run would contaminate the arms. (Model fallback can't be switched off from an overlay;
+# bench.py rejects and retries any run that fell back to another model instead.)
+advisor:
+  enabled: false
