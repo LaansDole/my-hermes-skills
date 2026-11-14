@@ -31,7 +31,7 @@ Accuracy, measured. MCQ = MMLU-Pro questions with 10 options. Coding = the plant
 | GPT-6 Luna | MCQ | 82.6% | 82.9% | 80.7% | 420 / 420 / 140 answers |
 | GPT-6 Luna | Coding (3 tasks) | 100% | 97.2% | 100% | 9 runs |
 
-\* The automatic grader scored one Fable "none" review at 3/4. I read the answer: it did find the unlocked `get`, but wrote "`get` reads..." without the parentheses the regex expects. Manually adjudicated to 4/4. Luna's one expert-arm miss (it did not report the unlocked `get`) is real.
+Note on the starred cell: the automatic grader scored one Fable "none" review at 3/4. I read the answer: it did find the unlocked `get`, but wrote "`get` reads..." without the parentheses the regex expects. Manually adjudicated to 4/4. Luna's one expert-arm miss (it did not report the unlocked `get`) is real.
 
 Paired MCQ comparison against the control. Each answer is paired by question and rep, and p is an exact two-sided sign test on the pairs where only one arm was right.
 
