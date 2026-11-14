@@ -901,6 +901,45 @@ def heading_index(lines: list) -> list:
 # A table of contents only earns its space once a report has real sections.
 TOC_MIN_SECTIONS = 4
 
+REF_HEADING = re.compile(r"^##\s+(?:Sources|References)\s*$")
+# A reference entry: "[n] ...", "- [n] ...", "n. ...", or a plain "- ..." bullet (numbered in order).
+REF_NUMBERED = re.compile(r"^\s*(?:[-*]\s+)?\[(\d+)\]\s+(.*)$")
+REF_ORDERED = re.compile(r"^\s*(\d+)\.\s+(.*)$")
+REF_BULLET = re.compile(r"^\s*[-*]\s+(.*)$")
+# Inline marker: [3] or [1, 4]; never a markdown link label "[3](...)".
+CITE = re.compile(r"[ \t]?\[(\d+(?:\s*,\s*\d+)*)\](?!\()")  # a leading space is absorbed
+
+
+def ref_title(md: str) -> str:
+    """Plain-text label for a reference entry, used as the citation hover preview."""
+    urls = re.findall(r"https?://[^\s>)]+", md)
+    s = re.sub(r"<https?://[^>]+>|https?://\S+", "", md)
+    s = re.sub(r"\[([^\]]+)\]\([^)]*\)", r"\1", s)
+    s = re.sub(r"[`*_]", "", s)
+    s = re.sub(r"\s+", " ", s).strip(" :—–-,;")
+    if not s and urls:
+        s = re.sub(r"^https?://(www\.)?", "", urls[0]).split("/")[0]
+    return s
+
+
+def collect_references(lines: list) -> dict:
+    """Number -> reference markdown, from every Sources/References section."""
+    refs: dict = {}
+    in_refs = False
+    for ln in lines:
+        if REF_HEADING.match(ln):
+            in_refs = True; continue
+        if re.match(r"^#{1,6}\s+", ln):
+            in_refs = False; continue
+        if not in_refs or not ln.strip():
+            continue
+        m = REF_NUMBERED.match(ln) or REF_ORDERED.match(ln)
+        if m:
+            refs[int(m.group(1))] = m.group(2).strip()
+        elif (b := REF_BULLET.match(ln)):
+            refs[max(refs, default=0) + 1] = b.group(1).strip()
+    return refs
+
 
 def md_to_html(text: str) -> str:
     """Minimal zero-dependency markdown -> HTML for report files.
@@ -921,7 +960,29 @@ def md_to_html(text: str) -> str:
 
     text = re.sub(r"```[^\n]*\n(.*?)```", _fence, text, flags=re.S)
 
-    def inline(s: str) -> str:
+    lines = text.split("\n")
+    refs = collect_references(lines)
+    cite_count: dict = {}
+
+    def cite_link(n: int) -> str:
+        cite_count[n] = cite_count.get(n, 0) + 1
+        label = html.escape(ref_title(refs[n]))
+        return (f'<a id="cite-{n}-{cite_count[n]}" href="#ref-{n}" data-ref="{label}" '
+                f'aria-label="Reference {n}: {label}">{n}</a>')
+
+    def cite_markers(s: str) -> str:
+        """[n] / [n, m] -> linked markers, skipping code, existing links and unknown numbers."""
+        parts = re.split(r"(<code>.*?</code>|<a [^>]*>.*?</a>)", s)
+        for k in range(0, len(parts), 2):
+            def _one(m: re.Match) -> str:
+                nums = [int(x) for x in re.split(r"\s*,\s*", m.group(1))]
+                if not all(n in refs for n in nums):
+                    return m.group(0)
+                return '<sup class="cite">[' + ", ".join(cite_link(n) for n in nums) + "]</sup>"
+            parts[k] = CITE.sub(_one, parts[k])
+        return "".join(parts)
+
+    def inline(s: str, cite: bool = True) -> str:
         s = html.escape(s, quote=False)
         s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
         # markdown autolink <URL> -> anchor (before other substitutions)
@@ -934,40 +995,46 @@ def md_to_html(text: str) -> str:
         # autolink bare URLs not already inside an href
         s = re.sub(r'(?<!href=")(?<!">)(https?://[^\s<)"]+)',
                    rf'<a href="\1" target="_blank">\1</a>', s)
-        return s
+        return cite_markers(s) if cite and refs else s
 
-    def flush_source_list(items: list[str]) -> None:
-        """Render grounded-citation source entries as separate list items."""
+    def flush_source_list(items: list) -> None:
+        """Numbered reference list; back-links to each citation are filled in at the end."""
         if items:
-            out.append("<ul>" + "".join(f"<li>{inline(item)}</li>" for item in items) + "</ul>")
+            out.append('<ol class="refs">' + "".join(
+                f'<li id="ref-{n}" value="{n}">{inline(md, cite=False)}\x00REFBACK{n}\x00</li>'
+                for n, md in items) + "</ol>")
 
-    lines = text.split("\n")
     headings = heading_index(lines)
     toc = ""
     if sum(1 for lvl, _, _ in headings if lvl == 2) >= TOC_MIN_SECTIONS:
         items = "".join(
             f'<li class="toc-{"sub" if lvl == 3 else "top"}">'
-            f'<a href="#{hid}">{inline(txt)}</a></li>'
+            f'<a href="#{hid}">{inline(txt, cite=False)}</a></li>'
             for lvl, txt, hid in headings if lvl in (2, 3))
-        toc = ('<nav class="toc" aria-label="On this page">'
-               '<p class="toc-title">On this page</p>'
+        toc = ('<nav class="toc" aria-label="Contents">'
+               '<p class="toc-title">Contents</p>'
                f"<ul>{items}</ul></nav>")
 
     out: list[str] = []
-    source_items: list[str] = []
+    source_items: list = []
     in_sources = False
+    ref_seq = 0
     hpos = 0
     i = 0
     while i < len(lines):
         ln = lines[i]
-        if re.match(r"^##\s+Sources\s*$", ln):
+        if REF_HEADING.match(ln):
             in_sources = True
         elif re.match(r"^#{1,6}\s+", ln):
             in_sources = False
-        if in_sources and re.match(r"^\[\d+\]\s+https?://", ln):
-            source_items.append(ln)
-            i += 1
-            continue
+        if in_sources and ln.strip():
+            m = REF_NUMBERED.match(ln) or REF_ORDERED.match(ln)
+            entry = m.group(2) if m else ((b := REF_BULLET.match(ln)) and b.group(1))
+            if entry:
+                ref_seq = int(m.group(1)) if m else ref_seq + 1
+                source_items.append((ref_seq, entry.strip()))
+                i += 1
+                continue
         if source_items:
             flush_source_list(source_items)
             source_items = []
@@ -981,19 +1048,26 @@ def md_to_html(text: str) -> str:
             hpos += 1
             if toc and lvl == 2:
                 out.append(toc); toc = ""
-            out.append(f'<h{lvl} id="{hid}">{inline(h.group(2))}</h{lvl}>'); i += 1; continue
+            out.append(f'<h{lvl} id="{hid}">{inline(h.group(2), cite=False)}</h{lvl}>'); i += 1; continue
         # table: header row then a |---| separator
         if "|" in ln and i + 1 < len(lines) and re.match(r"^\s*\|?[\s:|-]+\|[\s:|-]*$", lines[i + 1] or ""):
             rows = []
             header = [c.strip() for c in ln.strip().strip("|").split("|")]
+            # GFM alignment row: "---:" right, ":---:" centre; numbers line up on the right
+            aligns = [("right" if c.strip().endswith(":") and not c.strip().startswith(":") else
+                       "center" if c.strip().startswith(":") and c.strip().endswith(":") else "")
+                      for c in lines[i + 1].strip().strip("|").split("|")]
             i += 2
             while i < len(lines) and "|" in lines[i] and lines[i].strip():
                 rows.append([c.strip() for c in lines[i].strip().strip("|").split("|")])
                 i += 1
-            th = "".join(f"<th>{inline(c)}</th>" for c in header)
+            def _al(k: int) -> str:
+                a = aligns[k] if k < len(aligns) else ""
+                return f' class="al-{a}"' if a else ""
+            th = "".join(f"<th{_al(k)}>{inline(c)}</th>" for k, c in enumerate(header))
             out.append(f'<div class="table-scroll"><table><thead><tr>{th}</tr></thead><tbody>')
             for r in rows:
-                out.append("<tr>" + "".join(f"<td>{inline(c)}</td>" for c in r) + "</tr>")
+                out.append("<tr>" + "".join(f"<td{_al(k)}>{inline(c)}</td>" for k, c in enumerate(r)) + "</tr>")
             out.append("</tbody></table></div>")
             continue
         m_ol = re.match(r"^\s*(\d+)\.\s+(.*)$", ln)
@@ -1027,6 +1101,19 @@ def md_to_html(text: str) -> str:
         i += 1
     flush_source_list(source_items)
     html_out = "\n".join(out)
+
+    def _backlinks(m: re.Match) -> str:
+        n = int(m.group(1))
+        k = cite_count.get(n, 0)
+        if not k:
+            return ""
+        if k == 1:
+            return (f' <a class="ref-back" href="#cite-{n}-1" '
+                    f'aria-label="Back to the citation of reference {n}">back to text</a>')
+        links = " ".join(f'<a href="#cite-{n}-{j}" aria-label="Back to citation {j} of reference {n}">'
+                         f'{j}</a>' for j in range(1, k + 1))
+        return f' <span class="ref-back">back to text {links}</span>'
+    html_out = re.sub(r"\x00REFBACK(\d+)\x00", _backlinks, html_out)
     for n, b in enumerate(blocks):
         html_out = html_out.replace(f"\x00FENCE{n}\x00", b)
     return html_out
@@ -1052,69 +1139,118 @@ def prune_report_pages(reports: list) -> None:
 
 
 READER_CSS = """    .reader { padding: 48px max(var(--pad), 8vw) 0; }
-    article { font: 400 18px/32px var(--serif); }
-    article h1 { margin: 0 0 32px; font: 900 48px/52px var(--display); letter-spacing: -0.03em; }
-    article h2 { margin: 64px 0 16px; padding-top: 16px; border-top: 3px solid var(--ink);
-                 font: 800 28px/32px var(--display); letter-spacing: -0.01em; }
-    article h3 { margin: 40px 0 12px; font: 800 20px/24px var(--display); }
-    article h4, article h5, article h6 { margin: 32px 0 8px; font: 700 17px/24px var(--display); }
+    article { font: 400 18px/32px var(--serif); font-variant-numeric: oldstyle-nums proportional-nums;
+              hanging-punctuation: first; }
+    article h1, article h2, article h3, article h4, article h5, article h6 {
+      font-family: var(--serif); font-variant-numeric: lining-nums; }
+    article h1 { margin: 0 0 28px; font-size: 44px; line-height: 52px; font-weight: 700;
+                 letter-spacing: -0.012em; }
+    article h2 { margin: 72px 0 12px; font-size: 28px; line-height: 36px; font-weight: 650;
+                 letter-spacing: -0.006em; }
+    article h3 { margin: 40px 0 8px; font-size: 21px; line-height: 28px; font-weight: 600; }
+    article h4, article h5, article h6 { margin: 32px 0 8px; font-size: 18px; line-height: 28px;
+                                         font-weight: 600; font-style: italic; }
     article h1, article h2, article h3 { overflow-wrap: anywhere; scroll-margin-top: 24px; }
     article p { margin: 0 0 16px; }
-    article ul, article ol { margin: 0 0 16px; padding-left: 28px; }
-    article li { margin: 4px 0; }
-    article li::marker { font-family: var(--display); font-weight: 700; }
+    article ul, article ol { margin: 0 0 20px; padding-left: 28px; }
+    article li { margin: 6px 0; }
+    article li::marker { font-variant-numeric: lining-nums tabular-nums; color: var(--muted); }
     article a { overflow-wrap: anywhere; }
-    article strong { font-weight: 700; }
-    article > h1 + ul { margin: 0 0 40px; padding: 0; list-style: none;
-                        border-top: 1px solid var(--ink); border-bottom: 1px solid var(--ink);
-                        font-size: 16px; line-height: 24px; }
-    article > h1 + ul li { position: relative; margin: 0; padding: 8px 0 8px 160px; }
-    article > h1 + ul li + li { border-top: 1px solid var(--hair); }
-    article > h1 + ul li > strong:first-child { position: absolute; left: 0; top: 8px; width: 144px;
-                        font: 700 16px/24px var(--display); font-variant-caps: small-caps;
-                        letter-spacing: 0.02em; }
+    article strong { font-weight: 650; }
+    article > h1 + ul { margin: 0 0 48px; padding: 0; list-style: none;
+                        font-size: 16px; line-height: 26px; color: var(--muted); }
+    article > h1 + ul li { position: relative; margin: 0; padding: 3px 0 3px 128px; }
+    article > h1 + ul li > strong:first-child { position: absolute; left: 0; top: 3px; width: 112px;
+                        color: var(--ink); font-weight: 600; font-variant-caps: all-small-caps;
+                        letter-spacing: 0.04em; }
     article code { font-size: 0.85em; overflow-wrap: anywhere; }
     article pre { margin: 24px 0; padding: 16px 20px; overflow-x: auto; background: var(--tint);
                   font: 400 14px/24px var(--mono); }
     article pre code { font-size: inherit; overflow-wrap: normal; }
-    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 24px 0 32px; }
+    .table-scroll { overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 28px 0 32px; }
     article table { width: 100%; min-width: 560px; margin: 0; border-collapse: collapse;
-                    border-top: 2px solid var(--ink); border-bottom: 2px solid var(--ink);
-                    font: 400 15px/24px var(--serif); font-variant-numeric: tabular-nums; }
-    article th { padding: 8px 16px 8px 0; border-bottom: 1px solid var(--ink); text-align: left;
-                 vertical-align: bottom; font: 700 14px/20px var(--display); }
-    article td { padding: 8px 16px 8px 0; border-top: 1px solid var(--hair); vertical-align: top; }
-    article tbody tr:first-child td { border-top: 0; }
+                    border-top: 1.5px solid var(--ink); border-bottom: 1.5px solid var(--ink);
+                    font: 400 15px/24px var(--serif);
+                    font-variant-numeric: lining-nums tabular-nums; }
+    article th { padding: 8px 20px 6px 0; border-bottom: 1px solid var(--ink); text-align: left;
+                 vertical-align: bottom; font: 600 15px/22px var(--serif); }
+    article td { padding: 5px 20px 5px 0; vertical-align: top; }
+    article th.al-right, article td.al-right { text-align: right; }
+    article th.al-center, article td.al-center { text-align: center; }
+    article th:last-child, article td:last-child { padding-right: 0; }
+    article tbody tr:first-child td { padding-top: 10px; }
+    article tbody tr:last-child td { padding-bottom: 10px; }
     article blockquote { margin: 24px 0; padding: 0 0 0 24px; border-left: 1px solid var(--ink);
                          font-style: italic; }
-    article hr { margin: 40px 0; border: 0; border-top: 1px solid var(--hair); }
-    article hr:has(+ h2, + .toc) { display: none; }
-    .toc { margin: 32px 0 48px; padding-top: 12px; border-top: 3px solid var(--ink); }
-    .toc-title { margin: 0 0 8px; font: 800 13px/20px var(--display);
-                 letter-spacing: 0.08em; text-transform: uppercase; }
+    article hr { display: none; }
+    .toc { margin: 8px 0 8px; }
+    .toc-title { margin: 0 0 4px; font: 600 16px/24px var(--serif); font-variant-caps: all-small-caps;
+                 letter-spacing: 0.06em; color: var(--muted); }
     .toc ul { columns: 2 320px; column-gap: 48px; margin: 0; padding: 0; list-style: none; }
     .toc li { margin: 0; break-inside: avoid; }
-    .toc a { display: block; padding: 6px 0; border-bottom: 1px solid var(--hair);
-             font: 600 15px/20px var(--display); text-decoration: none; }
+    .toc a { display: block; padding: 2px 0; font: 400 16px/26px var(--serif);
+             text-decoration: none; }
     .toc a:hover { text-decoration: underline; }
-    .toc-sub a { padding-left: 20px; font-weight: 400; color: var(--muted); }
+    .toc-sub a { padding-left: 20px; color: var(--muted); }
+    .cite { font-size: max(0.72em, 11px); line-height: 0; vertical-align: 0.42em;
+            font-variant-numeric: lining-nums tabular-nums; white-space: nowrap; }
+    .cite a { position: relative; padding: 0 1px; text-decoration: none; }
+    .cite a:hover, .cite a:focus-visible { text-decoration: underline; }
+    .cite a::after { content: attr(data-ref); position: absolute; left: var(--tip-x, 0px);
+                     bottom: calc(100% + 6px);
+                     z-index: 5; width: max-content; max-width: min(26rem, 80vw); padding: 6px 10px;
+                     background: var(--ink); color: var(--ground); font: 400 14px/20px var(--serif);
+                     font-variant-numeric: lining-nums; letter-spacing: 0; white-space: normal;
+                     text-align: left; pointer-events: none; opacity: 0; visibility: hidden; }
+    .cite a:hover::after, .cite a:focus-visible::after { opacity: 1; visibility: visible; }
+    .refs { padding-left: 40px; font-size: 16px; line-height: 26px; }
+    .refs li { margin: 0 0 10px; padding-left: 4px; }
+    .refs li::marker { content: "[" counter(list-item) "]  "; color: var(--muted); }
+    .refs li:target { background: var(--tint); outline: 6px solid var(--tint); }
+    .ref-back { margin-left: 4px; color: var(--muted); font-variant-caps: all-small-caps;
+                letter-spacing: 0.04em; white-space: nowrap; }
+    .ref-back a, a.ref-back { color: var(--muted); }
+    [id^="cite-"]:target { background: var(--tint); outline: 3px solid var(--tint); }
     .pager { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 24px 40px;
-             margin-top: 64px; padding-top: 12px; border-top: 3px solid var(--ink);
-             font: 700 15px/20px var(--display); }
+             margin-top: 72px; padding-top: 16px; border-top: 1px solid var(--hair);
+             font: 600 16px/22px var(--serif); }
     .pager a { text-decoration: none; }
     .pager a:hover span + span { text-decoration: underline; }
-    .pager .sc { display: block; color: var(--muted); font-weight: 600; }
+    .pager .sc { display: block; color: var(--muted); font-weight: 500;
+                 font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
     .pager-next { text-align: right; }
+    @media (prefers-reduced-motion: no-preference) {
+      .cite a::after { transition: opacity 0.15s var(--ease), visibility 0.15s; }
+    }
     @media (max-width: 640px) {
       .reader { padding: 32px var(--pad) 0; }
       article { font-size: 17px; line-height: 28px; }
-      article h1 { font-size: 32px; line-height: 36px; }
-      article h2 { font-size: 24px; line-height: 28px; }
+      article h1 { font-size: 32px; line-height: 38px; }
+      article h2 { margin-top: 56px; font-size: 24px; line-height: 30px; }
       article > h1 + ul li { padding-left: 0; }
       article > h1 + ul li > strong:first-child { position: static; display: block; width: auto; }
+      .refs { padding-left: 36px; }
       .pager { grid-template-columns: minmax(0, 1fr); }
       .pager-next { text-align: left; }
     }"""
+
+
+# Keeps a citation's hover preview inside the viewport: the preview is the marker's ::after,
+# so measure its used width and shift it left when it would run past the right edge.
+CITE_JS = """  <script>
+    (function () {
+      function place(a) {
+        a.style.removeProperty("--tip-x");
+        var w = parseFloat(getComputedStyle(a, "::after").width) || 0;
+        var room = document.documentElement.clientWidth - 16 - a.getBoundingClientRect().left;
+        if (w > room) a.style.setProperty("--tip-x", Math.min(0, room - w) + "px");
+      }
+      document.querySelectorAll(".cite a").forEach(function (a) {
+        a.addEventListener("mouseenter", function () { place(a); });
+        a.addEventListener("focus", function () { place(a); });
+      });
+    })();
+  </script>"""
 
 
 def write_report_pages(reports: list, edition: str) -> None:
@@ -1150,7 +1286,8 @@ def write_report_pages(reports: list, edition: str) -> None:
   </nav>
 </main>
 
-{foot_band(source, edition)}"""
+{foot_band(source, edition)}
+{CITE_JS}"""
         dst.write_text(page_html(title=f"{html.escape(r['title'])} — Reports",
                                  root=root, css=READER_CSS, body=body))
 

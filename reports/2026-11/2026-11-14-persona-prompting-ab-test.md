@@ -2,19 +2,15 @@
 
 - **Date:** 2026-11-14
 - **Scope:** Does starting a prompt or skill with "You are a senior engineer / an expert in X" still help current models, or does it hurt them?
-- **Method:** Web research on 2026-11-14 (2 peer-reviewed or preprint studies, Anthropic and OpenAI prompting docs, 2 secondary syntheses). Local A/B test on 2026-11-14: 446 valid runs through `omp -p`, comparing three system-prompt arms on Claude Fable 5.2 and GPT-6 Luna at medium effort. Harness and raw data are in `benchmarks/persona-ab/`.
-
----
+- **Method:** Web research on 2026-11-14 (2 peer-reviewed or preprint studies, Anthropic and OpenAI prompting docs, 2 secondary syntheses). Local A/B test on 2026-11-14: 446 valid runs through `omp -p`, comparing three system-prompt arms on Claude Fable 5.2 and GPT-6 Luna at medium effort. Harness and raw data are in `benchmarks/persona-ab/` [1].
 
 ## Verdict
 
 A generic "You are a world-class expert" persona neither helped nor hurt either model in 446 runs: every accuracy difference was within noise (sign-test p ≥ 0.34). So it is not a hindrance on these models, but it buys nothing, and you can drop it from skills. GPT-6 Astra could not be tested, because no configured provider serves it. GPT-6 Luna stands in for the GPT-6 family.
 
----
-
 ## A/B results
 
-Three arms were appended to omp's default system prompt. The exact texts are in `benchmarks/persona-ab/bench.py`.
+Three arms were appended to omp's default system prompt. The exact texts are in `benchmarks/persona-ab/bench.py` [1].
 
 | Arm | Appended text |
 | --- | --- |
@@ -22,7 +18,7 @@ Three arms were appended to omp's default system prompt. The exact texts are in 
 | expert | "You are a world-class senior software engineer with 20+ years of experience... you never miss a bug" for code. "You are a world-class expert in {subject}... You always get the right answer" for exam questions, matched to each question's subject. |
 | scoped | No identity claim. A brief instead: the context, priorities in order, what to compare against, and the output format. |
 
-Accuracy, measured. MCQ = MMLU-Pro questions with 10 options. Coding = the planted-defect review and test-fixing tasks from the 2026-10-14 harness.
+Accuracy, measured. MCQ = MMLU-Pro questions with 10 options [2]. Coding = the planted-defect review and test-fixing tasks from the 2026-10-14 harness.
 
 | Model | Task | none | expert | scoped | Runs per arm |
 | --- | --- | ---: | ---: | ---: | --- |
@@ -56,41 +52,33 @@ Cost and speed, measured. The table shows medians for wall time and means for ou
 
 Total spend: $22.38. Fable cost $21.82 and Luna $0.56.
 
----
-
 ## Findings
 
 1. **The expert persona had no measurable effect on accuracy for either model.** Fable: +1.0 pp (p = 0.34). Luna: +0.2 pp (p = 1.00). Both use 420 paired answers. In phase 1 (140 answers), the persona looked like a +4.3 pp gain for Luna. In phase 2 (280 new questions), it was −1.8 pp. Small samples swing like this, which is why the pooled result is the one to trust.
-2. **This does not reproduce the USC result.** Hu et al. (March 2026) found expert personas lowered MMLU accuracy (68.0% vs 71.6%). Here neither model lost accuracy. The likely reason is model strength: both models here score 83-94% on harder MMLU-Pro questions, and strong models seem to ignore an identity line that carries no information. ASSUMPTION: this explanation is inferred and was not tested.
+2. **This does not reproduce the USC result.** Hu et al. (March 2026) found expert personas lowered MMLU accuracy (68.0% vs 71.6%) [3, 4]. Here neither model lost accuracy. The likely reason is model strength: both models here score 83-94% on harder MMLU-Pro questions, and strong models seem to ignore an identity line that carries no information. ASSUMPTION: this explanation is inferred and was not tested.
 3. **Per-subject swings are noise.** Luna with the persona went +10 pp on law and −7 pp on math and health, but each subject cell has only 30 answers. Fable's per-subject differences were 0 to +7 pp.
 4. **The coding tasks hit the ceiling.** Every arm scored 97-100% on both models. These fixtures can't separate the arms, so the coding result is "no harm seen", not "no effect".
 5. **Personas made answers slightly longer.** The expert and scoped arms produced 10-25% more output tokens and took 2-4 s longer on coding runs, with no accuracy gain.
 6. **The Fable MCQ cost gap is a caching artifact, not a persona cost.** In phase 1 the expert arm cost $0.137 per call vs $0.079 for none. Session logs show 2.5x more cache-write tokens, because the subject-matched persona creates 14 different system prompts, and each one must be written to the prompt cache. In phase 2, when each prompt was reused more, the two arms cost the same: $0.077 vs $0.075.
 7. **The scoped brief didn't change accuracy either.** It isn't supposed to. The research below says its value is in alignment: format, priorities and project fit. These tests only measure correctness.
 
----
-
 ## What the research says
 
-- **Personas don't make models more accurate.** Zheng et al. (EMNLP Findings 2024) tested 162 roles on 4 model families and 2,410 factual questions. They found "adding personas in system prompts does not improve model performance," and which persona helps on a given question is "largely random."
-- **Personas help alignment and can hurt facts.** Hu, Rostami and Thomason (USC, March 2026 preprint) found an expert persona lowered MMLU accuracy (68.0% vs 71.6%). A "Safety Monitor" persona raised JailbreakBench refusals from 53.2% to 70.9%. Their advice: be specific when you care about alignment, and add nothing when you care about facts.
-- **Vendors still recommend a role, but as scope.** Anthropic's current best-practices page, which covers Fable 5.2, keeps a "Give Claude a role" section. Its example is "You are a helpful coding assistant specializing in Python." That is a scope statement, not a flattery line. The same page says to replace "CRITICAL: You MUST..." with plain wording, because current models follow the system prompt closely enough to over-trigger. OpenAI says to put tone and role guidance in the system message and task details in the user message.
-- **Old prompts should be reviewed for current models.** Anthropic's Fable 5.2 guide says instructions written for earlier models "raised cost, caused side effects, or no longer had an effect." It tells you to delete cautions whose reason no longer holds.
-- **Secondary syntheses agree.** Learn Prompting (2024, anecdotal) and PromptForge (2026) both describe "act as a senior engineer" as a workaround for weaker models that frontier models no longer need. Roles still earn their place when they define expertise, tone and scope.
-
----
+- **Personas don't make models more accurate.** Zheng et al. (EMNLP Findings 2024) tested 162 roles on 4 model families and 2,410 factual questions. They found "adding personas in system prompts does not improve model performance," and which persona helps on a given question is "largely random" [5].
+- **Personas help alignment and can hurt facts.** Hu, Rostami and Thomason (USC, March 2026 preprint) found an expert persona lowered MMLU accuracy (68.0% vs 71.6%). A "Safety Monitor" persona raised JailbreakBench refusals from 53.2% to 70.9%. Their advice: be specific when you care about alignment, and add nothing when you care about facts [3, 4].
+- **Vendors still recommend a role, but as scope.** Anthropic's current best-practices page, which covers Fable 5.2, keeps a "Give Claude a role" section. Its example is "You are a helpful coding assistant specializing in Python." That is a scope statement, not a flattery line. The same page says to replace "CRITICAL: You MUST..." with plain wording, because current models follow the system prompt closely enough to over-trigger [6]. OpenAI says to put tone and role guidance in the system message and task details in the user message [7].
+- **Old prompts should be reviewed for current models.** Anthropic's Fable 5.2 guide says instructions written for earlier models "raised cost, caused side effects, or no longer had an effect." It tells you to delete cautions whose reason no longer holds [8].
+- **Secondary syntheses agree.** Learn Prompting (2024, anecdotal) [9] and PromptForge (2026) [10] both describe "act as a senior engineer" as a workaround for weaker models that frontier models no longer need. Roles still earn their place when they define expertise, tone and scope.
 
 ## Recommendation for skills and prompts
 
 | Pattern | Keep? | Why |
 | --- | --- | --- |
-| "You are a world-class / senior / expert X" with nothing else | Drop | No accuracy effect in 446 local runs or in Zheng et al. USC found harm on weaker models. It also adds output length. |
-| A role used as scope ("You review PRs for a Rust CLI used by on-call SREs") | Keep | Anthropic still recommends it. It carries real context. |
-| Concrete priorities, constraints and output format | Keep | This is where the research finds gains: alignment and format. It costs nothing in accuracy (no change here). |
-| Persona for tone, voice, safety or refusal policy | Keep | USC measured alignment gains, e.g. +17.7 pp jailbreak refusals. |
-| "CRITICAL", "MUST", "never miss" wording | Soften | Current models over-trigger on it (Anthropic). |
-
----
+| "You are a world-class / senior / expert X" with nothing else | Drop | No accuracy effect in 446 local runs or in Zheng et al. [5]. USC found harm on weaker models [3]. It also adds output length. |
+| A role used as scope ("You review PRs for a Rust CLI used by on-call SREs") | Keep | Anthropic still recommends it [6]. It carries real context. |
+| Concrete priorities, constraints and output format | Keep | This is where the research finds gains: alignment and format [3]. It costs nothing in accuracy (no change here). |
+| Persona for tone, voice, safety or refusal policy | Keep | USC measured alignment gains, e.g. +17.7 pp jailbreak refusals [3]. |
+| "CRITICAL", "MUST", "never miss" wording | Soften | Current models over-trigger on it [6]. |
 
 ## Caveats
 
@@ -102,17 +90,15 @@ Total spend: $22.38. Fable cost $21.82 and Luna $0.56.
 - **Grader issues found in the reused 2026-10-14 harness** (`benchmarks/haiku-vs-luna-omp/bench.py`): (a) it grades only the last assistant message, which under-scores runs that end with a short follow-up; (b) the H2 regex misses "`get` reads..." without parentheses. The new harness grades all assistant text. The H2 regex is unchanged, and that one miss was adjudicated by hand. The 2026-10-14 results may have been affected by either issue.
 - omp's advisor was off for every run (`omp-overlay.yml`). Every run was checked to have been answered only by the requested model. One run retried after a network error.
 
----
-
 ## References
 
-- Local harness, fixtures and 446 raw runs (`bench.py`, `analyze.py`, `results-2026-11-14.jsonl`): <https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/persona-ab>
-- Zheng et al., "When 'A Helpful Assistant' Is Not Really Helpful: Personas in System Prompts Do Not Improve Performances of LLMs" (EMNLP Findings 2024): <https://arxiv.org/abs/2311.10054>
-- Hu, Rostami, Thomason, "Expert Personas Improve LLM Alignment but Damage Accuracy: Bootstrapping Intent-Based Persona Routing with PRISM" (arXiv, Mar 2026): <https://arxiv.org/abs/2603.18507>
-- The Register, "Telling an AI model that it's an expert makes it worse" (Mar 24, 2026): <https://www.theregister.com/software/2026/03/24/telling-an-ai-model-that-its-an-expert-makes-it-worse/5226049>
-- Anthropic, Prompting best practices (Claude Platform Docs): <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices>
-- Anthropic, Prompting Claude Fable 5.2: <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2>
-- OpenAI, Prompting guide (API docs): <https://developers.openai.com/api/docs/guides/prompting>
-- Learn Prompting, "Revisiting Roles in Prompting" (Schulhoff, Aug 2024): <https://learnprompting.org/docs/intermediate/revisiting_roles>
-- PromptForge, "Best Practices for Prompting Frontier AI Systems" (Bagalman, May 2026): <https://github.com/mbagalman/PromptForge/blob/main/guides/prompting-best-practices-2026.md>
-- TIGER-Lab, MMLU-Pro dataset (Hugging Face): <https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro>
+[1] Local harness, fixtures and 446 raw runs (`bench.py`, `analyze.py`, `results-2026-11-14.jsonl`): <https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/persona-ab>
+[2] TIGER-Lab, MMLU-Pro dataset (Hugging Face): <https://huggingface.co/datasets/TIGER-Lab/MMLU-Pro>
+[3] Hu, Rostami, Thomason, "Expert Personas Improve LLM Alignment but Damage Accuracy: Bootstrapping Intent-Based Persona Routing with PRISM" (arXiv, Mar 2026): <https://arxiv.org/abs/2603.18507>
+[4] The Register, "Telling an AI model that it's an expert makes it worse" (Mar 24, 2026): <https://www.theregister.com/software/2026/03/24/telling-an-ai-model-that-its-an-expert-makes-it-worse/5226049>
+[5] Zheng et al., "When 'A Helpful Assistant' Is Not Really Helpful: Personas in System Prompts Do Not Improve Performances of LLMs" (EMNLP Findings 2024): <https://arxiv.org/abs/2311.10054>
+[6] Anthropic, Prompting best practices (Claude Platform Docs): <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/claude-prompting-best-practices>
+[7] OpenAI, Prompting guide (API docs): <https://developers.openai.com/api/docs/guides/prompting>
+[8] Anthropic, Prompting Claude Fable 5.2: <https://platform.claude.com/docs/en/build-with-claude/prompt-engineering/prompting-claude-fable-5-2>
+[9] Learn Prompting, "Revisiting Roles in Prompting" (Schulhoff, Aug 2024): <https://learnprompting.org/docs/intermediate/revisiting_roles>
+[10] PromptForge, "Best Practices for Prompting Frontier AI Systems" (Bagalman, May 2026): <https://github.com/mbagalman/PromptForge/blob/main/guides/prompting-best-practices-2026.md>

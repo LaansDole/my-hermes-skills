@@ -59,6 +59,22 @@ typography:
     fontSize: "18px"
     fontWeight: 400
     lineHeight: "32px"
+  reader-title:
+    fontFamily: "Source Serif 4, Georgia, serif"
+    fontSize: "44px"
+    fontWeight: 700
+    lineHeight: "52px"
+    letterSpacing: "-0.012em"
+  reader-h2:
+    fontFamily: "Source Serif 4, Georgia, serif"
+    fontSize: "28px"
+    fontWeight: 650
+    lineHeight: "36px"
+  reader-h3:
+    fontFamily: "Source Serif 4, Georgia, serif"
+    fontSize: "21px"
+    fontWeight: 600
+    lineHeight: "28px"
   label:
     fontFamily: "Archivo, Helvetica Neue, Arial, sans-serif"
     fontSize: "13px"
@@ -163,7 +179,7 @@ components:
 
 **Creative North Star: "The Reference Wall Chart"**
 
-The site is a printed reference chart pinned to a workshop wall. Every skill is a numbered element cell carrying a two-letter symbol, the cells are grouped into flat colour-blocked families, and each cell is keyed to a handbook entry further down the sheet. The whole toolkit is visible at once in the first viewport; the key at the right explains how to read it. Reports are not a second visual world. They are the same paper and ink, set as a dated ledger and as long-form reading pages.
+The site is a printed reference chart pinned to a workshop wall. Every skill is a numbered element cell carrying a two-letter symbol, the cells are grouped into flat colour-blocked families, and each cell is keyed to a handbook entry further down the sheet. The whole toolkit is visible at once in the first viewport; the key at the right explains how to read it. Reports are not a second visual world. They are the same paper and ink, set as a dated ledger and as long-form reading pages. The reading pages switch register from chart to journal: serif type throughout, booktabs tables, and numbered citations. The chart's heavy grotesk and 3px rules stay in the site frame (masthead, nav, foot band).
 
 The material is print, not screen chrome: chart paper (light) or carbon ground (dark), near-black or bone ink, heavy 3px ink rules that open every block, 1px hairlines between rows, square corners everywhere, and no shadows. Colour is confined to the frame: the six family fills live on cells, key swatches and family heads. Running text, tables and the report column stay achromatic. Density is high in the chart and generous in the reader. Paragraphs and lists run the full column width; the owner rejected a narrow 65–75ch measure, and the system does not impose one.
 
@@ -214,7 +230,7 @@ The other five fills are identical in both themes.
 **Body Font:** Source Serif 4 variable, roman and italic (with Georgia)
 **Label/Mono Font:** JetBrains Mono 400 (with ui-monospace, Menlo), paths and commands only
 
-All three are self-hosted WOFF2 in `docs/fonts/` under OFL; Archivo and Source Serif 4 roman are preloaded.
+All three are self-hosted WOFF2 in `docs/fonts/` under OFL; Archivo and Source Serif 4 roman are preloaded. Source Serif 4 is subset from the Google Fonts build (no Reserved Font Name) with the optical-size axis pinned at 20 and the weight axis kept. The subset keeps real small caps (`smcp`, `c2sc`), oldstyle and lining figures, and tabular figures, so `all-small-caps` and `oldstyle-nums` never fall back to faked versions.
 
 **Character:** A heavy, tightly tracked grotesk does the chart's work (symbols, masthead, rules, labels), and a calm optical-size serif carries everything meant to be read.
 
@@ -223,7 +239,8 @@ All three are self-hosted WOFF2 in `docs/fonts/` under OFL; Archivo and Source S
 - **Symbol** (900, 48px, line-height 1, -0.02em; scales with cell width down to ~36% of the cell): the two-letter element symbol. 40px in the legend, 28px in entry cells.
 - **Headline** (800, 40px/44px, -0.02em; 32px/36px mobile): section heads (Handbook entries, Index A–Z, Install). Page heads use 900 at 64px; report titles 900 at 48px/52px; report h2 800 at 28px/32px.
 - **Title** (800, 20px/24px): key heading, family heads, entry names, month heads, report h3.
-- **Body** (400, 17px/28px serif): catalog prose. **Body Reader** (400, 18px/32px; 17px/28px mobile) for report pages. No max line length: text fills its column.
+- **Body** (400, 17px/28px serif): catalog prose. **Body Reader** (400, 18px/32px; 17px/28px mobile) for report pages, with oldstyle proportional figures in prose and lining tabular figures in tables. No max line length: text fills its column.
+- **Reader headings** (serif, no rules): title 700 at 44px/52px (32px mobile), h2 650 at 28px/36px (24px mobile) with 72px above, h3 600 at 21px/28px, h4 600 italic at 18px.
 - **Label** (800, 13px/20px, 0.08em, uppercase): key subheads, TOC title, ledger column heads. Nav links use 600 at 14px with the same tracking and case; current page goes to 800.
 - **Cell meta** (600, 12px/16px, tabular figures): cell number, version, name. Family marks are 700 all-small-caps at 16px, 0.06em.
 - **Mono** (400, 13px/20px): install line, entry paths, code. 14px/24px in report code blocks.
@@ -250,7 +267,7 @@ The system is flat. Nothing has a shadow. Depth comes from rules and tone only: 
 
 ## Shapes
 
-Every corner is square (0px radius), including the theme toggle, cells, swatches and code blocks. Form is made of rectangles and rules: 3px ink rules head sections, family blocks, the key, the TOC, the pager and the foot band; 2px for table tops and bottoms and the toggle border; 1px for cell keylines, hairlines and blockquote rules. Hover and focus states are drawn as outlines, never as fills that change shape.
+Every corner is square (0px radius), including the theme toggle, cells, swatches and code blocks. Form is made of rectangles and rules: 3px ink rules head catalog sections, family blocks, the key and the foot band; 2px for the toggle border; 1px for cell keylines, hairlines and blockquote rules. Report pages are the exception: inside the article, the only rules are booktabs table rules (1.5px top and bottom, 1px under the header) and the blockquote rule; headings, the metadata block and the contents list are set off by space alone. Hover and focus states are drawn as outlines, never as fills that change shape.
 
 ## Components
 
@@ -284,7 +301,14 @@ The whole row is the link: small-caps date, bold Archivo title, muted serif verd
 The report ledger's grid with a wider third column (112px date, skill, 2fr changes), on `changelog.html`. Rows are not links: the skill name links to its handbook entry, with a muted small-caps version below it. Changes are 15px serif square-bulleted lists, and Keep a Changelog `### Added`/`### Fixed` kinds become uppercase Archivo labels. Each row is anchored `#<skill>-<version>`, and the targeted row gets a 3px ink outline. Achromatic, like every ledger.
 
 ### Report Reader
-Achromatic long-form page: a metadata table under the title (small-caps labels in a 144px hanging column, ink rules above and below), auto TOC in two columns under a 3px rule, h2s on 3px rules, booktabs-style tables (2px ink top and bottom, 1px under headers, hairline rows), tint code blocks, an italic blockquote on a 1px ink rule, and a three-column Older / All reports / Newer pager.
+Achromatic long-form page set like a journal article, all in Source Serif 4:
+- **Head:** serif title, then a metadata block with real small-caps labels in a 112px hanging column and muted values. No rules.
+- **Contents:** a small-caps "Contents" label over a two-column list of plain serif links. No rules or hairlines.
+- **Sections:** serif h2 and h3 separated by space, never by rules. Markdown `---` lines are not drawn.
+- **Tables:** booktabs (1.5px ink top and bottom, 1px under the header, no row lines), serif 600 headers, lining tabular figures, and `---:` columns right-aligned.
+- **Citations:** `[n]` or `[n, m]` in the Markdown becomes a superscript bracketed link (at least 11px) to `#ref-n`. Hovering or focusing a marker shows the reference title in an ink-on-ground preview, which a small script keeps inside the viewport.
+- **References:** a `## References` or `## Sources` section becomes a numbered `[n]` list. Each entry links back to its citations ("back to text", or numbered links when a source is cited more than once), and a targeted entry or citation gets the tint.
+- **Also:** tint code blocks, an italic blockquote on a 1px ink rule, and an Older / All reports / Newer pager in serif under a 1px hairline.
 
 ### Foot Band
 A 3px ink rule closing every page, with licence, repo, source note, Hermes credit, and a small-caps edition date pushed to the right.
@@ -295,7 +319,8 @@ A 3px ink rule closing every page, with licence, repo, source note, Hermes credi
 - **Do** make design changes in `scripts/generate_docs.py` and regenerate; the HTML is build output.
 - **Do** ship both themes for every new element, with the theme following the OS until the visitor toggles it.
 - **Do** pair every family fill with its three-letter mark or family name, and keep text-on-fill contrast at WCAG AA or better (the fill table records each ratio).
-- **Do** open blocks with a 3px ink rule and divide rows with 1px hairlines.
+- **Do** open catalog blocks with a 3px ink rule and divide rows with 1px hairlines; on report pages use space, not rules.
+- **Do** cite every sourced claim in a report inline with `[n]`, matching a numbered References entry.
 - **Do** let paragraphs, lists and tables run the full column width.
 - **Do** set dates and versions in small caps with tabular figures.
 
@@ -305,4 +330,5 @@ A 3px ink rule closing every page, with licence, repo, source note, Hermes credi
 - **Don't** put family colour into prose, tables, the report ledger or reader pages.
 - **Don't** convey family by hue alone.
 - **Don't** use mono for anything but paths, commands and code.
+- **Don't** bring Archivo or 3px rules into the report article; they belong to the site frame.
 - **Don't** add a seventh family fill ad hoc; unknown sections fall into Unfiled until a family is defined in `FAMILIES`.

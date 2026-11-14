@@ -222,12 +222,54 @@ class HelperTests(unittest.TestCase):
     def test_numbered_sources_render_as_individual_linked_list_items(self):
         md = "## Sources\n\n[1] https://example.com/one — First source\n[2] https://example.com/two — Second source\n"
         out = gd.md_to_html(md)
-        self.assertIn("<ul>", out)
-        self.assertIn("<li>[1]", out)
-        self.assertIn("<li>[2]", out)
-        self.assertEqual(out.count("<li>"), 2)
+        self.assertIn('<ol class="refs">', out)
+        self.assertIn('<li id="ref-1" value="1">', out)
+        self.assertIn('<li id="ref-2" value="2">', out)
+        self.assertEqual(out.count("<li"), 2)
         self.assertIn('href="https://example.com/one"', out)
         self.assertIn('href="https://example.com/two"', out)
+
+    def test_inline_citations_link_both_ways_with_a_hover_title(self):
+        md = ("# T\n\n## Body\n\nClaim one [2]. Claim two [1, 2]. Not a ref [9]. "
+              "Code `x[1]` stays. A [link](https://e.com) too. Once [3].\n\n"
+              "| a | b |\n| --- | --- |\n| cell [1] | y |\n\n"
+              "## References\n\n- First: <https://one.example/a>\n- Second title (2026): <https://two.example/b>\n"
+              "- <https://three.example/c>\n")
+        out = gd.md_to_html(md)
+        # every marker links to its reference and carries the reference title for the preview
+        self.assertIn('<a id="cite-2-1" href="#ref-2" data-ref="Second title (2026)"', out)
+        self.assertIn('<a id="cite-1-1" href="#ref-1" data-ref="First"', out)
+        self.assertIn('<a id="cite-1-2" href="#ref-1"', out)  # the table cell citation
+        self.assertIn('<sup class="cite">[<a id="cite-1-1"', out)
+        # the space before a marker is absorbed so the superscript sits on its word
+        self.assertIn('Claim one<sup class="cite">', out)
+        # GFM alignment hints survive as classes
+        self.assertIn("al-right", gd.md_to_html("| a | n |\n| --- | ---: |\n| x | 1 |\n"))
+        # unknown numbers and code are left alone
+        self.assertIn("Not a ref [9].", out)
+        self.assertIn("<code>x[1]</code>", out)
+        # plain bullets in a References section are numbered in order
+        self.assertIn('<li id="ref-1" value="1">First:', out)
+        self.assertIn('<li id="ref-2" value="2">Second title (2026):', out)
+        # back-links: a single citation gets one link, several get numbered links
+        ref1 = out[out.index('id="ref-1"'):].split("</li>")[0]
+        self.assertIn('href="#cite-1-1"', ref1)
+        self.assertIn('href="#cite-1-2"', ref1)
+        ref3 = out[out.index('id="ref-3"'):].split("</li>")[0]
+        self.assertIn('class="ref-back" href="#cite-3-1"', ref3)
+        # a URL-only reference falls back to its domain for the preview
+        self.assertIn('data-ref="three.example"', out)
+        # every citation anchor id is unique and every back-link target exists
+        ids = re.findall(r'id="(cite-[^"]+)"', out)
+        self.assertEqual(len(ids), len(set(ids)))
+        for target in re.findall(r'href="#(cite-[^"]+)"', out):
+            self.assertIn(target, ids)
+        # headings never get citation markup
+        self.assertNotIn("cite-", out[: out.index("<p>")])
+
+    def test_reports_without_references_are_untouched_by_citation_pass(self):
+        md = "# T\n\n## Body\n\nArray index [0] and [1] stay literal.\n"
+        self.assertIn("Array index [0] and [1] stay literal.", gd.md_to_html(md))
 
     def test_symbols_are_unique_and_overrides_are_reserved_first(self):
         names = ["demo-runbook", "dev-runbook", "data-run", "d", "dr"]

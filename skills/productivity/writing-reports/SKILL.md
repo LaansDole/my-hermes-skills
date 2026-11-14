@@ -1,7 +1,7 @@
 ---
 name: writing-reports
 description: "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request."
-version: 1.0.0
+version: 1.1.0
 author: Hermes Agent
 license: MIT
 metadata:
@@ -32,14 +32,15 @@ Not for: one-line answers, PR descriptions (pr skills), Covidence verdicts (own 
 
 ## Report Structure
 
-`# Title` → metadata bullet list (Date / Scope / Method — one `- **Label:** value` bullet each) → Verdict (first sentence of prose) → tables → numbered findings → caveats → references. Fill the template; don't improvise structure.
+`# Title` → metadata bullet list (Date / Scope / Method — one `- **Label:** value` bullet each) → Verdict (first sentence of prose) → tables → numbered findings → caveats → numbered references. Inline `[n]` citations throughout. Fill the template; don't improvise structure.
 
 ## Hard Rules
 
 - **Verdict in the first sentence of prose.** The metadata block comes first in the file (template order); the Verdict section opens with the decision — no "Executive summary" preamble, no restating the request.
 - **Every number has a source or a formula.** Measured vs vendor-claimed vs derived — say which. Caller-supplied figures are labeled `caller-supplied` (not vendor-claimed).
 - **Assumptions are labeled `ASSUMPTION:` inline** where used, never hidden in a footer.
-- **References are bullet points, one per source**: `- Title: <URL>` — title (with publisher and date when useful), then the URL in angle brackets. No numbered lists, no bare URLs, no invented titles for unfetched URLs (use `[unfetched — <URL>]`).
+- **Cite inline, number the references.** Every sourced claim, number or quote carries an inline marker right after it: `[n]`, or `[n, m]` for several sources. The `## References` section lists each source once, numbered in order of first citation: `[n] Title: <URL>`. That is the title (with publisher and date when useful), then the URL in angle brackets. Don't use bare URLs, and don't invent titles for unfetched URLs (use `[n] [unfetched — <URL>]`). The docs site turns each marker into a linked superscript with a hover preview of the title, and links each reference back to its citations. Uncited references and citations with no matching reference are both errors: check that the set of cited numbers equals the set of reference numbers before filing.
+- **No `---` separators between sections.** Headings separate sections. Rules drawn between every section make a report harder to read.
 - **No invented scenarios.** Illustrative math (e.g. monthly cost) must be flagged as an estimate with its basis.
 - Chat lead follows ADHD shape: answer first, tables over prose, no preamble/recap (skill i-have-adhd).
 - **Filing is the default.** Skip the file only when the caller explicitly forbids writing files; then say in the reply that the report is chat-only and unfiled.
@@ -61,7 +62,8 @@ Every report file lands in `~/Projects/auto-learn-for-me/reports/YYYY-MM/` as `Y
 | Mistake | Fix |
 | --- | --- |
 | "Executive summary" heading before the verdict | Verdict IS the first line |
-| Bare URL in references | Bullet `- Title: <URL>` per source |
+| Bare URL in references | Numbered `[n] Title: <URL>` per source |
+| Sources listed but never cited in the text | Inline `[n]` after each sourced claim; cited set = reference set |
 | Metric column with no formula | Formula beside the column header or footnote |
 | Unlabeled invented usage scenario | `ASSUMPTION:` inline + basis |
 | Full report dumped into chat | File + short lead; chat table ≤ 10 rows |
