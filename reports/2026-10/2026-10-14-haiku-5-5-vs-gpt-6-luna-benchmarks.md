@@ -5,7 +5,7 @@
 
 ## Method
 
-The harness ran each task through `omp -p --mode json` in a fresh session with a restricted tool set: 4 tasks x 2 models x 3 effort levels x 2 runs = 48 runs. Six ran at a time. All 48 exited cleanly, and every run's session log confirms which model actually answered.
+The harness ran each task through `omp -p --mode json` in a fresh session with a restricted tool set: 4 tasks x 2 models x 3 effort levels x 2 runs = 48 runs [1]. Six ran at a time. All 48 exited cleanly, and every run's session log confirms which model actually answered.
 
 | Task | What it measures | Tools | How it was scored |
 | --- | --- | --- | --- |
@@ -16,7 +16,7 @@ The harness ran each task through `omp -p --mode json` in a fresh session with a
 
 Grading was automatic: a regex match per planted defect, plus a real `unittest` run for the fix task. I read through the misses by hand.
 
-To run it yourself, see [`benchmarks/haiku-vs-luna-omp/`](https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp).
+To run it yourself, see [`benchmarks/haiku-vs-luna-omp/`](https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp) [1].
 
 ## Results
 
@@ -52,7 +52,7 @@ With only two runs per cell, the per-task "median" is just the average of two va
 
 ## Public benchmarks
 
-**VulcanBench Frontier v4** ran 23 real software tasks per setting ([Haiku vs frontier](https://vulcanbench.com/benchmarks/swe-v4-haiku55-vs-frontier.html), [Haiku 5.5 ladder](https://vulcanbench.com/benchmarks/swe-v4-haiku55-v324.html), [GPT-6 Luna ladder](https://vulcanbench.com/benchmarks/swe-v4-gpt6-luna-v316.html)):
+**VulcanBench Frontier v4** ran 23 real software tasks per setting [2, 3, 4] ([Haiku vs frontier](https://vulcanbench.com/benchmarks/swe-v4-haiku55-vs-frontier.html), [Haiku 5.5 ladder](https://vulcanbench.com/benchmarks/swe-v4-haiku55-v324.html), [GPT-6 Luna ladder](https://vulcanbench.com/benchmarks/swe-v4-gpt6-luna-v316.html)):
 
 | Effort | Haiku score | Haiku solved | Haiku min/task | Luna score | Luna solved | Luna min/task |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: |
@@ -62,15 +62,15 @@ With only two runs per cell, the per-task "median" is just the average of two va
 | Extra-high | 91.8 | 22/23 | **19.0** | 78.8 | 11/23 | 52.6 |
 | Max | 92.2 | 22/23 | 27.7 | 81.4 | 12/23 | 60.5 |
 
-- On full-size tasks, Haiku is much stronger at every effort level. Luna solves almost nothing below xhigh.
-- Haiku's time per task barely changes with effort. Its **xhigh** setting was both the fastest and the cheapest ($0.84 per task vs $1.54 at max), with the same 22/23 solved. Max added +0.3 points for 46% more time and 83% more cost.
-- Luna gets much slower at high effort: 3.6 min at medium vs 60 min at max.
+- On full-size tasks, Haiku is much stronger at every effort level [2]. Luna solves almost nothing below xhigh [4].
+- Haiku's time per task barely changes with effort. Its **xhigh** setting was both the fastest and the cheapest ($0.84 per task vs $1.54 at max), with the same 22/23 solved [3]. Max added +0.3 points for 46% more time and 83% more cost [3].
+- Luna gets much slower at high effort: 3.6 min at medium vs 60 min at max [4].
 
-**Artificial Analysis** ([comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna)) puts Haiku 5.5 (max) above GPT-6 Luna (max) on its Intelligence Index, 43 vs 38. Haiku also generates faster, but uses about 3.2x more output tokens per task, so a full answer takes about 3.5x longer. Going from Haiku xhigh to max adds about 2 index points for about 1.8x the tokens.
+**Artificial Analysis** ([comparison](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna)) puts Haiku 5.5 (max) above GPT-6 Luna (max) on its Intelligence Index, 43 vs 38 [5, 6]. Haiku also generates faster, but uses about 3.2x more output tokens per task [6], so a full answer takes about 3.5x longer [5]. Going from Haiku xhigh to max adds about 2 index points for about 1.8x the tokens [6].
 
 ## Why the two sources differ
 
-On short agent tasks like these, which take 2-8 turns, the cost of Haiku:max is pure thinking time, and the extra effort has nothing hard enough to pay off on. On VulcanBench's long tasks the extra reasoning does pay for itself up to xhigh, by solving more and avoiding dead ends. In both sources, max is past the point of diminishing returns.
+On short agent tasks like these, which take 2-8 turns, the cost of Haiku:max is pure thinking time, and the extra effort has nothing hard enough to pay off on. On VulcanBench's long tasks the extra reasoning does pay for itself up to xhigh, by solving more and avoiding dead ends [3]. In both sources, max is past the point of diminishing returns.
 
 ## Recommendation for omp
 
@@ -81,7 +81,7 @@ On short agent tasks like these, which take 2-8 turns, the cost of Haiku:max is 
 | reviewer | haiku-5-5:max | **haiku-5-5:high** | Medium missed the deadlock once and high never did. 27 s median. |
 | sonic | gpt-6-luna:max | unchanged | Effort barely affects Luna's speed, and max protects quality. |
 
-This change is applied in `~/.omp/agent/config.yml` (`task.agentModelOverrides`), and the previous config is backed up. For long, multi-file tasks, use Haiku at **xhigh** rather than max: it's the best option on VulcanBench.
+This change is applied in `~/.omp/agent/config.yml` (`task.agentModelOverrides`), and the previous config is backed up. For long, multi-file tasks, use Haiku at **xhigh** rather than max: it's the best option on VulcanBench [3].
 
 ## Caveats
 
@@ -92,9 +92,10 @@ This change is applied in `~/.omp/agent/config.yml` (`task.agentModelOverrides`)
 
 ## Sources
 
-- Local runs: harness, fixtures and the 48 raw results are in [`benchmarks/haiku-vs-luna-omp/`](https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp). Rerun with `python3 bench.py` (see its README).
-- [VulcanBench Frontier v4: Claude Haiku 5.5 vs frontier](https://vulcanbench.com/benchmarks/swe-v4-haiku55-vs-frontier.html)
-- [VulcanBench: Claude Haiku 5.5 effort ladder](https://vulcanbench.com/benchmarks/swe-v4-haiku55-v324.html)
-- [VulcanBench: GPT-6 Luna effort ladder](https://vulcanbench.com/benchmarks/swe-v4-gpt6-luna-v316.html)
-- [Artificial Analysis: Claude Haiku 5.5 vs GPT-6 Luna](https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna)
-- Earlier report: [Haiku 5.5:max vs GPT-6 Luna:max speed in omp](2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.md)
+[1] Local runs: harness, fixtures and the 48 raw results (rerun with `python3 bench.py`, see its README): <https://github.com/LaansDole/my-hermes-skills/tree/main/benchmarks/haiku-vs-luna-omp>
+[2] VulcanBench, Frontier v4: Claude Haiku 5.5 vs frontier (Oct 2026): <https://vulcanbench.com/benchmarks/swe-v4-haiku55-vs-frontier.html>
+[3] VulcanBench, Frontier v4: Claude Haiku 5.5 effort ladder (Oct 2026): <https://vulcanbench.com/benchmarks/swe-v4-haiku55-v324.html>
+[4] VulcanBench, Frontier v4: GPT-6 Luna effort ladder (Sep 2026): <https://vulcanbench.com/benchmarks/swe-v4-gpt6-luna-v316.html>
+[5] Artificial Analysis, Claude Haiku 5.5 vs GPT-6 Luna comparison (fetched 2026-10-14; figures since updated): <https://artificialanalysis.ai/models/comparisons/claude-haiku-5-5-vs-gpt-6-luna>
+[6] Artificial Analysis, Anthropic has released Claude Haiku 5.5 (Oct 7, 2026): <https://artificialanalysis.ai/articles/claude-haiku-5-5>
+[7] Earlier report, Haiku 5.5:max vs GPT-6 Luna:max speed in omp (2026-10-14): [2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.md](2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.md)

@@ -2,7 +2,7 @@
 
 - **Date:** 2026-09-08
 - **Scope:** Performance-per-cost analysis of the CommandCode Provider API model catalog, prompted by GLM-5.3-Flash being the daily-driver model in Hermes (and `@smol` role in omp).
-- **Method:** SearXNG web search (self-hosted instance) → Artificial Analysis model pages (Intelligence Index v4.3, list prices, throughput) scraped via curl and parsed programmatically, supplemented by OpenRouter pricing pages, the Ampere.sh GLM-5.3-vs-Flash comparison, and vendor docs (Z.ai, Hugging Face).
+- **Method:** SearXNG web search (self-hosted instance) → Artificial Analysis model pages (Intelligence Index v4.3, list prices, throughput) scraped via curl and parsed programmatically, supplemented by OpenRouter pricing pages [1, 2], the Ampere.sh GLM-5.3-vs-Flash comparison [3], and vendor docs (Z.ai, Hugging Face) [4, 5].
 
 ---
 
@@ -18,15 +18,15 @@ Sorted by Artificial Analysis' full Intelligence Index evaluation suite cost per
 
 | Model | II[^1] | In $/1M | Out $/1M | Blend $/1M[^2] | Suite cost per II pt (USD) | tok/s | Params (total / active) |
 | --- | ---: | ---: | ---: | ---: | ---: | ---: | --- |
-| **GLM-5.3-Flash** | **42** | **0.15** | **0.50** | **0.24** | **6.7** | 60 | 320B / 18B |
-| DeepSeek V4 Flash | 35 | 0.44 | 1.32 | 0.66 | 13.5 | 126 | 284B / 13B |
-| DeepSeek V4 Pro | 36 | 1.32 | 3.96 | 1.98 | 31.2 | 77 | 1.6T / 49B |
-| GLM-5.3 | 45 | 1.40 | 4.40 | 2.15 | 55.6 | 71 | 753B / 40B |
-| Gemini 3.5 Flash | 33 | 1.50 | 9.00 | 3.38 | 65.8 | 216 | n/a |
-| Qwen3.8 Max | 40 | 2.00 | 6.00 | 3.00 | 79.3 | 40 | n/a |
-| Kimi K3 | 44 | 3.00 | 15.00 | 6.00 | 83.1 | 42 | 2.8T / 104B |
-| GPT-5.5 | 39 | 5.00 | 30.00 | 11.25 | 135.8 | 90 | n/a |
-| GLM-5.2 | 39 | 1.40 | 4.40 | 2.15 | n/a | 62 | n/a |
+| **GLM-5.3-Flash** [6] | **42** | **0.15** | **0.50** | **0.24** | **6.7** | 60 | 320B / 18B |
+| DeepSeek V4 Flash [7] | 35 | 0.44 | 1.32 | 0.66 | 13.5 | 126 | 284B / 13B |
+| DeepSeek V4 Pro [8] | 36 | 1.32 | 3.96 | 1.98 | 31.2 | 77 | 1.6T / 49B |
+| GLM-5.3 [9] | 45 | 1.40 | 4.40 | 2.15 | 55.6 | 71 | 753B / 40B |
+| Gemini 3.5 Flash [10] | 33 | 1.50 | 9.00 | 3.38 | 65.8 | 216 | n/a |
+| Qwen3.8 Max [11] | 40 | 2.00 | 6.00 | 3.00 | 79.3 | 40 | n/a |
+| Kimi K3 [12] | 44 | 3.00 | 15.00 | 6.00 | 83.1 | 42 | 2.8T / 104B |
+| GPT-5.5 [13] | 39 | 5.00 | 30.00 | 11.25 | 135.8 | 90 | n/a |
+| GLM-5.2 [14] | 39 | 1.40 | 4.40 | 2.15 | n/a | 62 | n/a |
 
 [^1]: II = Artificial Analysis Intelligence Index v3.4.3-class score as published on each model page (higher is better; page-stated medians ranged 17–24 at fetch time).
 [^2]: Blend = 3:1 input:output token mix, a standard workload approximation.
@@ -39,13 +39,13 @@ GLM-5.3-Flash is roughly **8x cheaper per quality point than its own flagship** 
 
 ### 1. GLM-5.3-Flash profile
 
-- Intelligence Index 42 (well above the class median of ~17); 1M context window; 60 tok/s output.
-- Natively multimodal (vision) — the **only vision-capable GLM-5.3 variant**; the standard GLM-5.3 is primarily text-based. Vendor docs list input modality as Video / Image / Text / File.
-- Sparse architecture: 320B total parameters with only 18B active per token, which is why it is this cheap to serve.
+- Intelligence Index 42 (well above the class median of ~17) [6]; 1M context window [6, 15]; 60 tok/s output [6].
+- Natively multimodal (vision) — the **only vision-capable GLM-5.3 variant** [4, 5]; the standard GLM-5.3 is primarily text-based [3]. Vendor docs list input modality as Video / Image / Text / File [4].
+- Sparse architecture: 320B total parameters with only 18B active per token [4, 5], which is why it is this cheap to serve.
 
 ### 2. Coding gap to the flagship is small; the price gap is ~9x
 
-Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
+Ampere.sh (Aug 2026) side-by-side, both at reasoning effort [3]:
 
 | Benchmark | GLM-5.3-Flash | GLM-5.3 |
 | --- | ---: | ---: |
@@ -55,8 +55,8 @@ Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
 | AA Intelligence Index | 57 | 60 |
 
 - Flash is slightly **ahead** on agentic automation (AutomationBench), and the Terminal Bench / DeepSWE deficits are a few points, not a collapse.
-- Ampere's own conclusion: *"whether those extra few benchmark points justify paying roughly nine times more per token… For many production coding agents, they may not."*
-- Flash additionally wins for visual coding / browser-use / computer-use workflows because it can see.
+- Ampere's own conclusion: *"whether those extra few benchmark points justify paying roughly nine times more per token… For many production coding agents, they may not."* [3]
+- Flash additionally wins for visual coding / browser-use / computer-use workflows because it can see [3].
 
 ### 3. If you ever want more headroom
 
@@ -67,13 +67,13 @@ Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
 
 ### 4. Speed alternative
 
-**DeepSeek V4 Flash** is the throughput king of the catalog (126 tok/s, rank 7/112 on AA's speed chart) at 2.8x flash's cost per point but still cheap in absolute terms. Consider it only for long high-volume batch jobs where wall-clock time dominates token cost.
+**DeepSeek V4 Flash** is the throughput king of the catalog (126 tok/s, rank 7/112 on AA's speed chart [7]) at 2.8x flash's cost per point but still cheap in absolute terms. Consider it only for long high-volume batch jobs where wall-clock time dominates token cost.
 
 ---
 
 ## Caveats
 
-- **Prices are AA-tracked first-party list prices.** On CommandCode you pay plan quota, not per-token — what actually matters for quota burn is tokens consumed per task. GLM-5.3-Flash is also competitive here: 180M tokens generated on AA's suite (verbose, rank 25/112) versus 210M for GLM-5.3 and 240M for DeepSeek V4 Flash.
+- **Prices are AA-tracked first-party list prices.** On CommandCode you pay plan quota, not per-token — what actually matters for quota burn is tokens consumed per task. GLM-5.3-Flash is also competitive here: 180M tokens generated on AA's suite (verbose, rank 25/112) [6] versus 210M for GLM-5.3 [9] and 240M for DeepSeek V4 Flash [7].
 - **Verbosity at max effort is flash's one inefficiency.** If quota burn ever becomes a concern, dropping trivial calls from `max` to `high` effort costs little quality. (Note: the pi-commandcode-provider catalog for `z-ai/glm-5.3-flash` exposes effort levels `low, high, max` only — there is no `xhigh`.)
 - **CommandCode model availability rotates.** This reflects the catalog as of 2026-09-08; re-run the scrape before relying on it for a purchase decision.
 - Intelligence Index scores between differently-benchmarked pages (different class medians) are approximately comparable only.
@@ -93,20 +93,20 @@ Ampere.sh (Aug 2026) side-by-side, both at reasoning effort:
 
 ## References
 
-- Artificial Analysis — GLM-5.3-Flash (Intelligence, Performance & Price): <https://artificialanalysis.ai/models/glm-5-3-flash>
-- Artificial Analysis — GLM-5.3: <https://artificialanalysis.ai/models/glm-5-3>
-- Artificial Analysis — DeepSeek V4 Flash 0731 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-flash>
-- Artificial Analysis — DeepSeek V4 Pro 0813 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-pro>
-- Artificial Analysis — Qwen3.8 Max: <https://artificialanalysis.ai/models/qwen3-8-max>
-- Artificial Analysis — Kimi K3 (max): <https://artificialanalysis.ai/models/kimi-k3>
-- Artificial Analysis — GPT-5.5: <https://artificialanalysis.ai/models/gpt-5-5>
-- Artificial Analysis — Gemini 3.5 Flash: <https://artificialanalysis.ai/models/gemini-3-5-flash>
-- Artificial Analysis — GLM-5.2: <https://artificialanalysis.ai/models/glm-5-2>
-- Ampere.sh — GLM 5.3 vs GLM 5.3 Flash: Benchmarks, Price & Coding (Aug 27, 2026): <https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash>
-- Z.ai Developer Docs — GLM-5.3-Flash overview: <https://docs.z.ai/guides/llm/glm-5.3-flash>
-- Hugging Face — zai-org/GLM-5.3-Flash model card: <https://huggingface.co/zai-org/GLM-5.3-Flash>
-- OpenRouter — GLM-5.3 pricing cross-check: <https://openrouter.ai/z-ai/glm-5.3>
-- OpenRouter — Kimi K3 pricing cross-check: <https://openrouter.ai/moonshotai/kimi-k3>
-- Ampere.sh — GLM 5.3 Flash vs GPT-5.4 Mini: <https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini>
+[1] OpenRouter, Z.ai: GLM 5.3 (pricing cross-check): <https://openrouter.ai/z-ai/glm-5.3>
+[2] OpenRouter, MoonshotAI: Kimi K3 (pricing cross-check): <https://openrouter.ai/moonshotai/kimi-k3>
+[3] Ampere.sh, GLM 5.3 vs GLM 5.3 Flash: Benchmarks, Price & Coding (Aug 27, 2026): <https://www.ampere.sh/blog/glm-5-3-vs-glm-5-3-flash>
+[4] Z.ai Developer Docs, GLM-5.3-Flash overview: <https://docs.z.ai/guides/llm/glm-5.3-flash>
+[5] Hugging Face, zai-org/GLM-5.3-Flash model card: <https://huggingface.co/zai-org/GLM-5.3-Flash>
+[6] Artificial Analysis, GLM-5.3-Flash: Intelligence, Performance & Price Analysis: <https://artificialanalysis.ai/models/glm-5-3-flash>
+[7] Artificial Analysis, DeepSeek V4 Flash 0731 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-flash>
+[8] Artificial Analysis, DeepSeek V4 Pro 0813 (Reasoning, Max Effort): <https://artificialanalysis.ai/models/deepseek-v4-pro>
+[9] Artificial Analysis, GLM-5.3: Intelligence, Performance & Price Analysis: <https://artificialanalysis.ai/models/glm-5-3>
+[10] Artificial Analysis, Gemini 3.5 Flash: <https://artificialanalysis.ai/models/gemini-3-5-flash>
+[11] Artificial Analysis, Qwen3.8 Max: <https://artificialanalysis.ai/models/qwen3-8-max>
+[12] Artificial Analysis, Kimi K3 (max): <https://artificialanalysis.ai/models/kimi-k3>
+[13] Artificial Analysis, GPT-5.5: <https://artificialanalysis.ai/models/gpt-5-5>
+[14] Artificial Analysis, GLM-5.2: <https://artificialanalysis.ai/models/glm-5-2>
+[15] Ampere.sh, GLM 5.3 Flash vs GPT-5.4 Mini: <https://www.ampere.sh/blog/glm-5-3-flash-vs-gpt-5-4-mini>
 
 *Scraped metrics and computed efficiency ratios (blend pricing, suite-cost-per-II-point) are in the session scratch files under `/tmp/aa-*.json`; the raw Artificial Analysis page text is preserved in `/tmp/aa-raw.json` for audit.*

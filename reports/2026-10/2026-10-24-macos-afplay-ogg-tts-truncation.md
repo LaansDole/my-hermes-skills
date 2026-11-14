@@ -2,15 +2,15 @@
 
 - **Date:** 2026-10-24
 - **Scope:** Why Hermes CLI voice-mode replies sounded crackly or broken on macOS with a local command TTS provider, the workaround, and where the upstream fix stands.
-- **Method:** Measured on macOS 26.6.2 (Apple Silicon). Sources: the CoreAudio unified log (`log show`), the Hermes `agent.log`, `afplay` and `play_audio_file()` timings, and both upstream branches tested locally: main `bf0203a` and PR #132143 at `31d1554`. Upstream issue and PRs read on GitHub on 2026-10-24.
+- **Method:** Measured on macOS 26.6.2 (Apple Silicon). Sources: the CoreAudio unified log (`log show`), the Hermes `agent.log`, `afplay` and `play_audio_file()` timings, and both upstream branches tested locally: main `bf0203a` and PR #132143 at `31d1554` [1]. Upstream issue and PRs read on GitHub on 2026-10-24.
 
 ---
 
 ## Verdict
 
-The audio files were fine. Playback was cutting them off. On macOS 15 and later, `afplay` opens an Ogg/Opus file, plays about the first second, and exits 0. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one sentence at a time. A TTS provider with `voice_compatible: true` gets its output converted to `.ogg`, so every sentence was cut off after about one second. That sounds like crackling or stuttering, not like a missing ending.
+The audio files were fine. Playback was cutting them off. On macOS 15 and later, `afplay` opens an Ogg/Opus file, plays about the first second, and exits 0 [2]. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one sentence at a time. A TTS provider with `voice_compatible: true` gets its output converted to `.ogg` [2], so every sentence was cut off after about one second. That sounds like crackling or stuttering, not like a missing ending.
 
-Workaround: `hermes config set --force tts.providers.<name>.voice_compatible false`. The provider's own WAV is then played and plays in full. Upstream fix: NousResearch/hermes-agent PR #132143 (open, for issue #122494).
+Workaround: `hermes config set --force tts.providers.<name>.voice_compatible false`. The provider's own WAV is then played and plays in full. Upstream fix: NousResearch/hermes-agent PR #132143 (open, for issue #122494) [1, 2].
 
 ---
 
@@ -40,10 +40,10 @@ The one failure in both runs is `TestPlayBeep::test_beep_calls_sounddevice_play`
 
 ## Upstream status (2026-10-24)
 
-- Issue #122494 (open): macOS CLI voice replies cut off after ~2 s. It names both defects: afplay truncates Ogg/Opus with exit code 0, and plugin/command providers get Opus even in the CLI.
-- PR #132143 (open, fixes #122494): decodes `.ogg/.oga/.opus` to a temp WAV with the built-in macOS `afconvert`, then plays it with `afplay`. It also stops a reply that was interrupted from restarting in another player. Verified locally, and a confirming comment was posted on the PR.
-- PR #103892 (open, has merge conflicts): the older approach, which sends non-CoreAudio formats to ffplay before afplay.
-- Main still passes `.ogg` straight to `afplay` (`_system_player_candidates` in `tools/voice_mode.py`).
+- Issue #122494 (open): macOS CLI voice replies cut off after ~2 s. It names both defects: afplay truncates Ogg/Opus with exit code 0, and plugin/command providers get Opus even in the CLI [2].
+- PR #132143 (open, fixes #122494): decodes `.ogg/.oga/.opus` to a temp WAV with the built-in macOS `afconvert`, then plays it with `afplay`. It also stops a reply that was interrupted from restarting in another player [1]. Verified locally, and a confirming comment was posted on the PR.
+- PR #103892 (open, has merge conflicts): the older approach, which sends non-CoreAudio formats to ffplay before afplay [3].
+- Main still passes `.ogg` straight to `afplay` (`_system_player_candidates` in `tools/voice_mode.py`) [4].
 
 Once #132143 is merged, set `voice_compatible` back to `true` if you want native voice messages on Telegram and other chat apps.
 
@@ -51,8 +51,8 @@ Once #132143 is merged, set `voice_compatible` back to `true` if you want native
 
 ## References
 
-- Issue #122494, macOS CLI voice replies cut off after ~2s (NousResearch/hermes-agent): <https://github.com/NousResearch/hermes-agent/issues/122494>
-- PR #132143, decode Ogg/Opus for afplay so macOS plays the whole reply: <https://github.com/NousResearch/hermes-agent/pull/132143>
-- PR #103892, afplay silently truncated Ogg/Opus clips on macOS: <https://github.com/NousResearch/hermes-agent/pull/103892>
-- Issue #26404, the earlier Edge TTS MP3->OGG case, closed as fixed: <https://github.com/NousResearch/hermes-agent/issues/26404>
-- `tools/voice_mode.py` on main: <https://github.com/NousResearch/hermes-agent/blob/main/tools/voice_mode.py>
+[1] PR #132143, decode Ogg/Opus for afplay so macOS plays the whole reply (NousResearch/hermes-agent): <https://github.com/NousResearch/hermes-agent/pull/132143>
+[2] Issue #122494, macOS CLI voice replies cut off after ~2s (NousResearch/hermes-agent): <https://github.com/NousResearch/hermes-agent/issues/122494>
+[3] PR #103892, afplay silently truncated Ogg/Opus clips on macOS (NousResearch/hermes-agent): <https://github.com/NousResearch/hermes-agent/pull/103892>
+[4] `tools/voice_mode.py` on main (NousResearch/hermes-agent): <https://github.com/NousResearch/hermes-agent/blob/main/tools/voice_mode.py>
+[5] Issue #26404, the earlier Edge TTS MP3->OGG case, closed as fixed (NousResearch/hermes-agent, closed 2026-05-24): <https://github.com/NousResearch/hermes-agent/issues/26404>
