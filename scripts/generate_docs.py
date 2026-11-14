@@ -1001,7 +1001,8 @@ def md_to_html(text: str) -> str:
         """Numbered reference list; back-links to each citation are filled in at the end."""
         if items:
             out.append('<ol class="refs">' + "".join(
-                f'<li id="ref-{n}" value="{n}">{inline(md, cite=False)}\x00REFBACK{n}\x00</li>'
+                f'<li id="ref-{n}" value="{n}"><span class="ref-num">[{n}]</span> '
+                f'{inline(md, cite=False)}\x00REFBACK{n}\x00</li>'
                 for n, md in items) + "</ol>")
 
     headings = heading_index(lines)
@@ -1203,9 +1204,10 @@ READER_CSS = """    .reader { padding: 48px max(var(--pad), 8vw) 0; }
                      font-variant-numeric: lining-nums; letter-spacing: 0; white-space: normal;
                      text-align: left; pointer-events: none; opacity: 0; visibility: hidden; }
     .cite a:hover::after, .cite a:focus-visible::after { opacity: 1; visibility: visible; }
-    .refs { padding-left: 40px; font-size: 16px; line-height: 26px; }
-    .refs li { margin: 0 0 10px; padding-left: 4px; }
-    .refs li::marker { content: "[" counter(list-item) "]  "; color: var(--muted); }
+    .refs { padding-left: 0; list-style: none; font-size: 16px; line-height: 26px; }
+    .refs li { position: relative; margin: 0 0 10px; padding-left: 44px; }
+    .ref-num { position: absolute; left: 0; width: 36px; color: var(--muted);
+               font-variant-numeric: lining-nums tabular-nums; }
     .refs li:target { background: var(--tint); outline: 6px solid var(--tint); }
     .ref-back { margin-left: 4px; color: var(--muted); font-variant-caps: all-small-caps;
                 letter-spacing: 0.04em; white-space: nowrap; }
@@ -1229,7 +1231,7 @@ READER_CSS = """    .reader { padding: 48px max(var(--pad), 8vw) 0; }
       article h2 { margin-top: 56px; font-size: 24px; line-height: 30px; }
       article > h1 + ul li { padding-left: 0; }
       article > h1 + ul li > strong:first-child { position: static; display: block; width: auto; }
-      .refs { padding-left: 36px; }
+      .refs li { padding-left: 40px; }
       .pager { grid-template-columns: minmax(0, 1fr); }
       .pager-next { text-align: left; }
     }"""

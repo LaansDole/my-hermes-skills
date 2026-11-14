@@ -249,8 +249,8 @@ class HelperTests(unittest.TestCase):
         self.assertIn("Not a ref [9].", out)
         self.assertIn("<code>x[1]</code>", out)
         # plain bullets in a References section are numbered in order
-        self.assertIn('<li id="ref-1" value="1">First:', out)
-        self.assertIn('<li id="ref-2" value="2">Second title (2026):', out)
+        self.assertIn('<li id="ref-1" value="1"><span class="ref-num">[1]</span> First:', out)
+        self.assertIn('<li id="ref-2" value="2"><span class="ref-num">[2]</span> Second title (2026):', out)
         # back-links: a single citation gets one link, several get numbered links
         ref1 = out[out.index('id="ref-1"'):].split("</li>")[0]
         self.assertIn('href="#cite-1-1"', ref1)
