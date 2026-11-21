@@ -29,6 +29,7 @@ SKILLS = REPO / "skills"
 REPORTS = REPO / "reports"
 OUT = REPO / "docs" / "index.html"
 GH = "https://github.com/LaansDole/my-hermes-skills"
+SITE = "https://laansdole.github.io/my-hermes-skills"
 HERMES = "https://hermes-agent.nousresearch.com"
 
 # top-level skills/ dir -> section title. Unknown dirs become their own
@@ -158,18 +159,49 @@ def find_reports() -> list:
         h1 = re.search(r"^#\s+(.+)$", text, re.MULTILINE)
         if h1:
             title = h1.group(1).strip()
-        # Verdict = first non-empty line after a '## Verdict' heading, if any.
-        verdict = ""
-        vm = re.search(r"^##\s+Verdict\s*$\n+(.+)$", text, re.MULTILINE)
-        if vm:
-            verdict = vm.group(1).strip().split("\n")[0]
         reports.append({
             "rel_path": str(rel),
             "date": date,
             "title": title,
-            "verdict": verdict,
+            "summary": report_summary(text),
         })
     return reports
+
+
+def report_summary(text: str) -> str:
+    """Markdown summary line: Abstract's **Conclusions.** line, else legacy
+    '## Verdict' first line, else the first line of '## Abstract'."""
+    m = re.search(r"^##\s+Abstract\s*$(.*?)(?=^##\s|\Z)", text, re.M | re.S)
+    abstract = m.group(1) if m else ""
+    c = re.search(r"^\*\*Conclusions\.\*\*[ \t]*(.+)$", abstract, re.M)
+    if c:
+        return c.group(1).strip()
+    v = re.search(r"^##\s+Verdict\s*$\n+(.+)$", text, re.M)
+    if v:
+        return v.group(1).strip()
+    return next((ln.strip() for ln in abstract.split("\n") if ln.strip()), "")
+
+
+def strip_refs(s: str) -> str:
+    """Drop [n] citation markers and reduce [text](url) links to their text."""
+    return CITE.sub("", re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s))
+
+
+def truncate(s: str, limit: int = 280) -> str:
+    return s if len(s) <= limit else s[:limit - 1].rsplit(" ", 1)[0] + "…"
+
+
+def report_json(r: dict) -> dict:
+    """One skills.json reports entry; summary is plain text."""
+    plain = re.sub(r"[*`]", "", strip_refs(r["summary"]))
+    return {
+        "date": r["date"],
+        "title": r["title"],
+        "slug": Path(r["rel_path"]).stem,
+        "path": r["rel_path"],
+        "url": f"{SITE}/{report_href(r)}",
+        "summary": truncate(" ".join(plain.split())),
+    }
 
 
 def inline_md(text: str) -> str:
@@ -217,7 +249,7 @@ def entry_json(s: dict, title: str) -> dict:
     }
 
 
-def manifest_json(skills: list) -> dict:
+def manifest_json(skills: list, reports: list) -> dict:
     """Build the skills.json manifest (deterministic: no timestamps)."""
     return {
         "source_repo": GH,
@@ -225,6 +257,7 @@ def manifest_json(skills: list) -> dict:
                    for s in sorted(skills, key=lambda x: x["name"])],
         "sections": [{"title": t, "skills": [entry_json(s, t) for s in rows]}
                      for t, rows in ordered_sections(skills)],
+        "reports": [report_json(r) for r in reports],
     }
 
 
@@ -1096,7 +1129,7 @@ def md_to_html(text: str) -> str:
             continue
         if ln.strip():
             para = [ln]
-            while i + 1 < len(lines) and lines[i + 1].strip() and not re.match(r"^(#|\||\s*[-*]\s|\s*\d+\.\s|>|```|\s*---)", lines[i + 1]):
+            while i + 1 < len(lines) and lines[i + 1].strip() and not re.match(r"^(#|\||\s*[-*]\s|\s*\d+\.\s|>|```|\s*---|\*\*[^*\n]+\.\*\*\s)", lines[i + 1]):
                 i += 1; para.append(lines[i])
             out.append(f"<p>{inline(' '.join(p.strip() for p in para))}</p>")
         i += 1
@@ -1313,8 +1346,8 @@ REPORTS_CSS = """    .page-head { padding: 48px var(--pad) 0; }
     .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
     .r-title { font: 700 17px/24px var(--display); }
     .r-title code { font: 400 15px/24px var(--mono); }
-    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
-    .r-verdict code { font-size: 14px; }
+    .r-summary { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-summary code { font-size: 14px; }
     @media (max-width: 640px) {
       .page-head { padding-top: 32px; }
       .page-head h1 { font-size: 40px; line-height: 40px; }
@@ -1331,10 +1364,8 @@ COMPAT_NOTE = """
     </p>"""
 
 
-def verdict_excerpt(v: str) -> str:
-    if len(v) <= 280:
-        return inline_md(v)
-    return inline_md(v[:280].rsplit(" ", 1)[0]) + "…"
+def summary_excerpt(s: str) -> str:
+    return inline_md(truncate(strip_refs(s)))
 
 
 def report_row_html(r: dict) -> str:
@@ -1344,7 +1375,7 @@ def report_row_html(r: dict) -> str:
     return f"""        <li><a class="report-row" href="{report_href(r)}">
           {date}
           <span class="r-title">{inline_md(r["title"])}</span>
-          <span class="r-verdict">{verdict_excerpt(r["verdict"])}</span>
+          <span class="r-summary">{summary_excerpt(r["summary"])}</span>
         </a></li>"""
 
 
@@ -1363,7 +1394,7 @@ def reports_index_html(reports: list, edition: str, note: str = "") -> str:
 {chr(10).join(report_row_html(r) for r in rs)}
       </ol>
     </section>""" for m, rs in months.items())
-        ledger = f"""    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Verdict</span></div>
+        ledger = f"""    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Summary</span></div>
 {groups}"""
     n = len(reports)
     count = "1 report" if n == 1 else f"{n} reports"
@@ -1539,7 +1570,7 @@ def main() -> int:
     print(f"wrote docs/changelog.html ({len(entries)} entries)")
 
     if "--json" in sys.argv:
-        manifest = manifest_json(skills)
+        manifest = manifest_json(skills, reports)
         json_out = REPO / "skills.json"
         json_out.write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
         print(f"wrote {json_out} ({len(manifest['skills'])} skills)")

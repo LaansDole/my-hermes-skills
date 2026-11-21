@@ -5,6 +5,7 @@ on:
     paths:
       - "skills/**"
       - "scripts/**"
+      - "reports/**"
   workflow_dispatch:
 
 permissions:

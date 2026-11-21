@@ -123,6 +123,58 @@ Short.
 One section only.
 """
 
+IMRAD_REPORT = """# Does the fixture answer its question?
+
+- **Date:** 2026-10-02
+- **Report type:** Evidence review
+
+## Abstract
+
+**Background.** Context matters [1].
+**Objective.** Ask a question.
+**Methods.** Read `sources` carefully.
+**Results.** Numbers went up [1].
+**Conclusions.** Answer **sentence** with `code` and a [link](https://e.com) [1, 2]. More.
+
+## 1. Introduction
+
+Intro.
+
+## 2. Methods
+
+### 2.1 Sources and search strategy
+
+Searched.
+
+## 3. Results
+
+### 3.1 First result
+
+Table 1. Fixture numbers (measured).
+
+| a | n |
+| --- | ---: |
+| x | 1 |
+
+## 4. Discussion
+
+Talk.
+
+## References
+
+[1] Pub, One (2026): <https://one.example/a>
+[2] Pub, Two (2026): <https://two.example/b>
+"""
+
+ABSTRACT_ONLY_REPORT = """# Abstract only
+
+## Abstract
+
+Plain abstract line without labels.
+"""
+
+LONG_CONCLUSION_REPORT = "# Long\n\n## Abstract\n\n**Conclusions.** " + "word " * 120 + "\n"
+
 
 def build_fixture_repo(root: Path, reports: dict, skills: dict = None) -> None:
     """Minimal repo: a copy of the generator, given skills, docs/, given reports."""
@@ -406,6 +458,68 @@ class FixtureRepoTests(unittest.TestCase):
         first = docs_snapshot(self.root)
         generate(self.root)
         self.assertEqual(first, docs_snapshot(self.root))
+
+
+class ResearcherReportTests(unittest.TestCase):
+    """IMRaD reports: Conclusions summary, Summary ledger, skills.json reports feed."""
+
+    @classmethod
+    def setUpClass(cls):
+        tmp = tempfile.TemporaryDirectory()
+        cls.addClassCleanup(tmp.cleanup)
+        cls.root = Path(tmp.name)
+        build_fixture_repo(cls.root, {
+            "reports/2026-09/2026-09-24-short.md": SHORT_REPORT,
+            "reports/2026-10/2026-10-02-imrad.md": IMRAD_REPORT,
+            "reports/2026-10/2026-10-03-abstract-only.md": ABSTRACT_ONLY_REPORT,
+            "reports/2026-10/2026-10-04-long-conclusion.md": LONG_CONCLUSION_REPORT,
+        })
+        generate(cls.root)
+        generate(cls.root, "--json")
+        cls.ledger = (cls.root / "docs" / "reports.html").read_text()
+        cls.feed = json.loads((cls.root / "skills.json").read_text())["reports"]
+
+    def row(self, stem: str) -> str:
+        return self.ledger.split(f'{stem}.html"')[1].split("</li>")[0]
+
+    def test_ledger_summary_is_the_conclusions_paragraph(self):
+        excerpt = re.search(r'<span class="r-summary">(.*?)</span>\s*</a>',
+                            self.row("2026-10-02-imrad"), re.S).group(1)
+        self.assertTrue(excerpt.startswith("Answer <strong>sentence</strong>"), excerpt)
+        self.assertNotIn("Conclusions.", excerpt)
+        self.assertIn("Short.", self.row("2026-09-24-short"))  # legacy Verdict
+        self.assertIn("Plain abstract line", self.row("2026-10-03-abstract-only"))
+
+    def test_ledger_header_reads_summary(self):
+        self.assertIn("<span>Summary</span>", self.ledger)
+        self.assertNotIn("Verdict", self.ledger)
+
+    def test_skills_json_reports_feed(self):
+        self.assertEqual([r["slug"] for r in self.feed], [
+            "2026-10-04-long-conclusion", "2026-10-03-abstract-only",
+            "2026-10-02-imrad", "2026-09-24-short"])
+        for r in self.feed:
+            self.assertEqual(set(r), {"date", "title", "slug", "path", "url", "summary"})
+            month = r["date"][:7]
+            self.assertEqual(r["path"], f"reports/{month}/{r['slug']}.md")
+            self.assertEqual(r["url"], "https://laansdole.github.io/my-hermes-skills/"
+                                       f"reports/{month}/{r['slug']}.html")
+            self.assertLessEqual(len(r["summary"]), 280)
+            self.assertNotRegex(r["summary"], r"\*\*|`|\[\d")
+        imrad = self.feed[2]
+        self.assertEqual(imrad["title"], "Does the fixture answer its question?")
+        self.assertEqual(imrad["summary"], "Answer sentence with code and a link. More.")
+        self.assertTrue(self.feed[0]["summary"].endswith("…"))
+
+    def test_template_report_renders_numbered_sections_labels_and_captions(self):
+        page = (self.root / "docs/reports/2026-10/2026-10-02-imrad.html").read_text()
+        self.assertIn('<h2 id="2-methods">2. Methods</h2>', page)
+        self.assertIn('<h3 id="2-1-sources-and-search-strategy">2.1 Sources and search strategy</h3>', page)
+        # each abstract label opens its own paragraph
+        for label in ("Background", "Objective", "Methods", "Results", "Conclusions"):
+            self.assertIn(f"<p><strong>{label}.</strong>", page)
+        self.assertIn("<p>Table 1. Fixture numbers (measured).</p>", page)
+        self.assertIn('<li id="ref-2" value="2">', page)
 
 
 class ChartTests(unittest.TestCase):
