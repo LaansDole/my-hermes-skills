@@ -103,17 +103,22 @@
     .f-design { background: #7a52b3; color: #ffffff; }
     .f-unfiled { background: #d8d4c8; color: #17171b; }
     :root[data-theme="dark"] .f-unfiled { background: #8f8a7e; }
-    .atlas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px;
-             align-items: start; padding: 24px var(--pad) 0; }
-    .chart-wrap { container-type: inline-size; }
+    /* the atlas is the size container so the chart column can shrink to its widest
+       row (--row-*, from chart_html) and the key sits beside it; cell size still
+       assumes a 7-cell chart width, so tiles stay square */
+    .atlas { container-type: inline-size; display: grid; grid-template-columns: auto 320px;
+             justify-content: start; gap: 40px; align-items: start; padding: 24px var(--pad) 0; }
     .chart { --gap: 4px; --bgap: 16px;
-             --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             --cell: calc((100cqi - 360px - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             width: calc(var(--row-c) * var(--cell) + var(--row-g) * var(--gap)
+                         + var(--row-b) * var(--bgap) + 1px);
              display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px var(--bgap);
              margin: 0; padding: 0; list-style: none; }
+    .chart-key { display: none; margin: 0 0 16px; font: 600 14px/20px var(--display); }
     .fam-block { flex: none; width: min-content;
                  transition: opacity 0.2s var(--ease), filter 0.2s var(--ease); }
     .fb-h { display: flex; justify-content: space-between; align-items: baseline;
-            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 3px solid var(--ink);
+            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 1px solid var(--ink);
             font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 20px;
             font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
     .fb-n { flex: none; font-variant-numeric: tabular-nums; }
@@ -137,14 +142,16 @@
                font-variant-caps: small-caps; letter-spacing: 0.02em; }
     .c-name { margin-top: auto; padding-top: 4px; font: 600 12px/16px var(--display); }
 
+    .key { padding-top: 4px; border-top: 1px solid var(--ink); }
     .key-sum { margin: 0 0 12px; font-size: 15px; line-height: 24px; color: var(--muted); }
     .key h2 { margin: 0 0 4px; font: 800 20px/24px var(--display); }
     .key h3 { margin: 24px 0 8px; font: 800 13px/20px var(--display);
               letter-spacing: 0.08em; text-transform: uppercase; }
-    .key-fams { margin: 0; padding: 0; list-style: none; border-top: 3px solid var(--ink); }
+    .key-fams { margin: 0; padding: 0; list-style: none; }
     .key-fam { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
                align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair);
                font: 600 15px/20px var(--display); text-decoration: none; }
+    .key-fams li:last-child .key-fam { border-bottom: 0; }
     .key-fam:hover .kf-name, .key-fam:focus-visible .kf-name {
       text-decoration: underline 2px; text-underline-offset: 4px; }
     .kf-n { font-variant-numeric: tabular-nums; }
@@ -212,6 +219,8 @@
     }
     @media (max-width: 1100px) {
       .atlas { grid-template-columns: minmax(0, 1fr); }
+      .chart { --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7); width: auto; }
+      .chart-key { display: block; }
       .key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
       .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -219,8 +228,9 @@
       .chart { --bgap: 12px; --cell: calc((100cqi - 3 * var(--gap)) / 4); row-gap: 16px;
                align-items: flex-start; }
       .fb-cells { grid-template-columns: repeat(var(--cols-s), var(--cell)); }
-      /* two-line head (2x20px lines + 4px pad + 3px rule, border-box): rules and labels share y per row */
-      .fb-h { font-size: 16px; min-height: 47px; align-items: flex-end; }
+      /* ponytail: label hugs its rule; if a one-line and a two-line head ever share
+         a row their cells start 20px apart — reinstate a min-height then */
+      .fb-h { font-size: 16px; }
       .cell { min-height: 120px; padding: 6px; }
       .c-top { font-size: 11px; line-height: 12px; }
       .c-mark { font-size: 14px; }
@@ -281,7 +291,8 @@
 
 <section class="atlas" id="chart" aria-labelledby="chart-h">
   <h2 class="vh" id="chart-h">Chart of skills</h2>
-  <div class="chart-wrap">
+  <div class="chart-wrap" style="--row-c: 5; --row-g: 3; --row-b: 1">
+    <p class="chart-key"><a href="#key-h">Jump to the key</a></p>
     <ol class="chart">
     <li class="fam-block" data-fam="research-writing" style="--cols: 5; --cols-s: 4">
       <p class="fb-h"><span>Research &amp; Writing</span><span class="fb-n">5<span class="vh"> skills</span></span></p>
