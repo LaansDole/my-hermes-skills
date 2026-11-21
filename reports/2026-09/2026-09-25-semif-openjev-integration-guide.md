@@ -1,20 +1,114 @@
-# SemIf (formerly OpenJev): Integration and API Guide
+# How can SemIf (formerly OpenJev) be integrated and its scores consumed safely? An integration and API guide
 
 - **Date:** 2026-09-25
-- **Scope:** How to install, run, integrate, and safely consume TheoLeeCJ/SemIf, formerly OpenJev.
-- **Method:** Web search plus source inspection of repository commit `23cf1f39fc9534fe81437200959b6dfc7106e45a`, fetched 2026-09-25. Commands and schemas below were checked against that commit's implementation, not inferred from similarly named projects.
+- **Report type:** Technical guide
+- **Keywords:** SemIf, OpenJev, decision scoring, JSONL CLI, calibration, local inference
+- **Data collected:** Web search plus source inspection of repository commit `23cf1f39fc9534fe81437200959b6dfc7106e45a`, fetched 2026-09-25.
 
----
+## Abstract
 
-## Verdict
+**Background.** SemIf, formerly OpenJev, is an open project that scores bounded decisions with a local language model [1]. It is independent of TypeSafe and does not reproduce TypeSafe's undisclosed Jev model or training [2], and newer projects reuse the OpenJev name with different APIs, so integrators risk wiring up the wrong thing.
+**Objective.** To document how to install, run, integrate and safely consume TheoLeeCJ/SemIf at a pinned commit.
+**Methods.** Web search located the project; the repository at commit `23cf1f39fc9534fe81437200959b6dfc7106e45a` was inspected on 2026-09-25: the README [2], package manifest [3], CLI [4], core [5], the direct, serial and shared scorers [6, 7, 8] and the Apple Silicon, MLX and calibration guides [9, 10, 11]. Commands and schemas were checked against that commit's implementation, not inferred from similarly named projects.
+**Results.** SemIf is a local Python package with a JSONL CLI, `semif-score` [3]; it ships no HTTP server [1, 3, 4]. Each input row carries one state, one question and 2-16 described options [5]; output is a softmax over answer-slot logits for letters `A` through `P`, labeled by the code itself as uncalibrated [6]. It runs on Torch (CUDA, MPS, CPU), MLX and llama.cpp in `direct`, `serial` and `shared` modes, with a CUDA-only `reranker` [4].
+**Conclusions.** SemIf is a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API: integrate it through `semif-score` for batch or subprocess use, or through its Python scorer functions inside a long-lived worker, and calibrate its option scores on your own labeled data before attaching action thresholds.
 
-SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through `semif-score` for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application needs HTTP, place a small service around that worker rather than expecting a built-in `/v1/systemone` endpoint.[1][4]
+## 1. Introduction
 
-The project was formerly named OpenJev, but it is independent of TypeSafe and does not reproduce TypeSafe's undisclosed Jev model or training.[2] This distinction also matters because other, newer projects use the OpenJev name and expose different APIs.
+TypeSafe's hosted Jev model popularised structured decision scoring. SemIf, the TheoLeeCJ project formerly named OpenJev, offers a local alternative built on an open-weights model, but it is independent of TypeSafe [2]. Other, newer projects use the OpenJev name and expose different APIs (source not recorded beyond the web search), so the first integration risk is pointing a client at the wrong system. This guide fixes the target to one commit and documents its interfaces from the source; the step-by-step procedure is in Appendix A.
 
----
+- **RQ1.** What is SemIf, and how is it distinguished from TypeSafe Jev and other projects using the OpenJev name?
+- **RQ2.** What are its input, CLI, output and Python interfaces and its runtime requirements at the pinned commit?
+- **RQ3.** How should an application integrate SemIf and interpret its scores safely?
 
-## 5-minute overview
+## 2. Methods
+
+### 2.1 Sources and search strategy
+
+The project was found by web search (search terms not recorded). All facts come from the TheoLeeCJ/SemIf repository at commit `23cf1f39fc9534fe81437200959b6dfc7106e45a`, fetched 2026-09-25 [1]: README [2], `pyproject.toml` [3], `cli.py` [4], `core.py` [5], `direct.py` [6], `serial.py` [7], `shared.py` [8], `docs/APPLE_SILICON.md` [9], `docs/MLX.md` [10] and `docs/CALIBRATION.md` [11].
+
+### 2.2 Evidence classification
+
+- **Source-verified (inspection):** CLI flags, row validation rules, output fields, mode and backend restrictions read from the code [4, 5, 6, 7, 8]. In the skill's taxonomy this is the closest to measured evidence, but it is inspection, not execution.
+- **Vendor-reported (project documentation):** runtime guidance, memory figures, licensing and the project's self-description [2, 9, 10, 11].
+- **Design recommendation:** the HTTP adapter contract, concurrency architecture, testing suite, observability fields and deployment checklist in Appendix A are the author's recommendations, not SemIf features.
+
+### 2.3 Experimental setup
+
+No benchmark was run. Whether the commands in Appendix A were executed, and on what hardware, was not recorded. The numeric values in the example output (Appendix A, section 7) are illustrative; the field shape is source-derived.
+
+### 2.4 Analysis
+
+No derived metrics. The calibration formula `calibrated_probabilities = softmax(option_logits / T)` is SemIf's own [11].
+
+## 3. Results
+
+### 3.1 What SemIf is (RQ1)
+
+- SemIf is the package `semif-phase1` with the CLI `semif-score`, at `github.com/TheoLeeCJ/SemIf` [3]. It does not ship an HTTP server at the researched commit [1, 3, 4].
+- It turns one item of state plus one runtime-defined question and 2-16 described options into a probability distribution over those options [5], by reading next-token logits for letter slots (`A` through `P`) and applying softmax; it does not generate an answer sentence or JSON [6].
+- The project was formerly named OpenJev, is independent of TypeSafe and does not reproduce TypeSafe's Jev [2]. `openjev/openjev` and `api.openjev.sh` are separate projects (Appendix A, section 2).
+- The project identifies itself as phase-one research code [2, 3].
+
+### 3.2 Interfaces and requirements (RQ2)
+
+- **Input.** Newline-delimited JSON rows with `id`, `state`, `question` and `options`, constrained by `validate_row` [5] (Appendix A, section 5).
+- **CLI.** `semif-score` with `--mode direct|serial|shared|reranker` and `--backend torch|mlx|llamacpp`; the output path must not exist, and input over `--max-tokens` fails rather than being truncated [4, 6]. The CLI rejects MLX or llama.cpp with `reranker`, and the Torch reranker is CUDA-only [4] (Appendix A, section 6).
+- **Output.** Per-row `option_ids`, `probabilities`, `option_logits`, timing, prompt hash and model metadata, with `probability_status` reading "conditional option score; uncalibrated as decision confidence" [6]. Serial output adds cache fields [7]; shared output adds a `shared_timing` object [4, 8] (Appendix A, section 7).
+- **Python.** `load_causal_model`, `validate_row`, `score`, `SerialPrefixScorer` and `score_shared` are implementation-level functions [5, 6, 7, 8] (Appendix A, section 9).
+- **Requirements.** Python 3.10 or newer, with pinned Torch, Transformers and related libraries [3]. Runtimes: Torch + CUDA, MLX, Torch + MPS, llama.cpp and Torch + CPU [2, 4, 5, 9, 10]. The default Qwen3.5-4B MLX source weights are about 9 GB on disk [10]. Remote model revisions must be immutable 40-character commit IDs [5] (Appendix A, sections 3 and 4).
+
+### 3.3 Scores and calibration (RQ3)
+
+Raw probabilities are conditional on the supplied options and not calibrated confidence [6, 11]. SemIf includes an offline scalar temperature-calibration script; division by a positive temperature is monotonic, so calibration changes confidence but not the selected argmax [11] (Appendix A, section 12).
+
+## 4. Discussion
+
+### 4.1 Principal findings
+
+RQ1: SemIf is a local scorer, not a hosted service, and not TypeSafe's model; a SemIf client must not be pointed at an OpenJev or TypeSafe endpoint on the assumption of semantic or calibration equivalence. RQ2: its interfaces are a JSONL CLI and unversioned Python functions, so both the SemIf commit and the model revision should be pinned. RQ3: its speed comes from scoring a forward pass instead of generating tokens, and `shared` mode prefills one long state once for many independent questions [8]; its decision quality comes from the bounded, explicit option set and from validation on the user's own workload, not from typed output alone.
+
+### 4.2 Comparison with prior work
+
+TypeSafe's hosted Jev exposes a `/v1/systemone` endpoint; SemIf has no built-in equivalent [1, 4], and its scores carry their own explicit "uncalibrated" label [6], so thresholds tuned on one system do not transfer to the other.
+
+### 4.3 Practical implications
+
+- Batch work: call `semif-score` directly (Appendix A, section 8).
+- Application services: load the model once in a long-lived worker with one queue per loaded model/device (Appendix A, section 9).
+- HTTP: wrap that worker in a narrow, authenticated adapter of your own (Appendix A, section 10).
+- Choose `shared` only for independent questions over an identical state, `serial` for repeated consecutive states, otherwise `direct` (Appendix A, section 11).
+- Include an insufficient-evidence option, fit calibration and thresholds on deployment data, and re-evaluate every model, runtime, backend, prompt or quantization change (Appendix A, sections 12, 15 and 17).
+
+## 5. Limitations
+
+Limitations of SemIf at the researched commit:
+
+- The Python imports are implementation-level APIs and may change without SDK-style compatibility guarantees.
+- The repository does not provide a built-in HTTP server at the researched commit [1, 3, 4].
+- Direct decisions support at most 16 options because the implementation uses `A` through `P` answer slots [5].
+- Inputs over the configured token limit fail; there is no automatic truncation [6].
+- Raw probabilities are not portable confidence thresholds [6, 11].
+- `shared` requires exact state equality and independent questions [8].
+- MLX and MPS shared execution loops over independent suffixes rather than using CUDA's parallel suffix batch [8, 9].
+- Backend, precision, and quantization can change probabilities or choices [2, 10].
+- The project identifies itself as phase-one research code, not as a managed production service [2, 3].
+
+Limitations of this guide:
+
+- It describes one commit; later commits may change the CLI, schemas or Python functions.
+- Facts come from source inspection; whether the commands were run, and on which hardware, was not recorded, and no latency or accuracy was measured.
+- The statements about other projects using the OpenJev name have no recorded source beyond the web search.
+
+## 6. Conclusion
+
+SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through `semif-score` for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application needs HTTP, place a small service around that worker rather than expecting a built-in `/v1/systemone` endpoint [1, 4]. The project was formerly named OpenJev, but it is independent of TypeSafe and does not reproduce TypeSafe's undisclosed Jev model or training [2]. This distinction also matters because other, newer projects use the OpenJev name and expose different APIs.
+
+## Appendix A. Integration procedure
+
+The procedure below is the original guide, unchanged apart from heading levels (its section 18, Known Limitations, moved to Section 5) and the removal of `---` separators.
+
+### 5-minute overview
 
 You send three things: the `state` holding the evidence, one `question`, and 2-16 explicitly described options.[5] SemIf labels those options with answer-token letters, then reads the model's last-position logits for exactly those letters and applies softmax over them.[6] Nothing is written back: there is no decoding loop, no prose to parse, and no JSON to repair or retry.
 
@@ -24,9 +118,7 @@ Decision quality comes from the bounded, explicit option set — the model choos
 
 The returned values are conditional scores over the options you supplied, not deployment confidence. They are relative to that option set and must be calibrated on representative labeled data before any action threshold is attached to them.[6][11]
 
----
-
-## 1. What SemIf Does
+### 1. What SemIf Does
 
 SemIf turns one item of state plus one runtime-defined question and 2-16 described options into a probability distribution over those options.[5] It reads the language model's next-token logits for letter slots (`A` through `P`) and applies softmax; it does not generate an answer sentence or JSON response.[6]
 
@@ -49,9 +141,7 @@ SemIf provides four execution modes:
 
 The CLI rejects MLX or llama.cpp with `reranker`; the Torch reranker is CUDA-only.[4]
 
----
-
-## 2. Important Naming Boundary
+### 2. Important Naming Boundary
 
 Use these identifiers to avoid integrating the wrong project:
 
@@ -65,9 +155,7 @@ Use these identifiers to avoid integrating the wrong project:
 
 Do not point a SemIf client at an OpenJev or TypeSafe endpoint and assume semantic or calibration equivalence. SemIf's own output explicitly labels its probabilities as conditional option scores and uncalibrated decision confidence.[6]
 
----
-
-## 3. Requirements
+### 3. Requirements
 
 The researched package declares Python 3.10 or newer and pins Torch 2.10.0, Transformers 5.17.0, Accelerate 1.12.0, Safetensors 0.8.0, Hugging Face Hub 1.31.0, Tokenizers 0.23.2, NumPy 2.2.6, SentencePiece 0.2.1, and Protobuf 7.36.1.[3]
 
@@ -83,9 +171,7 @@ Choose one runtime:
 
 The default Qwen3.5-4B MLX source weights are about 9 GB on disk and require additional execution memory.[10]
 
----
-
-## 4. Installation
+### 4. Installation
 
 Clone the repository because SemIf is not presented as a stable PyPI SDK:
 
@@ -118,9 +204,7 @@ Optional: put Hugging Face downloads on a large drive before installation or fir
 export HF_HOME=/path/to/large-drive/huggingface
 ```
 
----
-
-## 5. Input API: JSONL Decision Rows
+### 5. Input API: JSONL Decision Rows
 
 `semif-score` reads newline-delimited JSON. Each line is one independent decision:
 
@@ -137,7 +221,7 @@ export HF_HOME=/path/to/large-drive/huggingface
 }
 ```
 
-### Field reference
+#### Field reference
 
 | Field | Type | Required | Constraints and meaning |
 | --- | --- | --- | --- |
@@ -150,7 +234,7 @@ export HF_HOME=/path/to/large-drive/huggingface
 
 These constraints come directly from `validate_row` in the researched source.[5]
 
-### Design rules
+#### Design rules
 
 1. Put facts and evidence in `state`; put the single judgment in `question`.
 2. Keep each question narrow and independently answerable.
@@ -159,13 +243,11 @@ These constraints come directly from `validate_row` in the researched source.[5]
 5. Do not pass a URL and expect browsing. Fetch external content in your application and place the relevant content in `state`.
 6. Keep policy and execution in code. SemIf should choose among allowed alternatives, not invent operations.
 
----
-
-## 6. CLI API
+### 6. CLI API
 
 The installed executable is `semif-score`.[3]
 
-### Full command shape
+#### Full command shape
 
 ```text
 semif-score \
@@ -186,7 +268,7 @@ semif-score \
 
 The output path must not already exist. SemIf creates it exclusively and refuses to overwrite it. Input that exceeds `--max-tokens` fails rather than being truncated.[4][6]
 
-### CUDA example
+#### CUDA example
 
 ```bash
 CUDA_VISIBLE_DEVICES=0 semif-score \
@@ -197,7 +279,7 @@ CUDA_VISIBLE_DEVICES=0 semif-score \
   --output results.jsonl
 ```
 
-### Apple Silicon MLX example
+#### Apple Silicon MLX example
 
 ```bash
 semif-score \
@@ -211,7 +293,7 @@ semif-score \
 
 Use `--mlx-bits 8` or `--mlx-bits 4` for in-memory affine quantization. Quantization changes probabilities and must be evaluated separately; it does not create another model artifact.[10]
 
-### Apple Silicon MPS example
+#### Apple Silicon MPS example
 
 ```bash
 semif-score \
@@ -223,7 +305,7 @@ semif-score \
   --output results-mps.jsonl
 ```
 
-### CPU llama.cpp example
+#### CPU llama.cpp example
 
 First obtain a compatible local GGUF, then run:
 
@@ -241,9 +323,7 @@ semif-score \
 
 The `--model` value remains relevant because prompt construction uses the reference tokenizer; `--gguf` supplies the local scoring weights.[2][4]
 
----
-
-## 7. Output API
+### 7. Output API
 
 A direct-mode output line has this logical shape:[6]
 
@@ -273,7 +353,7 @@ A direct-mode output line has this logical shape:[6]
 
 The numeric values above are illustrative; the field shape is source-derived.
 
-### Output field reference
+#### Output field reference
 
 | Field | Meaning |
 | --- | --- |
@@ -292,7 +372,7 @@ The numeric values above are illustrative; the field shape is source-derived.
 
 Serial output adds fields such as `cache_hit`, `prefix_tokens`, cache/prefix timing, answer token IDs, and vocabulary diagnostics.[7] Shared output adds the same `shared_timing` object to every output row, including batch size, prefix length, prefill time, replication time, and suffix-forward time.[4][8]
 
-### Safely selecting an answer
+#### Safely selecting an answer
 
 Never assume the highest probability is at the same array index across different row schemas. Pair the arrays from the same output object:
 
@@ -305,9 +385,7 @@ best_probability = result["probabilities"][best_index]
 
 Treat `best_probability` as a relative score among the supplied options until calibrated on your workload.
 
----
-
-## 8. Integration Pattern A: Batch Files
+### 8. Integration Pattern A: Batch Files
 
 Use the CLI directly when decisions can be prepared and consumed in batches.
 
@@ -350,13 +428,11 @@ def score_batch(rows: list[dict]) -> list[dict]:
 
 This is simple but inefficient for request-per-decision serving because every process invocation reloads the model. Use it for offline pipelines, cron jobs, experiments, and reproducible evaluation—not a latency-sensitive HTTP route.
 
----
-
-## 9. Integration Pattern B: Long-Lived Python Worker
+### 9. Integration Pattern B: Long-Lived Python Worker
 
 For an application service, load the model once and reuse it. The Python functions are implementation-level APIs, not a separately versioned public SDK, so pin the repository commit and place them behind your own adapter.
 
-### Direct scorer
+#### Direct scorer
 
 ```python
 from semif_phase1.core import load_causal_model, validate_row
@@ -378,7 +454,7 @@ def decide(row: dict) -> dict:
     return score(model, tokenizer, row, metadata, max_tokens=4096)
 ```
 
-### Serial prefix reuse
+#### Serial prefix reuse
 
 Use serial mode when consecutive requests often share the same exact state:
 
@@ -392,7 +468,7 @@ result_b = scorer.score(row_b)  # cache hit only if state matches
 
 The scorer retains one state's native prefix cache. A changed state invalidates it.[7]
 
-### Shared-state fan-out
+#### Shared-state fan-out
 
 Use shared scoring when many independent questions all see the exact same state:
 
@@ -410,13 +486,11 @@ results, timing = score_shared(
 
 All rows must have exactly equal states and unique IDs. Questions are independent; one question cannot consume another question's result in the same call.[8]
 
-### Concurrency
+#### Concurrency
 
 Do not call one mutable model/cache object concurrently without an explicit queue or lock. The llama.cpp backend owns one stateful scoring context, and serial/shared paths manipulate prefix caches.[2][7][8] A safe starting architecture is one worker queue per loaded model/device, with bounded input and application-level timeouts.
 
----
-
-## 10. Integration Pattern C: Your Own HTTP API
+### 10. Integration Pattern C: Your Own HTTP API
 
 SemIf does not ship an HTTP server at the researched commit.[1][3][4] If you need one, expose a narrow adapter around the long-lived worker.
 
@@ -456,9 +530,7 @@ Adapter requirements:
 
 This wrapper contract is a recommended integration design, not a SemIf-provided API.
 
----
-
-## 11. Choosing Between `direct`, `serial`, and `shared`
+### 11. Choosing Between `direct`, `serial`, and `shared`
 
 ```text
 Are all questions known now and based on the exact same state?
@@ -477,9 +549,7 @@ Use a second scoring call when:
 
 Shared mode is not a chain-of-thought or dependency mechanism; it is independent fan-out over a common prefix.[8]
 
----
-
-## 12. Confidence, Calibration, and Thresholds
+### 12. Confidence, Calibration, and Thresholds
 
 Raw SemIf probabilities are conditional on the options supplied. They are not universally calibrated confidence values.[6][11]
 
@@ -509,9 +579,7 @@ python benchmarks/calibrate.py \
 
 Fit and validate `T` on representative, labeled data from the actual deployment workload. Then choose thresholds based on consequences—for example, auto-route only above the measured review threshold and send other cases to a human or a stronger model.
 
----
-
-## 13. Error Handling
+### 13. Error Handling
 
 SemIf is a local program, so errors appear as Python exceptions or a nonzero subprocess exit—not HTTP statuses.
 
@@ -529,9 +597,7 @@ SemIf is a local program, so errors appear as Python exceptions or a nonzero sub
 
 For subprocess integration, capture `stderr`, set a timeout, check the exit status, and treat partial output as incomplete. The CLI flushes rows as it writes, so an interrupted run can leave a partial file.[4]
 
----
-
-## 14. Security and Privacy
+### 14. Security and Privacy
 
 Local execution means decision state does not need to be sent to TypeSafe or another hosted inference API, but model downloads still contact Hugging Face unless weights are already local.[2][10]
 
@@ -550,11 +616,9 @@ Production checklist:
 
 SemIf's repository code is MIT-licensed, while upstream models retain their own licenses.[2]
 
----
+### 15. Testing an Integration
 
-## 15. Testing an Integration
-
-### Schema smoke test
+#### Schema smoke test
 
 ```bash
 PYTHONPATH=src python3 - <<'PY'
@@ -573,7 +637,7 @@ print(f"validated {len(rows)} rows")
 PY
 ```
 
-### Repository tests
+#### Repository tests
 
 After installing the selected extras:
 
@@ -581,7 +645,7 @@ After installing the selected extras:
 pytest -q
 ```
 
-### Application tests
+#### Application tests
 
 Maintain a labeled suite that covers:
 
@@ -598,9 +662,7 @@ Maintain a labeled suite that covers:
 
 Do not silently promote a new SemIf commit, Transformers version, model revision, quantization, prompt version, or backend. Compare choices, probability drift, calibration, latency, and memory before deployment.
 
----
-
-## 16. Observability
+### 16. Observability
 
 Keep these output fields where policy permits:
 
@@ -617,9 +679,7 @@ Keep these output fields where policy permits:
 
 The state itself may contain sensitive data. Store it only when necessary and under an explicit retention policy.
 
----
-
-## 17. Deployment Checklist
+### 17. Deployment Checklist
 
 - [ ] Pin SemIf commit.
 - [ ] Pin model revision and tokenizer source.
@@ -636,32 +696,16 @@ The state itself may contain sensitive data. Store it only when necessary and un
 - [ ] Re-evaluate every model, runtime, backend, prompt, or quantization change.
 - [ ] Verify upstream model and application-use licenses.
 
----
+## References
 
-## 18. Known Limitations
-
-- The Python imports are implementation-level APIs and may change without SDK-style compatibility guarantees.
-- The repository does not provide a built-in HTTP server at the researched commit.[1][3][4]
-- Direct decisions support at most 16 options because the implementation uses `A` through `P` answer slots.[5]
-- Inputs over the configured token limit fail; there is no automatic truncation.[6]
-- Raw probabilities are not portable confidence thresholds.[6][11]
-- `shared` requires exact state equality and independent questions.[8]
-- MLX and MPS shared execution loops over independent suffixes rather than using CUDA's parallel suffix batch.[8][9]
-- Backend, precision, and quantization can change probabilities or choices.[2][10]
-- The project identifies itself as phase-one research code, not as a managed production service.[2][3]
-
----
-
-## Sources
-
-[1] https://github.com/TheoLeeCJ/SemIf/tree/23cf1f39fc9534fe81437200959b6dfc7106e45a — TheoLeeCJ/SemIf repository at researched commit
-[2] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/README.md — SemIf README
-[3] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/pyproject.toml — SemIf package manifest
-[4] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/cli.py — SemIf CLI source
-[5] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/core.py — SemIf core source
-[6] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/direct.py — SemIf direct scorer source
-[7] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/serial.py — SemIf serial scorer source
-[8] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/shared.py — SemIf shared scorer source
-[9] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/APPLE_SILICON.md — SemIf Apple Silicon guide
-[10] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/MLX.md — SemIf MLX guide
-[11] https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/CALIBRATION.md — SemIf calibration guide
+[1] TheoLeeCJ/SemIf repository at researched commit: <https://github.com/TheoLeeCJ/SemIf/tree/23cf1f39fc9534fe81437200959b6dfc7106e45a>
+[2] SemIf README: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/README.md>
+[3] SemIf package manifest: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/pyproject.toml>
+[4] SemIf CLI source: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/cli.py>
+[5] SemIf core source: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/core.py>
+[6] SemIf direct scorer source: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/direct.py>
+[7] SemIf serial scorer source: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/serial.py>
+[8] SemIf shared scorer source: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/src/semif_phase1/shared.py>
+[9] SemIf Apple Silicon guide: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/APPLE_SILICON.md>
+[10] SemIf MLX guide: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/MLX.md>
+[11] SemIf calibration guide: <https://github.com/TheoLeeCJ/SemIf/blob/23cf1f39fc9534fe81437200959b6dfc7106e45a/docs/CALIBRATION.md>
