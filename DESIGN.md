@@ -13,10 +13,11 @@ colors:
   paper-tint: "#ebe7dc"
   carbon-tint: "#1e1e21"
   research-amber: "#e8a33a"
-  productivity-vermilion: "#e2643f"
   coding-cobalt: "#3a63b8"
+  setup-cyan: "#2b9cb3"
+  browser-rose: "#db5f92"
+  communication-green: "#4f9e63"
   design-violet: "#7a52b3"
-  slack-green: "#4f9e63"
   unfiled-stone: "#d8d4c8"
   unfiled-stone-dark: "#8f8a7e"
   fill-white: "#ffffff"
@@ -187,30 +188,31 @@ Both themes are first-class. The theme follows the OS until the visitor toggles 
 
 **Key Characteristics:**
 - Element cells: number, three-letter family mark, version, two-letter symbol, skill name.
-- Six flat process-colour families: Research, Productivity, Coding Agents, Design, Slack, Unfiled.
+- Seven flat process-colour families: Research & Writing, Coding Workflow, Agent & Machine Setup, Browser Automation, Communication, Design, Unfiled.
 - Heavy grotesk (Archivo) for structure, reading serif (Source Serif 4) for prose, mono only for paths and commands.
 - 3px ink rules open blocks; 1px hairlines separate rows; corners are square; nothing casts a shadow.
 - Full-width paragraphs and lists; small-caps tabular figures for dates and versions.
 
 ## Colors
 
-Chart paper and press ink carry the page; six flat process fills mark the families and appear nowhere else.
+Chart paper and press ink carry the page; seven flat process fills mark the families and appear nowhere else.
 
 ### Primary
-- **Press Ink**: the light-theme ink and cell keyline, and the text on amber, vermilion, green and stone fills in both themes. All text, every 3px rule, focus outlines, the toggle border. On chart paper it reads at 16.3:1.
+- **Press Ink**: the light-theme ink and cell keyline, and the text on amber, cyan, rose, green and stone fills in both themes. All text, every 3px rule, focus outlines, the toggle border. On chart paper it reads at 16.3:1.
 - **Bone Ink**: the dark-theme ink, on carbon ground at 15.2:1.
 
 ### Secondary (family fills)
-Each fill is paired with a fixed text colour and a three-letter mark (RES, PRO, COD, DES, SLK, UNF) so family is never conveyed by hue alone.
-- **Research Amber**: Research cells and swatch; press ink on top (8.3:1). Also the text-selection highlight.
-- **Productivity Vermilion**: Productivity; press ink on top (5.2:1).
-- **Coding Cobalt**: Coding Agents; white on top (5.7:1).
+Each fill is paired with a fixed text colour and a three-letter mark (RES, COD, SET, BRW, COM, DES, UNF) so family is never conveyed by hue alone. Sections are assigned per skill name in `SKILL_SECTIONS`, not by folder.
+- **Research Amber**: Research & Writing cells and swatch; press ink on top (8.3:1). Also the text-selection highlight.
+- **Coding Cobalt**: Coding Workflow; white on top (5.7:1).
+- **Setup Cyan**: Agent & Machine Setup; press ink on top (5.5:1).
+- **Browser Rose**: Browser Automation; press ink on top (5.2:1).
+- **Communication Green**: Communication; press ink on top (5.5:1).
 - **Design Violet**: Design; white on top (5.7:1).
-- **Slack Green**: Slack; press ink on top (5.5:1).
 - **Unfiled Stone**: Unfiled in light theme; press ink on top (12.1:1).
 - **Unfiled Stone Dark**: Unfiled in dark theme, replacing the pale stone that was the loudest block on carbon; press ink on top (5.2:1).
 
-The other five fills are identical in both themes.
+The other six fills are identical in both themes.
 
 ### Neutral
 - **Chart Paper**: light-theme ground. The warm off-white is the world's paper, specified by the direction contract, not a default cream.
@@ -331,4 +333,4 @@ A 3px ink rule closing every page, with licence, repo, source note, Hermes credi
 - **Don't** convey family by hue alone.
 - **Don't** use mono for anything but paths, commands and code.
 - **Don't** bring Archivo or 3px rules into the report article; they belong to the site frame.
-- **Don't** add a seventh family fill ad hoc; unknown sections fall into Unfiled until a family is defined in `FAMILIES`.
+- **Don't** add an eighth family fill ad hoc; unknown sections fall into Unfiled until a family is defined in `FAMILIES`.

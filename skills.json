@@ -5,7 +5,7 @@
       "name": "auditing-worktrees",
       "version": "1.0.0",
       "description": "Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos",
-      "category": "Productivity",
+      "category": "Coding Workflow",
       "path": "skills/productivity/auditing-worktrees",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
     },
@@ -13,7 +13,7 @@
       "name": "camofox-browser",
       "version": "1.0.0",
       "description": "Use when sites block bots. Start Camofox, saved logins.",
-      "category": "Productivity",
+      "category": "Browser Automation",
       "path": "skills/productivity/camofox-browser",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
     },
@@ -21,7 +21,7 @@
       "name": "covidence-full-text-retrieval",
       "version": "1.2.0",
       "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
-      "category": "Research",
+      "category": "Research & Writing",
       "path": "skills/covidence-full-text-retrieval",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval"
     },
@@ -29,7 +29,7 @@
       "name": "covidence-full-text-review",
       "version": "2.0.0",
       "description": "Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.",
-      "category": "Research",
+      "category": "Research & Writing",
       "path": "skills/covidence-full-text-retrieval/covidence-full-text-review",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review"
     },
@@ -37,7 +37,7 @@
       "name": "covidence-screening",
       "version": "1.0.0",
       "description": "Autonomously screen references at the title & abstract stage of a Covidence systematic review in the user's Chrome session via CDP. Votes Yes/Maybe/No per the user's PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.",
-      "category": "Research",
+      "category": "Research & Writing",
       "path": "skills/covidence-screening",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
     },
@@ -45,7 +45,7 @@
       "name": "demo-runbook",
       "version": "0.1.0",
       "description": "Use when asked for a runbook demo. Real runs, video, Pages.",
-      "category": "Productivity",
+      "category": "Coding Workflow",
       "path": "skills/productivity/demo-runbook",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook"
     },
@@ -53,7 +53,7 @@
       "name": "hermes-deepseek-cache",
       "version": "1.1.0",
       "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
-      "category": "Productivity",
+      "category": "Agent & Machine Setup",
       "path": "skills/productivity/hermes-deepseek-cache",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
     },
@@ -61,7 +61,7 @@
       "name": "i-have-adhd",
       "version": "",
       "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
-      "category": "Productivity",
+      "category": "Communication",
       "path": "skills/productivity/i-have-adhd",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
     },
@@ -69,7 +69,7 @@
       "name": "ilearning-autoadvance",
       "version": "5.0.0",
       "description": "Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.",
-      "category": "ilearning-autoadvance",
+      "category": "Browser Automation",
       "path": "skills/ilearning-autoadvance",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance"
     },
@@ -85,7 +85,7 @@
       "name": "memory-ui",
       "version": "",
       "description": "Launch the Mnemosyne browser UI to inspect stored memory.",
-      "category": "Productivity",
+      "category": "Agent & Machine Setup",
       "path": "skills/productivity/memory-ui",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
     },
@@ -93,7 +93,7 @@
       "name": "multi-repo-pr-review-merge-round",
       "version": "1.0.0",
       "description": "Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.",
-      "category": "Productivity",
+      "category": "Coding Workflow",
       "path": "skills/productivity/multi-repo-pr-review-merge-round",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/multi-repo-pr-review-merge-round"
     },
@@ -101,7 +101,7 @@
       "name": "oh-my-ghostty",
       "version": "1.0.0",
       "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
-      "category": "Productivity",
+      "category": "Agent & Machine Setup",
       "path": "skills/productivity/oh-my-ghostty",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty"
     },
@@ -109,7 +109,7 @@
       "name": "oh-my-pi",
       "version": "",
       "description": "Troubleshoot/operate the Oh-My-Pi (omp) coding agent.",
-      "category": "Coding Agents",
+      "category": "Coding Workflow",
       "path": "skills/oh-my-pi",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi"
     },
@@ -117,7 +117,7 @@
       "name": "sci-hub-access",
       "version": "1.1.0",
       "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-      "category": "Research",
+      "category": "Research & Writing",
       "path": "skills/sci-hub-access",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
     },
@@ -125,7 +125,7 @@
       "name": "slack-mention-watch",
       "version": "2.7.1",
       "description": "Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.",
-      "category": "Slack",
+      "category": "Communication",
       "path": "skills/slack/slack-mention-watch",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
     },
@@ -133,7 +133,7 @@
       "name": "slack-scan",
       "version": "1.0.0",
       "description": "Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.",
-      "category": "Slack",
+      "category": "Communication",
       "path": "skills/slack/slack-scan",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan"
     },
@@ -141,7 +141,7 @@
       "name": "superpowers-using-superpowers",
       "version": "1.0.0",
       "description": "Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions",
-      "category": "superpowers",
+      "category": "Coding Workflow",
       "path": "skills/superpowers/superpowers-using-superpowers",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers"
     },
@@ -149,7 +149,7 @@
       "name": "tldr",
       "version": "1.1.0",
       "description": "Use when the user says tldr / TL;DR or asks for a before/after summary.",
-      "category": "Productivity",
+      "category": "Communication",
       "path": "skills/productivity/tldr",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
     },
@@ -157,20 +157,20 @@
       "name": "writing-reports",
       "version": "2.0.0",
       "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
-      "category": "Productivity",
+      "category": "Research & Writing",
       "path": "skills/productivity/writing-reports",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports"
     }
   ],
   "sections": [
     {
-      "title": "Research",
+      "title": "Research & Writing",
       "skills": [
         {
           "name": "covidence-full-text-retrieval",
           "version": "1.2.0",
           "description": "Autonomously retrieve full-text PDFs for references in the full-text review stage of a Covidence systematic review, in the user's Chrome session via CDP. Looks up open-access copies via Unpaywall, Semantic Scholar, and arXiv, with an optional NotebookLM-assisted last-resort web search, then uploads any PDF it finds through Covidence's \"Upload full text\" action. References with no locatable full text get a note logged for manual follow-up. Never casts an Include/Exclude decision -- that stays manual.",
-          "category": "Research",
+          "category": "Research & Writing",
           "path": "skills/covidence-full-text-retrieval",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval"
         },
@@ -178,7 +178,7 @@
           "name": "covidence-full-text-review",
           "version": "2.0.0",
           "description": "Review full-text papers in a Covidence systematic review. Mode 1 (websearch_queue): walks the Covidence queue, web-searches each title, opens the first result in the papers-access browser profile, reads the full text, and reports verdicts in chat (no Covidence writes). Mode 2 (secondary_reviewer): receives a URL from the user, reads the paper, returns a structured Include/Exclude verdict with rationale, and optionally casts the vote in Covidence when a ref_id is supplied.",
-          "category": "Research",
+          "category": "Research & Writing",
           "path": "skills/covidence-full-text-retrieval/covidence-full-text-review",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-full-text-retrieval/covidence-full-text-review"
         },
@@ -186,7 +186,7 @@
           "name": "covidence-screening",
           "version": "1.0.0",
           "description": "Autonomously screen references at the title & abstract stage of a Covidence systematic review in the user's Chrome session via CDP. Votes Yes/Maybe/No per the user's PICO criteria, writes a one-line rationale for Maybe votes, and runs unattended after an approve-first-N onboarding phase.",
-          "category": "Research",
+          "category": "Research & Writing",
           "path": "skills/covidence-screening",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/covidence-screening"
         },
@@ -194,107 +194,149 @@
           "name": "sci-hub-access",
           "version": "1.1.0",
           "description": "Use when a paywalled DOI's full text is needed and no open-access copy exists — retrieving PDFs via Sci-Hub mirrors, and joining/using Sci-Net (sci-net.xyz) for post-2022 papers. Covers mirror discovery, direct PDF fetch, Turnstile gate, and the Sci-Net invite-code API.",
-          "category": "Research",
+          "category": "Research & Writing",
           "path": "skills/sci-hub-access",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/sci-hub-access"
-        }
-      ]
-    },
-    {
-      "title": "Productivity",
-      "skills": [
-        {
-          "name": "auditing-worktrees",
-          "version": "1.0.0",
-          "description": "Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos",
-          "category": "Productivity",
-          "path": "skills/productivity/auditing-worktrees",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
-        },
-        {
-          "name": "camofox-browser",
-          "version": "1.0.0",
-          "description": "Use when sites block bots. Start Camofox, saved logins.",
-          "category": "Productivity",
-          "path": "skills/productivity/camofox-browser",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
-        },
-        {
-          "name": "demo-runbook",
-          "version": "0.1.0",
-          "description": "Use when asked for a runbook demo. Real runs, video, Pages.",
-          "category": "Productivity",
-          "path": "skills/productivity/demo-runbook",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook"
-        },
-        {
-          "name": "hermes-deepseek-cache",
-          "version": "1.1.0",
-          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
-          "category": "Productivity",
-          "path": "skills/productivity/hermes-deepseek-cache",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
-        },
-        {
-          "name": "i-have-adhd",
-          "version": "",
-          "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
-          "category": "Productivity",
-          "path": "skills/productivity/i-have-adhd",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
-        },
-        {
-          "name": "memory-ui",
-          "version": "",
-          "description": "Launch the Mnemosyne browser UI to inspect stored memory.",
-          "category": "Productivity",
-          "path": "skills/productivity/memory-ui",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
-        },
-        {
-          "name": "multi-repo-pr-review-merge-round",
-          "version": "1.0.0",
-          "description": "Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.",
-          "category": "Productivity",
-          "path": "skills/productivity/multi-repo-pr-review-merge-round",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/multi-repo-pr-review-merge-round"
-        },
-        {
-          "name": "oh-my-ghostty",
-          "version": "1.0.0",
-          "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
-          "category": "Productivity",
-          "path": "skills/productivity/oh-my-ghostty",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty"
-        },
-        {
-          "name": "tldr",
-          "version": "1.1.0",
-          "description": "Use when the user says tldr / TL;DR or asks for a before/after summary.",
-          "category": "Productivity",
-          "path": "skills/productivity/tldr",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
         },
         {
           "name": "writing-reports",
           "version": "2.0.0",
           "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
-          "category": "Productivity",
+          "category": "Research & Writing",
           "path": "skills/productivity/writing-reports",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/writing-reports"
         }
       ]
     },
     {
-      "title": "Coding Agents",
+      "title": "Coding Workflow",
       "skills": [
+        {
+          "name": "auditing-worktrees",
+          "version": "1.0.0",
+          "description": "Use when asked for the status of worktrees, which worktree branches are ready to review, pushed, merged or shipped, which worktrees are stale, idle or purgeable, or for a periodic worktree audit across one or several repos",
+          "category": "Coding Workflow",
+          "path": "skills/productivity/auditing-worktrees",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/auditing-worktrees"
+        },
+        {
+          "name": "demo-runbook",
+          "version": "0.1.0",
+          "description": "Use when asked for a runbook demo. Real runs, video, Pages.",
+          "category": "Coding Workflow",
+          "path": "skills/productivity/demo-runbook",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/demo-runbook"
+        },
+        {
+          "name": "multi-repo-pr-review-merge-round",
+          "version": "1.0.0",
+          "description": "Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.",
+          "category": "Coding Workflow",
+          "path": "skills/productivity/multi-repo-pr-review-merge-round",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/multi-repo-pr-review-merge-round"
+        },
         {
           "name": "oh-my-pi",
           "version": "",
           "description": "Troubleshoot/operate the Oh-My-Pi (omp) coding agent.",
-          "category": "Coding Agents",
+          "category": "Coding Workflow",
           "path": "skills/oh-my-pi",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/oh-my-pi"
+        },
+        {
+          "name": "superpowers-using-superpowers",
+          "version": "1.0.0",
+          "description": "Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions",
+          "category": "Coding Workflow",
+          "path": "skills/superpowers/superpowers-using-superpowers",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers"
+        }
+      ]
+    },
+    {
+      "title": "Agent & Machine Setup",
+      "skills": [
+        {
+          "name": "hermes-deepseek-cache",
+          "version": "1.1.0",
+          "description": "Use when running Hermes Agent with a DeepSeek-family model (deepseek, or deepseek-v4-flash/pro via an aggregator like opencode-go) and want to see, graph, or reset DeepSeek's prefix-cache hit rate, diagnose cache misses, or confirm the deepseek_cache.enabled config — OR when you want to port/apply the deepseek_cache.py module (DeepSeek prefix-cache telemetry, /cache-stats /cache-graph /cache-reset, prefix-break diagnostics, stable tool ordering, cache-friendly compaction) into a Hermes source tree. Covers use + integration.",
+          "category": "Agent & Machine Setup",
+          "path": "skills/productivity/hermes-deepseek-cache",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/hermes-deepseek-cache"
+        },
+        {
+          "name": "memory-ui",
+          "version": "",
+          "description": "Launch the Mnemosyne browser UI to inspect stored memory.",
+          "category": "Agent & Machine Setup",
+          "path": "skills/productivity/memory-ui",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
+        },
+        {
+          "name": "oh-my-ghostty",
+          "version": "1.0.0",
+          "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
+          "category": "Agent & Machine Setup",
+          "path": "skills/productivity/oh-my-ghostty",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/oh-my-ghostty"
+        }
+      ]
+    },
+    {
+      "title": "Browser Automation",
+      "skills": [
+        {
+          "name": "camofox-browser",
+          "version": "1.0.0",
+          "description": "Use when sites block bots. Start Camofox, saved logins.",
+          "category": "Browser Automation",
+          "path": "skills/productivity/camofox-browser",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/camofox-browser"
+        },
+        {
+          "name": "ilearning-autoadvance",
+          "version": "5.0.0",
+          "description": "Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.",
+          "category": "Browser Automation",
+          "path": "skills/ilearning-autoadvance",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance"
+        }
+      ]
+    },
+    {
+      "title": "Communication",
+      "skills": [
+        {
+          "name": "i-have-adhd",
+          "version": "",
+          "description": "Shape output for a reader with ADHD: lead with the next action, number multi-step work, restate state across turns, suppress tangents, give specific time estimates, make wins visible. Invoke with /i-have-adhd; stays on until \"stop adhd mode\".",
+          "category": "Communication",
+          "path": "skills/productivity/i-have-adhd",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/i-have-adhd"
+        },
+        {
+          "name": "slack-mention-watch",
+          "version": "2.7.1",
+          "description": "Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.",
+          "category": "Communication",
+          "path": "skills/slack/slack-mention-watch",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
+        },
+        {
+          "name": "slack-scan",
+          "version": "1.0.0",
+          "description": "Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.",
+          "category": "Communication",
+          "path": "skills/slack/slack-scan",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan"
+        },
+        {
+          "name": "tldr",
+          "version": "1.1.0",
+          "description": "Use when the user says tldr / TL;DR or asks for a before/after summary.",
+          "category": "Communication",
+          "path": "skills/productivity/tldr",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/tldr"
         }
       ]
     },
@@ -308,53 +350,6 @@
           "category": "Design",
           "path": "skills/creative/impeccable",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable"
-        }
-      ]
-    },
-    {
-      "title": "Slack",
-      "skills": [
-        {
-          "name": "slack-mention-watch",
-          "version": "2.7.1",
-          "description": "Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.",
-          "category": "Slack",
-          "path": "skills/slack/slack-mention-watch",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-mention-watch"
-        },
-        {
-          "name": "slack-scan",
-          "version": "1.0.0",
-          "description": "Summarize today's Slack channel activity on demand (bot-member channels). NOT for pings/mentions -- use slack-mention-watch.",
-          "category": "Slack",
-          "path": "skills/slack/slack-scan",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/slack/slack-scan"
-        }
-      ]
-    },
-    {
-      "title": "ilearning-autoadvance",
-      "skills": [
-        {
-          "name": "ilearning-autoadvance",
-          "version": "5.0.0",
-          "description": "Autonomously advance HCL iLearning / SAP SuccessFactors compliance courses (Articulate Storyline SCORM, Ethena GoEthena, or direct-HTML SVG players) via raw CDP on port 9222. Resumes paused audio, clicks interactive slide topics/cards, answers quizzes, navigates to the next slide.",
-          "category": "ilearning-autoadvance",
-          "path": "skills/ilearning-autoadvance",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/ilearning-autoadvance"
-        }
-      ]
-    },
-    {
-      "title": "superpowers",
-      "skills": [
-        {
-          "name": "superpowers-using-superpowers",
-          "version": "1.0.0",
-          "description": "Use when starting any conversation - establishes how to find and use skills, requiring skill loading (skill_view) before ANY response including clarifying questions",
-          "category": "superpowers",
-          "path": "skills/superpowers/superpowers-using-superpowers",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers"
         }
       ]
     }

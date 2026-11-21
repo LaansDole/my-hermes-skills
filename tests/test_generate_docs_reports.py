@@ -48,11 +48,14 @@ def skill_md(name: str, version: str = "1.0.0") -> str:
     return f"---\nname: {name}\n{ver}description: Fixture {name}.\ntags: [fixture]\n---\n"
 
 
-# Two mapped families, a nested child, a symbol collision (Dr) and an
-# unmapped top-level dir that must land in Unfiled.
+# Explicit skill-name sections, a dir fallback (creative -> Design), a
+# nested child with its own entry, a child with no entry that inherits its
+# parent's section, a symbol collision (Dr) and an unmapped top-level dir
+# that must land in Unfiled.
 CHART_SKILLS = {
     "skills/productivity/demo-runbook/SKILL.md": skill_md("demo-runbook", "0.1.0"),
-    "skills/productivity/dev-runbook/SKILL.md": skill_md("dev-runbook", ""),
+    "skills/productivity/demo-runbook/demo-runbook-notes/SKILL.md": skill_md("demo-runbook-notes"),
+    "skills/creative/dev-runbook/SKILL.md": skill_md("dev-runbook", ""),
     "skills/covidence-full-text-retrieval/SKILL.md": skill_md("covidence-full-text-retrieval"),
     "skills/covidence-full-text-retrieval/covidence-full-text-review/SKILL.md":
         skill_md("covidence-full-text-review", "2.0.0"),
@@ -540,16 +543,22 @@ class ChartTests(unittest.TestCase):
     def test_one_cell_per_skill_in_chart_order(self):
         cells = re.findall(r'<a class="cell f-([a-z-]+)" href="#entry-([^"]+)"', self.chart)
         self.assertEqual(cells, [
-            ("research", "covidence-full-text-retrieval"),
-            ("research", "covidence-full-text-review"),  # child right after parent
-            ("productivity", "demo-runbook"),
-            ("productivity", "dev-runbook"),
+            ("research-writing", "covidence-full-text-retrieval"),
+            ("research-writing", "covidence-full-text-review"),  # child right after parent
+            ("coding-workflow", "demo-runbook"),
+            ("coding-workflow", "demo-runbook-notes"),  # unmapped child inherits parent
+            ("design", "dev-runbook"),  # unmapped skill falls back to its dir
             ("unfiled", "zz-unknown"),
         ])
         self.assertIn("child of 01", self.chart.split('href="#entry-covidence-full-text-review"')[1]
                       .split("</li>")[0])
-        self.assertIn('aria-label="03 demo-runbook, Productivity, version 0.1.0"', self.chart)
-        self.assertIn('aria-label="04 dev-runbook, Productivity, unversioned"', self.chart)
+        self.assertIn('aria-label="01 covidence-full-text-retrieval, Research &amp; Writing, '
+                      'version 1.0.0"', self.chart)
+        self.assertIn('aria-label="03 demo-runbook, Coding Workflow, version 0.1.0"', self.chart)
+        self.assertIn('aria-label="05 dev-runbook, Design, unversioned"', self.chart)
+        self.assertNotIn("Research & Writing", self.index)  # always escaped in HTML
+        self.assertIn('<span class="kf-name">Research &amp; Writing</span>', self.index)
+        self.assertIn('id="family-research-writing">Research &amp; Writing <span>', self.index)
 
     def test_symbols_are_unique(self):
         syms = re.findall(r'<span class="c-sym">([^<]+)</span>', self.chart)
@@ -562,8 +571,9 @@ class ChartTests(unittest.TestCase):
             r'<p class="fb-h"><span>([^<]+)</span><span class="fb-n">(\d+)'
             r'.*?<ul class="fb-cells">(.*?)</ul>', self.chart, re.S)
         self.assertEqual([(slug, word, n) for slug, word, n, _ in blocks], [
-            ("research", "Research", "2"),
-            ("productivity", "Productivity", "2"),
+            ("research-writing", "Research &amp; Writing", "2"),
+            ("coding-workflow", "Coding Workflow", "2"),
+            ("design", "Design", "1"),
             ("unfiled", "Unfiled", "1"),
         ])
         marks = {gd.slugify(f): m for f, (_, _, m) in gd.FAMILIES.items()}
@@ -600,11 +610,58 @@ class ChartTests(unittest.TestCase):
         generate(self.root, "--json")
         manifest = json.loads((self.root / "skills.json").read_text())
         self.assertEqual([s["title"] for s in manifest["sections"]],
-                         ["Research", "Productivity", "zz-unknown"])
+                         ["Research & Writing", "Coding Workflow", "Design", "zz-unknown"])
         self.assertEqual([s["name"] for s in manifest["sections"][0]["skills"]],
                          ["covidence-full-text-retrieval", "covidence-full-text-review"])
+        self.assertEqual([s["name"] for s in manifest["sections"][1]["skills"]],
+                         ["demo-runbook", "demo-runbook-notes"])
         self.assertEqual(sorted(manifest["skills"][0]), sorted(
             ["name", "version", "description", "category", "path", "url"]))
+
+
+def _contrast(a: str, b: str) -> float:
+    def lum(h):
+        c = [int(h.lstrip("#")[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        c = [x / 12.92 if x <= 0.03928 else ((x + 0.055) / 1.055) ** 2.4 for x in c]
+        return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+    hi, lo = sorted((lum(a), lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+class SectionTests(unittest.TestCase):
+    """Sections are assigned per skill name against the real skills/ tree."""
+
+    EXPECTED = {
+        "Research & Writing": ["covidence-full-text-retrieval", "covidence-full-text-review",
+                               "covidence-screening", "sci-hub-access", "writing-reports"],
+        "Coding Workflow": ["auditing-worktrees", "demo-runbook", "multi-repo-pr-review-merge-round",
+                            "oh-my-pi", "superpowers-using-superpowers"],
+        "Agent & Machine Setup": ["hermes-deepseek-cache", "memory-ui", "oh-my-ghostty"],
+        "Browser Automation": ["camofox-browser", "ilearning-autoadvance"],
+        "Communication": ["i-have-adhd", "slack-mention-watch", "slack-scan", "tldr"],
+        "Design": ["impeccable"],
+    }
+
+    def test_every_real_skill_maps_to_its_section(self):
+        skills = gd.find_skills()
+        got = {}
+        for s in skills:
+            got.setdefault(gd.section_title(s), []).append(s["name"])
+        self.assertEqual({t: sorted(n) for t, n in got.items()}, self.EXPECTED)
+        self.assertEqual([t for t, _ in gd.ordered_sections(skills)], gd.SECTION_ORDER)
+        dirs = {p.name for p in gd.SKILLS.iterdir() if p.is_dir()}
+        self.assertFalse(dirs & set(got), "a section is titled by a raw dir")
+
+    def test_every_section_has_a_family_with_unique_mark_and_readable_text(self):
+        self.assertEqual(list(gd.FAMILIES), gd.SECTION_ORDER + [gd.UNFILED])
+        marks = [m for _, _, m in gd.FAMILIES.values()]
+        self.assertEqual(len(set(marks)), len(marks))
+        self.assertEqual(len({bg for bg, _, _ in gd.FAMILIES.values()}), len(gd.FAMILIES))
+        for name, (bg, fg, _) in gd.FAMILIES.items():
+            self.assertGreaterEqual(_contrast(bg, fg), 4.5, name)
+            dark = gd.DARK_FILLS.get(name)
+            if dark:
+                self.assertGreaterEqual(_contrast(dark, fg), 4.5, f"{name} dark")
 
 
 class ChangelogTests(unittest.TestCase):

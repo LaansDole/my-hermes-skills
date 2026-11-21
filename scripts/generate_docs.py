@@ -32,31 +32,57 @@ GH = "https://github.com/LaansDole/my-hermes-skills"
 SITE = "https://laansdole.github.io/my-hermes-skills"
 HERMES = "https://hermes-agent.nousresearch.com"
 
-# top-level skills/ dir -> section title. Unknown dirs become their own
-# section (titled by the dir) and sit in the Unfiled family on the chart.
-CATEGORY_MAP = {
-    "covidence-screening":           "Research",
-    "covidence-full-text-retrieval": "Research",
-    "sci-hub-access":                "Research",
-    "productivity":                  "Productivity",
-    "oh-my-pi":                      "Coding Agents",
+# skill name -> section title. A child skill with no entry inherits its
+# parent's section; anything else unmapped falls back to DIR_SECTIONS by
+# top-level skills/ dir, else becomes its own section (titled by the dir)
+# in the Unfiled family on the chart.
+SKILL_SECTIONS = {
+    "covidence-screening":              "Research & Writing",
+    "covidence-full-text-retrieval":    "Research & Writing",
+    "covidence-full-text-review":       "Research & Writing",
+    "sci-hub-access":                   "Research & Writing",
+    "writing-reports":                  "Research & Writing",
+    "oh-my-pi":                         "Coding Workflow",
+    "multi-repo-pr-review-merge-round": "Coding Workflow",
+    "auditing-worktrees":               "Coding Workflow",
+    "demo-runbook":                     "Coding Workflow",
+    "superpowers-using-superpowers":    "Coding Workflow",
+    "hermes-deepseek-cache":            "Agent & Machine Setup",
+    "memory-ui":                        "Agent & Machine Setup",
+    "oh-my-ghostty":                    "Agent & Machine Setup",
+    "camofox-browser":                  "Browser Automation",
+    "ilearning-autoadvance":            "Browser Automation",
+    "slack-mention-watch":              "Communication",
+    "slack-scan":                       "Communication",
+    "tldr":                             "Communication",
+    "i-have-adhd":                      "Communication",
+    "impeccable":                       "Design",
+}
+DIR_SECTIONS = {
+    "covidence-screening":           "Research & Writing",
+    "covidence-full-text-retrieval": "Research & Writing",
+    "sci-hub-access":                "Research & Writing",
+    "oh-my-pi":                      "Coding Workflow",
+    "superpowers":                   "Coding Workflow",
     "creative":                      "Design",
-    "slack":                         "Slack",
+    "slack":                         "Communication",
 }
 # fixed section order; unknown sections append alphabetically
-SECTION_ORDER = ["Research", "Productivity", "Coding Agents", "Design", "Slack"]
+SECTION_ORDER = ["Research & Writing", "Coding Workflow", "Agent & Machine Setup",
+                 "Browser Automation", "Communication", "Design"]
 
 INK = "#17171b"
 # family -> (flat process fill, text on fill, mark). The three-letter mark
 # rides on every cell and key swatch, so family is never hue alone.
-# Contrast (WCAG), text on fill: 8.28, 5.22, 5.74, 5.70, 5.45, 12.06 : 1.
+# Contrast (WCAG), text on fill: 8.28, 5.74, 5.54, 5.16, 5.45, 5.70, 12.06 : 1.
 FAMILIES = {
-    "Research":      ("#e8a33a", INK, "RES"),
-    "Productivity":  ("#e2643f", INK, "PRO"),
-    "Coding Agents": ("#3a63b8", "#ffffff", "COD"),
-    "Design":        ("#7a52b3", "#ffffff", "DES"),
-    "Slack":         ("#4f9e63", INK, "SLK"),
-    "Unfiled":       ("#d8d4c8", INK, "UNF"),
+    "Research & Writing":    ("#e8a33a", INK, "RES"),
+    "Coding Workflow":       ("#3a63b8", "#ffffff", "COD"),
+    "Agent & Machine Setup": ("#2b9cb3", INK, "SET"),
+    "Browser Automation":    ("#db5f92", INK, "BRW"),
+    "Communication":         ("#4f9e63", INK, "COM"),
+    "Design":                ("#7a52b3", "#ffffff", "DES"),
+    "Unfiled":               ("#d8d4c8", INK, "UNF"),
 }
 # dark-theme fill overrides; pale Unfiled was the loudest block on carbon.
 # #8f8a7e under ink: 5.20 : 1.
@@ -214,7 +240,10 @@ def inline_md(text: str) -> str:
 
 
 def section_title(s: dict) -> str:
-    return CATEGORY_MAP.get(s["top"], s["top"])
+    for key in (s["name"], s["parent_skill"]):
+        if key in SKILL_SECTIONS:
+            return SKILL_SECTIONS[key]
+    return DIR_SECTIONS.get(s["top"], s["top"])
 
 
 def ordered_sections(skills: list) -> list:
