@@ -121,8 +121,8 @@
     .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
     .r-title { font: 700 17px/24px var(--display); }
     .r-title code { font: 400 15px/24px var(--mono); }
-    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
-    .r-verdict code { font-size: 14px; }
+    .r-summary { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-summary code { font-size: 14px; }
     @media (max-width: 640px) {
       .page-head { padding-top: 32px; }
       .page-head h1 { font-size: 40px; line-height: 40px; }
@@ -182,7 +182,7 @@
   <div class="page-head">
     <h1>Changelog</h1>
     <p class="lede">
-      22 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
+      23 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
       Every push that bumps a version is also published as a
       <a href="https://github.com/LaansDole/my-hermes-skills/releases" target="_blank" rel="noopener">GitHub release</a>.
     </p>
@@ -192,6 +192,11 @@
     <section class="month" aria-labelledby="m-november-2026">
       <h2 id="m-november-2026">November 2026</h2>
       <ol class="rows">
+        <li class="cl-row" id="writing-reports-2.0.0">
+          <time class="r-date sc" datetime="2026-11-21">21 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-writing-reports">writing-reports</a><span class="sc">v2.0.0</span></p>
+          <div class="cl-changes"><p class="cl-kind">Changed</p><ul><li>Reports are now written as short research papers: structured Abstract (Background, Objective, Methods, Results, Conclusions), then numbered Introduction, Methods, Results, Discussion, Limitations and Conclusion sections. The Verdict / Findings / Caveats layout is retired.</li><li>Every number carries an evidence type (measured, third-party benchmark, vendor-reported, community report, derived), and claims are hedged to match.</li><li>Report types (benchmark study, evidence review, technical investigation, technical guide) adjust the Methods and Results sections.</li><li>Search goes through Camofox instead of SearXNG.</li></ul><p class="cl-kind">Added</p><ul><li>Rules for rewriting an older report into the new format without changing its facts.</li></ul></div>
+        </li>
         <li class="cl-row" id="impeccable-4.9.0">
           <time class="r-date sc" datetime="2026-11-14">14 Nov</time>
           <p class="cl-skill"><a href="index.html#entry-impeccable">impeccable</a><span class="sc">v4.9.0</span></p>

@@ -155,7 +155,7 @@
     },
     {
       "name": "writing-reports",
-      "version": "1.1.0",
+      "version": "2.0.0",
       "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
       "category": "Productivity",
       "path": "skills/productivity/writing-reports",
@@ -277,7 +277,7 @@
         },
         {
           "name": "writing-reports",
-          "version": "1.1.0",
+          "version": "2.0.0",
           "description": "Use when the user asks for a report, research write-up, benchmark/model/tool comparison, or any 'give me the report' request.",
           "category": "Productivity",
           "path": "skills/productivity/writing-reports",
@@ -357,6 +357,104 @@
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/superpowers/superpowers-using-superpowers"
         }
       ]
+    }
+  ],
+  "reports": [
+    {
+      "date": "2026-11-14",
+      "title": "Does an expert persona in the system prompt help or hurt current models? An A/B test and literature review",
+      "slug": "2026-11-14-persona-prompting-ab-test",
+      "path": "reports/2026-11/2026-11-14-persona-prompting-ab-test.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-11/2026-11-14-persona-prompting-ab-test.html",
+      "summary": "A generic \"You are a world-class expert\" persona neither helped nor hurt either model in 446 runs: every accuracy difference was within noise (sign-test p ≥ 0.34). It is not a hindrance on these models, but it buys nothing and can be dropped from skills; roles that state scope,…"
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Should Reladraw replace Mermaid for README diagrams?",
+      "slug": "2026-10-24-mermaid-vs-reladraw",
+      "path": "reports/2026-10/2026-10-24-mermaid-vs-reladraw.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-10/2026-10-24-mermaid-vs-reladraw.html",
+      "summary": "Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit, or show on a Pages site."
+    },
+    {
+      "date": "2026-10-24",
+      "title": "Why do Hermes voice replies crackle on macOS? afplay cuts Ogg/Opus off after ~1s",
+      "slug": "2026-10-24-macos-afplay-ogg-tts-truncation",
+      "path": "reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.html",
+      "summary": "The audio files were fine; playback was cutting them off. On macOS 15 and later afplay plays about the first second of an Ogg/Opus file and exits 0, so Hermes never falls back to another player. Setting the provider's voice_compatible to false works around it, and PR #132143…"
+    },
+    {
+      "date": "2026-10-15",
+      "title": "Has oh-my-pi adopted Pi 1.0 and Pi Durable, and should it?",
+      "slug": "2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable",
+      "path": "reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.html",
+      "summary": "No: omp has adopted neither Pi 1.0 nor Pi Durable. It should not rebase onto Pi 1.0, but it should keep closing Pi 1.x extension-compatibility gaps and track Pi Durable's design for its own durability proposals."
+    },
+    {
+      "date": "2026-10-14",
+      "title": "Why do omp's small-model agents feel slower on Claude Haiku 5.5 (max) than on GPT-6 Luna (max)?",
+      "slug": "2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed",
+      "path": "reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.html",
+      "summary": "Yes, Haiku 5.5:max is slower, and the cause is :max effort on Haiku, not the model itself. Move scout, reviewer and init from anthropic/claude-haiku-5-5:max to :medium (or :high if review depth suffers), and keep :max only for one-off deep passes."
+    },
+    {
+      "date": "2026-10-14",
+      "title": "Which effort level should omp's small-model agents use? Claude Haiku 5.5 vs GPT-6 Luna effort-level benchmarks",
+      "slug": "2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks",
+      "path": "reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks.html",
+      "summary": "Haiku 5.5 is the stronger model, but :max is the wrong setting for omp's small-model agents: Haiku at medium or high scored as well as Haiku:max on these tasks, ran 10-20x faster, and cost a tenth as much. Luna's speed barely changes with effort level, but it gives up quality…"
+    },
+    {
+      "date": "2026-09-27",
+      "title": "What changed from OpenCode v1 to v2, and does OpenCode Go route between models?",
+      "slug": "2026-09-27-opencode-v2-vs-v1-go-routing",
+      "path": "reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.html",
+      "summary": "OpenCode v2 is a major agent-platform and configuration revision, not a new \"smarter model\" tier, and OpenCode Go does not document task-aware model selection or guaranteed cross-model failover. Try v2 after checking plugins and API clients, and implement model choice and…"
+    },
+    {
+      "date": "2026-09-26",
+      "title": "Is GLM-5.3-Flash a faster, cheaper daily coordinator than GPT-6 Luna? External comparisons and firsthand reports",
+      "slug": "2026-09-26-gpt-6-luna-vs-glm-5-3-flash",
+      "path": "reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.html",
+      "summary": "The evidence does not show that GLM-5.3-Flash is the faster daily coordinator: matched benchmarks favour Luna for task execution, and GLM's speed is unestablished. The choice on the user's Command Code route should be settled by a same-route measurement of correctness, time,…"
+    },
+    {
+      "date": "2026-09-26",
+      "title": "Is GPT-6 Sol/Luna a clear upgrade over GPT-5.6 in hands-on use? Evidence from Reddit reports",
+      "slug": "2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience",
+      "path": "reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.html",
+      "summary": "The Reddit evidence supports the user's read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed, especially for Luna. GPT-6 Luna is a sensible cost-conscious default candidate for bounded tasks, not a proven…"
+    },
+    {
+      "date": "2026-09-25",
+      "title": "How can SemIf (formerly OpenJev) be integrated and its scores consumed safely? An integration and API guide",
+      "slug": "2026-09-25-semif-openjev-integration-guide",
+      "path": "reports/2026-09/2026-09-25-semif-openjev-integration-guide.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-25-semif-openjev-integration-guide.html",
+      "summary": "SemIf is a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API: integrate it through semif-score for batch or subprocess use, or through its Python scorer functions inside a long-lived worker, and calibrate its option…"
+    },
+    {
+      "date": "2026-09-19",
+      "title": "Does TypeSafe Jev deliver fast, calibrated structured decisions? A first-hands evaluation",
+      "slug": "2026-09-19-typesafe-jev-first-hands",
+      "path": "reports/2026-09/2026-09-19-typesafe-jev-first-hands.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-19-typesafe-jev-first-hands.html",
+      "summary": "On first hands Jev does what it claims: a fast, cheap, structured-decision primitive with typed errors and calibrated answers on a toy probe, best used with fan-out batching. It is not a chat model and cannot replace one; calibration on the user's own domain data is the…"
+    },
+    {
+      "date": "2026-09-08",
+      "title": "Is GLM-5.3-Flash the most cost-efficient model on the CommandCode catalog?",
+      "slug": "2026-09-08-commandcode-cost-efficiency",
+      "path": "reports/2026-09/2026-09-08-commandcode-cost-efficiency.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-09/2026-09-08-commandcode-cost-efficiency.html",
+      "summary": "Keep GLM-5.3-Flash as the daily driver: it is the most cost-efficient model on the CommandCode catalog by a wide margin (about 8x cheaper per Index point than GLM-5.3), and no switch is recommended. GLM-5.3 is the only sensible upgrade for more capability, and DeepSeek V4 Flash…"
     }
   ]
 }

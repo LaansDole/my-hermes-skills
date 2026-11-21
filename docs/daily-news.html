@@ -121,8 +121,8 @@
     .r-date { font-family: var(--display); font-weight: 600; font-size: 16px; line-height: 24px; }
     .r-title { font: 700 17px/24px var(--display); }
     .r-title code { font: 400 15px/24px var(--mono); }
-    .r-verdict { font-size: 15px; line-height: 24px; color: var(--muted); }
-    .r-verdict code { font-size: 14px; }
+    .r-summary { font-size: 15px; line-height: 24px; color: var(--muted); }
+    .r-summary code { font-size: 14px; }
     @media (max-width: 640px) {
       .page-head { padding-top: 32px; }
       .page-head h1 { font-size: 40px; line-height: 40px; }
@@ -174,14 +174,14 @@
     </p>
   </div>
   <div class="ledger">
-    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Verdict</span></div>
+    <div class="ledger-head" aria-hidden="true"><span>Date</span><span>Report</span><span>Summary</span></div>
     <section class="month" aria-labelledby="m-november-2026">
       <h2 id="m-november-2026">November 2026</h2>
       <ol class="rows">
         <li><a class="report-row" href="reports/2026-11/2026-11-14-persona-prompting-ab-test.html">
           <time class="r-date sc" datetime="2026-11-14">14 Nov</time>
-          <span class="r-title">Persona prompting on current models: A/B test and research</span>
-          <span class="r-verdict">A generic "You are a world-class expert" persona neither helped nor hurt either model in 446 runs: every accuracy difference was within noise (sign-test p ≥ 0.34). So it is not a hindrance on these models, but it buys nothing, and you can drop it from skills. GPT-6 Astra could…</span>
+          <span class="r-title">Does an expert persona in the system prompt help or hurt current models? An A/B test and literature review</span>
+          <span class="r-summary">A generic "You are a world-class expert" persona neither helped nor hurt either model in 446 runs: every accuracy difference was within noise (sign-test p ≥ 0.34). It is not a hindrance on these models, but it buys nothing and can be dropped from skills; roles that state scope,…</span>
         </a></li>
       </ol>
     </section>
@@ -190,28 +190,28 @@
       <ol class="rows">
         <li><a class="report-row" href="reports/2026-10/2026-10-24-mermaid-vs-reladraw.html">
           <time class="r-date sc" datetime="2026-10-24">24 Oct</time>
-          <span class="r-title">Mermaid vs Reladraw for README diagrams</span>
-          <span class="r-verdict">Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit (or show on a Pages site). GitHub renders only four fenced diagram syntaxes…</span>
+          <span class="r-title">Should Reladraw replace Mermaid for README diagrams?</span>
+          <span class="r-summary">Keep Mermaid for anything that must render inline in a GitHub README, issue or PR; use Reladraw only for hand-placed architecture or flow diagrams that you are willing to render to SVG and commit, or show on a Pages site.</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-10/2026-10-24-macos-afplay-ogg-tts-truncation.html">
           <time class="r-date sc" datetime="2026-10-24">24 Oct</time>
-          <span class="r-title">Hermes voice replies crackle on macOS: afplay cuts Ogg/Opus off after ~1s</span>
-          <span class="r-verdict">The audio files were fine. Playback was cutting them off. On macOS 15 and later, <code>afplay</code> opens an Ogg/Opus file, plays about the first second, and exits 0 [2]. Hermes treats exit 0 as success, so it never tries another player. In CLI voice mode Hermes reads each reply aloud one…</span>
+          <span class="r-title">Why do Hermes voice replies crackle on macOS? afplay cuts Ogg/Opus off after ~1s</span>
+          <span class="r-summary">The audio files were fine; playback was cutting them off. On macOS 15 and later <code>afplay</code> plays about the first second of an Ogg/Opus file and exits 0, so Hermes never falls back to another player. Setting the provider's <code>voice_compatible</code> to <code>false</code> works around it, and PR…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-10/2026-10-15-oh-my-pi-vs-pi-1-0-and-pi-durable.html">
           <time class="r-date sc" datetime="2026-10-15">15 Oct</time>
-          <span class="r-title">Has oh-my-pi adopted Pi 1.0 and Pi Durable?</span>
-          <span class="r-verdict">No. omp has not adopted either one, and it should not rebase onto Pi 1.0, but it should keep closing Pi 1.x extension-compatibility gaps and track Pi Durable's design for its own durability proposals (see "Should omp adopt them?"). It has not rebased onto Pi 1.0 and does not use…</span>
+          <span class="r-title">Has oh-my-pi adopted Pi 1.0 and Pi Durable, and should it?</span>
+          <span class="r-summary">No: omp has adopted neither Pi 1.0 nor Pi Durable. It should not rebase onto Pi 1.0, but it should keep closing Pi 1.x extension-compatibility gaps and track Pi Durable's design for its own durability proposals.</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-omp-speed.html">
           <time class="r-date sc" datetime="2026-10-14">14 Oct</time>
-          <span class="r-title">Claude Haiku 5.5 (max) vs GPT-6 Luna (max) in omp: why the small-model agents feel slower</span>
-          <span class="r-verdict">Yes, it is slower, and the cause is <code>:max</code> effort on Haiku, not the model itself: Haiku 5.5:max took 3.3x longer than Luna:max on the same review (456 s vs 139 s) [1] because it wrote 10.6x more output tokens. Haiku 5.5:<strong>medium</strong> was the fastest of all four configs (31 s) and…</span>
+          <span class="r-title">Why do omp's small-model agents feel slower on Claude Haiku 5.5 (max) than on GPT-6 Luna (max)?</span>
+          <span class="r-summary">Yes, Haiku 5.5:max is slower, and the cause is <code>:max</code> effort on Haiku, not the model itself. Move <code>scout</code>, <code>reviewer</code> and <code>init</code> from <code>anthropic/claude-haiku-5-5:max</code> to <code>:medium</code> (or <code>:high</code> if review depth suffers), and keep <code>:max</code> only for one-off deep passes.</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-10/2026-10-14-haiku-5-5-vs-gpt-6-luna-benchmarks.html">
           <time class="r-date sc" datetime="2026-10-14">14 Oct</time>
-          <span class="r-title">Claude Haiku 5.5 vs GPT-6 Luna: effort-level benchmarks in omp</span>
-          <span class="r-verdict"></span>
+          <span class="r-title">Which effort level should omp's small-model agents use? Claude Haiku 5.5 vs GPT-6 Luna effort-level benchmarks</span>
+          <span class="r-summary">Haiku 5.5 is the stronger model, but <code>:max</code> is the wrong setting for omp's small-model agents: Haiku at medium or high scored as well as Haiku:max on these tasks, ran 10-20x faster, and cost a tenth as much. Luna's speed barely changes with effort level, but it gives up quality…</span>
         </a></li>
       </ol>
     </section>
@@ -220,33 +220,33 @@
       <ol class="rows">
         <li><a class="report-row" href="reports/2026-09/2026-09-27-opencode-v2-vs-v1-go-routing.html">
           <time class="r-date sc" datetime="2026-09-27">27 Sep</time>
-          <span class="r-title">OpenCode v2 vs v1: what changed, and how Go handles model routing</span>
-          <span class="r-verdict">OpenCode v2 is a major agent-platform and configuration revision—not a new “smarter model” tier—and its strongest improvements are its new architecture and expanded client workflows.[1][2] V1 config is largely intended to keep working, but plugins and server API integrations are…</span>
+          <span class="r-title">What changed from OpenCode v1 to v2, and does OpenCode Go route between models?</span>
+          <span class="r-summary">OpenCode v2 is a major agent-platform and configuration revision, not a new "smarter model" tier, and OpenCode Go does not document task-aware model selection or guaranteed cross-model failover. Try v2 after checking plugins and API clients, and implement model choice and…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-09/2026-09-26-gpt-6-luna-vs-glm-5-3-flash.html">
           <time class="r-date sc" datetime="2026-09-26">26 Sep</time>
-          <span class="r-title">GPT-6 Luna vs GLM-5.3-Flash: external comparisons and firsthand reports</span>
-          <span class="r-verdict">There is evidence to compare the pair, but it does <strong>not</strong> show that GLM-5.3-Flash is the faster daily coordinator. Gradually.ai reports Luna ahead on most matched coding/agentic benchmarks, while listing lower-priced alternate-provider routes for both models.[1] Search snippets…</span>
+          <span class="r-title">Is GLM-5.3-Flash a faster, cheaper daily coordinator than GPT-6 Luna? External comparisons and firsthand reports</span>
+          <span class="r-summary">The evidence does not show that GLM-5.3-Flash is the faster daily coordinator: matched benchmarks favour Luna for task execution, and GLM's speed is unestablished. The choice on the user's Command Code route should be settled by a same-route measurement of correctness, time,…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-09/2026-09-26-gpt-56-vs-gpt-6-sol-luna-reddit-experience.html">
           <time class="r-date sc" datetime="2026-09-26">26 Sep</time>
-          <span class="r-title">GPT-5.6 vs GPT-6 Sol/Luna — Reddit Usage and Experience Report</span>
-          <span class="r-verdict">The Reddit evidence supports your read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed—especially for Luna. The most consistent practical distinction is a reported trade-off: GPT-6 Luna is attractive for…</span>
+          <span class="r-title">Is GPT-6 Sol/Luna a clear upgrade over GPT-5.6 in hands-on use? Evidence from Reddit reports</span>
+          <span class="r-summary">The Reddit evidence supports the user's read: there is no dependable consensus that GPT-6 is a clean upgrade over GPT-5.6, and hands-on reports are notably mixed, especially for Luna. GPT-6 Luna is a sensible cost-conscious default candidate for bounded tasks, not a proven…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-09/2026-09-25-semif-openjev-integration-guide.html">
           <time class="r-date sc" datetime="2026-09-25">25 Sep</time>
-          <span class="r-title">SemIf (formerly OpenJev): Integration and API Guide</span>
-          <span class="r-verdict">SemIf is currently a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API. Integrate it through <code>semif-score</code> for batch or subprocess use, or call its Python scorer functions inside a long-lived worker; if an application…</span>
+          <span class="r-title">How can SemIf (formerly OpenJev) be integrated and its scores consumed safely? An integration and API guide</span>
+          <span class="r-summary">SemIf is a local Python research package and JSONL command-line scorer, not a hosted service or a ready-made HTTP API: integrate it through <code>semif-score</code> for batch or subprocess use, or through its Python scorer functions inside a long-lived worker, and calibrate its option…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-09/2026-09-19-typesafe-jev-first-hands.html">
           <time class="r-date sc" datetime="2026-09-19">19 Sep</time>
-          <span class="r-title">TypeSafe Jev — First-Hands Evaluation Report</span>
-          <span class="r-verdict">Jev is a decision-only model — send state + typed questions, get calibrated probabilities instead of generated text [1, 5] — and it does what it claims on first hands: ~0.9s end-to-end per call from Vietnam, ~$0.00004 for a 9-question fan-out (vendor price list [1], not metered…</span>
+          <span class="r-title">Does TypeSafe Jev deliver fast, calibrated structured decisions? A first-hands evaluation</span>
+          <span class="r-summary">On first hands Jev does what it claims: a fast, cheap, structured-decision primitive with typed errors and calibrated answers on a toy probe, best used with fan-out batching. It is not a chat model and cannot replace one; calibration on the user's own domain data is the…</span>
         </a></li>
         <li><a class="report-row" href="reports/2026-09/2026-09-08-commandcode-cost-efficiency.html">
           <time class="r-date sc" datetime="2026-09-08">8 Sep</time>
-          <span class="r-title">CommandCode Model Efficiency Report</span>
-          <span class="r-verdict"><strong>Keep GLM-5.3-Flash as the daily driver.</strong> It is already the most cost-efficient model on the CommandCode catalog — by a wide margin, not a marginal one. No switch recommended.</span>
+          <span class="r-title">Is GLM-5.3-Flash the most cost-efficient model on the CommandCode catalog?</span>
+          <span class="r-summary">Keep GLM-5.3-Flash as the daily driver: it is the most cost-efficient model on the CommandCode catalog by a wide margin (about 8x cheaper per Index point than GLM-5.3), and no switch is recommended. GLM-5.3 is the only sensible upgrade for more capability, and DeepSeek V4 Flash…</span>
         </a></li>
       </ol>
     </section>
