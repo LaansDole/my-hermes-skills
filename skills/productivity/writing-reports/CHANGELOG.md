@@ -2,6 +2,17 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:` in SKILL.md and add a matching section; the release workflow publishes it.
 
+## [2.0.0] - 2026-11-21
+
+### Changed
+- Reports are now written as short research papers: structured Abstract (Background, Objective, Methods, Results, Conclusions), then numbered Introduction, Methods, Results, Discussion, Limitations and Conclusion sections. The Verdict / Findings / Caveats layout is retired.
+- Every number carries an evidence type (measured, third-party benchmark, vendor-reported, community report, derived), and claims are hedged to match.
+- Report types (benchmark study, evidence review, technical investigation, technical guide) adjust the Methods and Results sections.
+- Search goes through Camofox instead of SearXNG.
+
+### Added
+- Rules for rewriting an older report into the new format without changing its facts.
+
 ## [1.1.0] - 2026-11-14
 
 ### Changed
