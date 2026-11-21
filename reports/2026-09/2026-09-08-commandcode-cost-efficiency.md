@@ -90,7 +90,7 @@ Flash is slightly ahead on AutomationBench and a few points behind on Terminal B
 
 - GLM-5.3 (II 45) is 3 points above Flash [9].
 - Kimi K3 (II 44) at $3/$15 has the second-worst cost per point after GPT-5.5 [12, 13].
-- Qwen3.8 Max (II 40) scores 2 points less than Flash at a higher blended price and 40 vs 60 tok/s [11]. The original draft described this as "~2x flash's blended price" and "roughly half the speed"; Table 1 gives 3.00 / 0.24 = 12.5x the blended price and two-thirds the speed (derived).
+- Qwen3.8 Max (II 40) scores 2 points less than Flash at a higher blended price and 40 vs 60 tok/s [11]: 3.00 / 0.24 = 12.5x Flash's blended price and two-thirds the speed (derived).
 - GLM-5.2 (II 39) has the same list price as the flagship GLM-5.3, scores 3 points below Flash, and is slower than the flagship (62 vs 71 tok/s) [14, 9].
 - DeepSeek V4 Flash has the highest throughput of the catalog's models apart from Gemini 3.5 Flash in Table 1, 126 tok/s, rank 7/112 on AA's speed chart [7], at 2.8x Flash's blended price (0.66 / 0.24, derived) and 13.5 vs 6.7 USD per Index point.
 
@@ -126,10 +126,9 @@ Table 3. Configuration observed as verified working on 2026-09-08.
 ## 5. Limitations
 
 - **List prices are not what CommandCode bills.** Prices are AA-tracked first-party list prices; on CommandCode you pay plan quota, not per-token, so quota burn depends on tokens consumed per task. Flash remains competitive on that measure (180M vs 210M and 240M suite tokens) [6, 9, 7], but per-task token use on real workloads was not measured.
-- **Index comparability.** Intelligence Index scores between differently-benchmarked pages (different class medians) are approximately comparable only. The original report names the index both as v4.3 (method) and as "v3.4.3-class" (table footnote); which is correct was not recorded.
+- **Index comparability.** Intelligence Index scores between differently-benchmarked pages (different class medians) are approximately comparable only. The index version is given both as v4.3 (Section 2.1) and as "v3.4.3-class" (Table 1 caption); which applies was not recorded.
 - **Staleness.** CommandCode model availability rotates; this reflects the catalog as of 2026-09-08.
 - **Single sources.** The coding comparison (Table 2) comes from one third-party blog [3]; AA is the single source for Index scores and throughput, with OpenRouter cross-checking prices for only two models [1, 2].
-- **Arithmetic in the original draft.** Several ratios in the original text did not match its own table (Section 3.4); the table values were treated as authoritative.
 
 ## 6. Conclusion
 

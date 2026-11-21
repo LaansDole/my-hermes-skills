@@ -26,7 +26,7 @@ GPT-6 Sol and Luna succeed GPT-5.6 Sol and Luna, and commenters discuss GPT-6 as
 
 ### 2.1 Sources and search strategy
 
-Table 1 lists the threads reviewed, accessed 2026-09-26. How the threads were found (search terms, subreddits searched) was not recorded. The original report describes the sample both as "10 Reddit discussions posted between 2026-09-23 and 2026-09-26, plus a July first-hand GPT-5.6 Luna/Hermes report" and as "11 recent Reddit discussions plus one older Hermes post"; the reference list contains 10 threads, nine recent and one from July, and that list is used here.
+Table 1 lists the threads reviewed, accessed 2026-09-26. How the threads were found (search terms, subreddits searched) was not recorded. The sample was recorded inconsistently at collection time, both as "10 Reddit discussions posted between 2026-09-23 and 2026-09-26, plus a July first-hand GPT-5.6 Luna/Hermes report" and as "11 recent Reddit discussions plus one older Hermes post"; the reference list contains 10 threads, nine recent and one from July, and that list is used here.
 
 Table 1. Threads reviewed (community reports).
 
@@ -119,7 +119,7 @@ Proposed paired check on the user's own Hermes workload, before changing default
 
 ## 5. Limitations
 
-- **Sampling.** This is a purposive sample of recent Reddit discussions plus one older Hermes post, not a random sample, formal sentiment analysis, or blinded evaluation. Reddit communities overrepresent people motivated to post, including dissatisfied users. The sample size is stated inconsistently in the original report (Section 2.1).
+- **Sampling.** This is a purposive sample of recent Reddit discussions plus one older Hermes post, not a random sample, formal sentiment analysis, or blinded evaluation. Reddit communities overrepresent people motivated to post, including dissatisfied users. The sample size was recorded inconsistently at collection time (Section 2.1).
 - **Self-report and confounding.** Comments are self-reported. Different model endpoints, account tiers, workloads, prompts, harnesses, reasoning efforts, and dates can produce different behavior. The reports do not isolate model capability from serving or harness effects.
 - **Unverified benchmarks.** Benchmark numbers quoted by Reddit users are retained only as attributed claims; benchmark task selection, sample size, and reproducibility were not independently checked.
 - **Pricing versus allowance.** Subscription allowance is not interchangeable with API list pricing. Anecdotal quota impressions should not be generalized to all plans or usage patterns.

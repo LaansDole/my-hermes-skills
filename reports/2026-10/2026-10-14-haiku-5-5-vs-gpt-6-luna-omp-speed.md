@@ -30,7 +30,7 @@ Three sources: (1) a controlled local probe [1]; (2) historical omp session tran
 ### 2.2 Evidence classification
 
 - **Measured:** the probe (Table 1) and the historical session statistics.
-- **Third-party benchmark:** AA figures (Table 2) [2, 3]. The original report called these "vendor-measured"; AA is an independent benchmarker, not the model vendor.
+- **Third-party benchmark:** AA figures (Table 2) [2, 3]. AA is an independent benchmarker, not the model vendor.
 - **Derived:** ratios and output tokens per second.
 
 ### 2.3 Experimental setup

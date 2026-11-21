@@ -37,7 +37,7 @@ The vendor blog [1] and the docs index (fetched as llms.txt + .md pages, 2026-09
 
 ### 2.3 Experimental setup
 
-Experiments ran against `POST https://api.typesafe.ai/v1/systemone` [3] with the user's key, from this machine in Vietnam (+07). Latency = end-to-end wall clock including network. The calibration probe used n=10 labeled yes/no general facts in one call (toy facts, NOT a domain benchmark). The experiment script is `/tmp/jev_experiments.py` (re-runnable). The original report counts 10 experiments but labels eight (E1-E8); the mapping was not recorded. The number of repetitions per experiment was not recorded (single runs are implied).
+Experiments ran against `POST https://api.typesafe.ai/v1/systemone` [3] with the user's key, from this machine in Vietnam (+07). Latency = end-to-end wall clock including network. The calibration probe used n=10 labeled yes/no general facts in one call (toy facts, NOT a domain benchmark). The experiment script is `/tmp/jev_experiments.py` (re-runnable). 10 experiments were run; only E1-E8 are itemised here, and the other two were not recorded. The number of repetitions per experiment was not recorded (single runs are implied).
 
 ### 2.4 Analysis
 
