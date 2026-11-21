@@ -604,13 +604,13 @@ def page_html(*, title: str, root: str, css: str, body: str, canonical: str = ""
 # Skills catalog: chart, key, handbook entries, A-Z index, install
 # ---------------------------------------------------------------------------
 
-INDEX_CSS = """    /* the atlas is the size container so the chart column can shrink to its widest
-       row (--row-*, from chart_html) and the key sits beside it; cell size still
-       assumes a 7-cell chart width, so tiles stay square */
+INDEX_CSS = """    /* the atlas is the size container; cells are sized so the widest family row
+       (--row-*, from chart_html) exactly fills the width beside the 320px key */
     .atlas { container-type: inline-size; display: grid; grid-template-columns: auto 320px;
              justify-content: start; gap: 40px; align-items: start; padding: 24px var(--pad) 0; }
     .chart { --gap: 4px; --bgap: 16px;
-             --cell: calc((100cqi - 360px - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             --cell: calc((100cqi - 360px - var(--row-g) * var(--gap)
+                           - var(--row-b) * var(--bgap) - 1px) / var(--row-c));
              width: calc(var(--row-c) * var(--cell) + var(--row-g) * var(--gap)
                          + var(--row-b) * var(--bgap) + 1px);
              display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px var(--bgap);
@@ -638,7 +638,7 @@ INDEX_CSS = """    /* the atlas is the size container so the chart column can sh
               letter-spacing: 0.06em; }
     .c-sym { margin-top: 8px; font: 900 48px/48px var(--display); letter-spacing: -0.02em;
              white-space: nowrap; }
-    .chart .c-sym { font-size: min(48px, calc(var(--cell) * 0.36)); line-height: 1; }
+    .chart .c-sym { font-size: min(96px, calc(var(--cell) * 0.36)); line-height: 1; }
     .c-child { margin-top: 2px; font: 600 12px/16px var(--display);
                font-variant-caps: small-caps; letter-spacing: 0.02em; }
     .c-name { margin-top: auto; padding-top: 4px; font: 600 12px/16px var(--display); }
