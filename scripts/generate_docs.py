@@ -604,17 +604,22 @@ def page_html(*, title: str, root: str, css: str, body: str, canonical: str = ""
 # Skills catalog: chart, key, handbook entries, A-Z index, install
 # ---------------------------------------------------------------------------
 
-INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 40px;
-             align-items: start; padding: 24px var(--pad) 0; }
-    .chart-wrap { container-type: inline-size; }
+INDEX_CSS = """    /* the atlas is the size container so the chart column can shrink to its widest
+       row (--row-*, from chart_html) and the key sits beside it; cell size still
+       assumes a 7-cell chart width, so tiles stay square */
+    .atlas { container-type: inline-size; display: grid; grid-template-columns: auto 320px;
+             justify-content: start; gap: 40px; align-items: start; padding: 24px var(--pad) 0; }
     .chart { --gap: 4px; --bgap: 16px;
-             --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             --cell: calc((100cqi - 360px - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7);
+             width: calc(var(--row-c) * var(--cell) + var(--row-g) * var(--gap)
+                         + var(--row-b) * var(--bgap) + 1px);
              display: flex; flex-wrap: wrap; align-items: flex-start; gap: 20px var(--bgap);
              margin: 0; padding: 0; list-style: none; }
+    .chart-key { display: none; margin: 0 0 16px; font: 600 14px/20px var(--display); }
     .fam-block { flex: none; width: min-content;
                  transition: opacity 0.2s var(--ease), filter 0.2s var(--ease); }
     .fb-h { display: flex; justify-content: space-between; align-items: baseline;
-            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 3px solid var(--ink);
+            gap: 8px; margin: 0 0 6px; padding-top: 4px; border-top: 1px solid var(--ink);
             font-family: var(--display); font-weight: 800; font-size: 16px; line-height: 20px;
             font-variant-caps: all-small-caps; letter-spacing: 0.04em; }
     .fb-n { flex: none; font-variant-numeric: tabular-nums; }
@@ -638,14 +643,16 @@ INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr)
                font-variant-caps: small-caps; letter-spacing: 0.02em; }
     .c-name { margin-top: auto; padding-top: 4px; font: 600 12px/16px var(--display); }
 
+    .key { padding-top: 4px; border-top: 1px solid var(--ink); }
     .key-sum { margin: 0 0 12px; font-size: 15px; line-height: 24px; color: var(--muted); }
     .key h2 { margin: 0 0 4px; font: 800 20px/24px var(--display); }
     .key h3 { margin: 24px 0 8px; font: 800 13px/20px var(--display);
               letter-spacing: 0.08em; text-transform: uppercase; }
-    .key-fams { margin: 0; padding: 0; list-style: none; border-top: 3px solid var(--ink); }
+    .key-fams { margin: 0; padding: 0; list-style: none; }
     .key-fam { display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
                align-items: center; padding: 6px 0; border-bottom: 1px solid var(--hair);
                font: 600 15px/20px var(--display); text-decoration: none; }
+    .key-fams li:last-child .key-fam { border-bottom: 0; }
     .key-fam:hover .kf-name, .key-fam:focus-visible .kf-name {
       text-decoration: underline 2px; text-underline-offset: 4px; }
     .kf-n { font-variant-numeric: tabular-nums; }
@@ -713,6 +720,8 @@ INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr)
     }
     @media (max-width: 1100px) {
       .atlas { grid-template-columns: minmax(0, 1fr); }
+      .chart { --cell: calc((100cqi - 4 * var(--gap) - 2 * var(--bgap) - 1px) / 7); width: auto; }
+      .chart-key { display: block; }
       .key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 40px; }
       .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     }
@@ -720,8 +729,9 @@ INDEX_CSS = """    .atlas { display: grid; grid-template-columns: minmax(0, 1fr)
       .chart { --bgap: 12px; --cell: calc((100cqi - 3 * var(--gap)) / 4); row-gap: 16px;
                align-items: flex-start; }
       .fb-cells { grid-template-columns: repeat(var(--cols-s), var(--cell)); }
-      /* two-line head (2x20px lines + 4px pad + 3px rule, border-box): rules and labels share y per row */
-      .fb-h { font-size: 16px; min-height: 47px; align-items: flex-end; }
+      /* ponytail: label hugs its rule; if a one-line and a two-line head ever share
+         a row their cells start 20px apart — reinstate a min-height then */
+      .fb-h { font-size: 16px; }
       .cell { min-height: 120px; padding: 6px; }
       .c-top { font-size: 11px; line-height: 12px; }
       .c-mark { font-size: 14px; }
@@ -773,7 +783,7 @@ def cell_html(c: dict) -> str:
         </a></li>"""
 
 
-CHART_COLS = 7  # desktop chart width in cells; narrow charts use 4
+CHART_COLS = 7  # desktop chart width in cells
 
 
 def chart_html(cells: list) -> str:
@@ -782,19 +792,41 @@ def chart_html(cells: list) -> str:
     A block wraps into as few rows as the chart width allows, balanced
     (10 cells -> 5 x 2, not 7 + 3).
     """
-    blocks = []
+    blocks, widths = [], []
     for fam, cs in family_groups(cells):
         n, slug = len(cs), slugify(fam)
         cols = -(-n // -(-n // CHART_COLS))
+        cols_s = min(n, 4)  # narrow: cells are sized for 4 across
+        widths.append(cols)
         unit = "skill" if n == 1 else "skills"
         body = "\n".join(cell_html(c) for c in cs)
-        blocks.append(f"""    <li class="fam-block" data-fam="{slug}" style="--cols: {cols}; --cols-s: {min(n, 4)}">
+        blocks.append(f"""    <li class="fam-block" data-fam="{slug}" style="--cols: {cols}; --cols-s: {cols_s}">
       <p class="fb-h"><span>{html.escape(fam)}</span><span class="fb-n">{n}<span class="vh"> {unit}</span></span></p>
       <ul class="fb-cells">
 {body}
       </ul>
     </li>""")
-    return '<ol class="chart">\n' + "\n".join(blocks) + "\n    </ol>"
+    c, g, b = widest_row(widths)
+    return (f'<div class="chart-wrap" style="--row-c: {c}; --row-g: {g}; --row-b: {b}">\n'
+            '    <p class="chart-key"><a href="#key-h">Jump to the key</a></p>\n'
+            '    <ol class="chart">\n' + "\n".join(blocks) + "\n    </ol>\n  </div>")
+
+
+def widest_row(widths: list) -> tuple:
+    """Pack block widths (in cells) into rows the way flex-wrap does on a
+    CHART_COLS-wide chart; return the widest row as (cells, cell gaps, block gaps)."""
+    gap, bgap, cell = 4, 16, 1000  # ponytail: cell >> gaps, exact enough to pick the row
+    width = lambda r: sum(r) * cell + (sum(r) - len(r)) * gap + (len(r) - 1) * bgap
+    cap = width([CHART_COLS]) + 2 * bgap + 1 - gap * 2  # 7 cells, 4 gaps, 2 block gaps
+    rows, row = [], []
+    for w in widths:
+        if row and width(row + [w]) > cap:
+            rows.append(row)
+            row = []
+        row.append(w)
+    rows.append(row)
+    best = max(rows, key=width)
+    return sum(best), sum(best) - len(best), len(best) - 1
 
 
 def key_html(cells: list) -> str:
@@ -889,9 +921,7 @@ def index_html(skills: list, edition: str) -> str:
 
 <section class="atlas" id="chart" aria-labelledby="chart-h">
   <h2 class="vh" id="chart-h">Chart of skills</h2>
-  <div class="chart-wrap">
-    {chart_html(cells)}
-  </div>
+  {chart_html(cells)}
 {key_html(cells)}
 </section>
 
