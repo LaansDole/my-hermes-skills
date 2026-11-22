@@ -356,6 +356,14 @@
   ],
   "reports": [
     {
+      "date": "2026-11-22",
+      "title": "Building ai-please-learn: a browser lab where neural networks visibly learn games, built in 28 hours by coordinated coding agents",
+      "slug": "2026-11-22-ai-please-learn-build-report",
+      "path": "reports/2026-11/2026-11-22-ai-please-learn-build-report.md",
+      "url": "https://laansdole.github.io/my-hermes-skills/reports/2026-11/2026-11-22-ai-please-learn-build-report.html",
+      "summary": "ai-please-learn works as intended: all six built-in games and LLM-written games train visibly in the browser with three learning methods, and the site explains its own maths. The main open weaknesses are statistical (single-seed results, budgets that are not comparable across…"
+    },
+    {
       "date": "2026-11-14",
       "title": "Does an expert persona in the system prompt help or hurt current models? An A/B test and literature review",
       "slug": "2026-11-14-persona-prompting-ab-test",
