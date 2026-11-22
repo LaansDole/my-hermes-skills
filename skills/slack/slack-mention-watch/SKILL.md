@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
 description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
-version: 2.7.1
+version: 2.8.0
 author: LaansDole
 license: MIT
 metadata:
@@ -491,6 +491,59 @@ the raw digest; the exit code is always `watch_mentions.py`'s.
 
 Agent binaries are looked up on PATH, then in `~/.local/bin`.
 
+## Dashboard
+
+`scripts/dashboard.py` serves one local page with everything in one place: the mentions the bot
+was given, every reply the cron agent produced, each run of the job, the review session table,
+and Pause / Resume buttons for the job. Python stdlib only, no external assets.
+
+```bash
+python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/dashboard.py --open
+# slack-mention dashboard: http://127.0.0.1:8090
+```
+
+`--port N` (default 8090). It binds `127.0.0.1` only; `--host` accepts `127.0.0.1` or
+`localhost` and refuses anything else. `--check` prints the detected jobs and each data source
+(found / MISSING), then exits without starting a server.
+
+Watched jobs are detected from `~/.hermes/cron/jobs.json`: script `slack_mention_digest_cron.py`
+or `slack_mention_watch_cron.py`, or a name starting with `slack-mention`. `--job <id>`
+(repeatable) replaces the auto-detection.
+
+| Tab | Source | Shows |
+| --- | --- | --- |
+| Notifications | cron sessions in `~/.hermes/state.db` | Mentions the bot received in the last 1 h / 24 h / 7 d / 30 d, deduped by permalink, with their `Reacted:` and `review:` lines. "Fetch live from Slack" runs `watch_mentions.py --recent <hours>` on click only (never on load or refresh) and shows its output. |
+| Bot replies | same sessions | Each run that woke the model: date, model, the reply sent to Slack (or a SILENT badge) and the mentions that run was given. Searchable. |
+| Activity | `~/.hermes/cron/executions.db` | Counts and a table: nothing new (gate suppressed the run), sent, error, missed. |
+| Reviews | `review_spawn.py --sessions` | The review session table. |
+
+The status bar and the open tab refresh every 30 s. A mention only appears under Notifications
+once a digest run carried it; in alert mode (`--no-agent`) there are no cron sessions, so use the
+live fetch there.
+
+Controls, per watched job:
+
+- **Pause** -> `hermes cron pause <id>`.
+- **Resume** -> removes a scheduled resume if one exists, then `hermes cron resume <id>`.
+- **Pause until** <date/time> -> `hermes cron pause <id>`, then a one-shot helper job:
+  `hermes cron create "<iso time>" --name "resume-<job name>" --script
+  slack_dashboard_resume_<id>.sh --no-agent --deliver local --catch-up on`. The helper script
+  (`~/.hermes/scripts/slack_dashboard_resume_<id>.sh`, mode 700) runs `hermes cron resume <id>`.
+  A helper job is needed because `hermes cron resume <id> --at <time>` rejects recurring jobs
+  (re-arm is one-shot-only). `--catch-up on` runs it on return if the machine was off at that time.
+- **Cancel scheduled resume** -> `hermes cron remove <helper id>`; the job stays paused.
+
+A scheduled resume is any enabled `--no-agent` job whose script under `~/.hermes/scripts/`
+contains the watched job's id, so a helper made by hand shows up too (and is removed by Resume,
+Cancel and a new Pause until).
+
+Every request must carry a loopback `Host` header (DNS-rebinding guard); every POST also needs
+the page's per-process CSRF token and a same-origin `Origin`. There is no login: anyone who can
+open a local port on the machine as you can use the page.
+
+Env: `HERMES_HOME` (default `~/.hermes`) and `HERMES_BIN` (default `hermes` on PATH, else
+`~/.local/bin/hermes`).
+
 ## Write guarantee
 
 Reads go through `api()`: HTTP GET only, and `ValueError` for any method outside `READ_METHODS`
@@ -522,6 +575,13 @@ agents may still write scratch files such as `/tmp`; for a hard guarantee give t
 a read-only token.
 `SLACK_REVIEW_GUARD=0` removes the wrappers (not recommended).
 Covered by `tests/test_review_spawn.py`.
+
+`dashboard.py` makes no Slack call of its own; "Fetch live from Slack" runs the read-only
+`watch_mentions.py --recent`. It opens `state.db` and `executions.db` read-only
+(`file:<path>?mode=ro`) and never edits `jobs.json`. Its writes are `hermes cron
+pause|resume|create|remove` (argv lists, no shell), only for a watched job or that job's
+scheduled-resume helper, and the helper script `~/.hermes/scripts/slack_dashboard_resume_<id>.sh`.
+Covered by `tests/test_dashboard.py`.
 
 ## Config
 

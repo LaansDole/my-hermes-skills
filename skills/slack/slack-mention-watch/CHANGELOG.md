@@ -2,6 +2,17 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:` in SKILL.md and add a matching section; the release workflow publishes it.
 
+## [2.8.0] - 2026-11-22
+
+### Added
+- `scripts/dashboard.py`: a local web page (`http://127.0.0.1:8090`, stdlib only) with the
+  mentions the bot received, every reply it sent, each cron run (nothing new / sent / error /
+  missed) and the review session table. "Fetch live from Slack" runs `--recent` on click.
+- Pause, Resume and "Pause until <date/time>" for the cron job from that page. Pause until
+  creates a one-shot helper job that resumes it, because `hermes cron resume --at` rejects
+  recurring jobs; "Cancel scheduled resume" removes the helper.
+- `dashboard.py --check` prints the detected jobs and data sources without starting a server.
+
 ## [2.7.1] - 2026-11-13
 
 ### Fixed
