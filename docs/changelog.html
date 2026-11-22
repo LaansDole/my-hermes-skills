@@ -183,7 +183,7 @@
   <div class="page-head">
     <h1>Changelog</h1>
     <p class="lede">
-      23 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
+      24 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
       Every push that bumps a version is also published as a
       <a href="https://github.com/LaansDole/my-hermes-skills/releases" target="_blank" rel="noopener">GitHub release</a>.
     </p>
@@ -193,6 +193,11 @@
     <section class="month" aria-labelledby="m-november-2026">
       <h2 id="m-november-2026">November 2026</h2>
       <ol class="rows">
+        <li class="cl-row" id="slack-mention-watch-2.8.0">
+          <time class="r-date sc" datetime="2026-11-22">22 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.8.0</span></p>
+          <div class="cl-changes"><p class="cl-kind">Added</p><ul><li><code>scripts/dashboard.py</code>: a local web page (<code>http://127.0.0.1:8090</code>, stdlib only) with the mentions the bot received, every reply it sent, each cron run (nothing new / sent / error / missed) and the review session table. "Fetch live from Slack" runs <code>--recent</code> on click.</li><li>Pause, Resume and "Pause until &lt;date/time&gt;" for the cron job from that page. Pause until creates a one-shot helper job that resumes it, because <code>hermes cron resume --at</code> rejects recurring jobs; "Cancel scheduled resume" removes the helper.</li><li><code>dashboard.py --check</code> prints the detected jobs and data sources without starting a server.</li></ul></div>
+        </li>
         <li class="cl-row" id="writing-reports-2.0.0">
           <time class="r-date sc" datetime="2026-11-21">21 Nov</time>
           <p class="cl-skill"><a href="index.html#entry-writing-reports">writing-reports</a><span class="sc">v2.0.0</span></p>
