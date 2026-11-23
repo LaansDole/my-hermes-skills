@@ -491,6 +491,25 @@ class ReadOnlyTest(Base):
             with dash.ro(dbs[0]) as c:
                 c.execute("DELETE FROM sessions")
 
+    def test_ro_retries_immutable_when_plain_open_fails(self):
+        real, calls = sqlite3.connect, []
+
+        def connect(target, **kw):
+            calls.append(target)
+            if len(calls) == 1:
+                raise sqlite3.OperationalError("unable to open database file")
+            return real(target, **kw)
+
+        with mock.patch.object(dash.sqlite3, "connect", side_effect=connect):
+            c = dash.ro(self.home / "cron" / "executions.db")
+            try:
+                self.assertGreater(c.execute("SELECT count(*) FROM sqlite_master").fetchone()[0], 0)
+            finally:
+                c.close()
+        self.assertEqual(len(calls), 2)
+        self.assertTrue(calls[0].endswith("?mode=ro"))
+        self.assertTrue(calls[1].endswith("?mode=ro&immutable=1"))
+
 
 class CliTest(Base):
     def test_check(self):

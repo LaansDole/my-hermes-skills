@@ -58,8 +58,23 @@ def sources():
 
 
 def ro(path):
-    """The only SQLite open in this file: read-only, so it can never create or change a DB."""
-    return sqlite3.connect(f"file:{quote(str(path))}?mode=ro", uri=True, timeout=5)
+    """The only SQLite open in this file: read-only, so it can never create or change a DB.
+
+    A WAL database whose -wal/-shm sidecars are absent (gateway idle) cannot be opened mode=ro by
+    some SQLite builds ("unable to open database file"): read-only cannot create the -shm. Then we
+    retry once with immutable=1, which skips locking and the WAL. Safe here: the sidecars are only
+    absent when no writer has the DB open, so there is nothing in flight to miss."""
+    uri = f"file:{quote(str(path))}?mode=ro"
+    try:
+        c = sqlite3.connect(uri, uri=True, timeout=5)
+        try:
+            c.execute("PRAGMA schema_version")  # the open is lazy; force it so failure lands here
+        except sqlite3.OperationalError:
+            c.close()
+            raise
+        return c
+    except sqlite3.OperationalError:
+        return sqlite3.connect(uri + "&immutable=1", uri=True, timeout=5)
 
 
 @contextlib.contextmanager
@@ -565,142 +580,243 @@ PAGE = r"""<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="csrf" content="__CSRF__">
-<meta name="color-scheme" content="dark light">
+<meta name="color-scheme" content="light dark">
 <title>Slack mention watch</title>
 <style>
+/* Matte e-ink page. Every text/fill pair below is WCAG AA (>= 4.5:1) on paper, band and wash;
+   --edge (control outlines) and --track (pause rule) are >= 3:1 on the band. --fill is the one
+   filled control: dark fill 4.95:1 with its ink (hover 4.59:1), deliberately deep so the button is
+   not the brightest area of the dark page. Re-check the ratios when changing a value. */
 :root {
-  --ground: #141416; --ink: #ece9e0; --muted: #9a968b; --hairline: #38373a; --tint: #1e1e21;
-  --green: #4f9e63; --amber: #e8a33a; --rose: #db5f92; --on-fill: #17171b;
-  --sans: "Helvetica Neue", Helvetica, Arial, system-ui, sans-serif;
+  color-scheme: light dark;
+  --paper: #e9e6df; --band: #e1ddd4; --wash: #dcd7cc; --rule: #cdc8bd; --edge: #7d786d;
+  --ink: #2e2c29; --ink-2: #5b574f; --accent: #3d5a80; --accent-hi: #334c6d; --on-accent: #f3f1ec;
+  --fill: var(--accent); --fill-hi: var(--accent-hi); --on-fill: var(--on-accent); --track: #817b6f;
+  --hold: #6f510f; --ok: #3f6247; --err: #8c3b2f;
+  --pad: 48px;
+  --ui: -apple-system, BlinkMacSystemFont, "Helvetica Neue", sans-serif;
+  --read: Charter, "Iowan Old Style", Georgia, serif;
   --mono: ui-monospace, Menlo, Consolas, monospace;
 }
-@media (prefers-color-scheme: light) {
-  :root { --ground: #f6f4ee; --ink: #17171b; --muted: #5d5a52; --hairline: #cfcabd;
-          --tint: #ebe7dc; --rose: #b0325f; }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --paper: #2b2a27; --band: #33322e; --wash: #3a3833; --rule: #47453f; --edge: #8a8579;
+    --ink: #d9d4c9; --ink-2: #ada79b; --accent: #8fa9c9; --accent-hi: #a3b9d4; --on-accent: #23221f;
+    --fill: #3e5878; --fill-hi: #425d7e; --on-fill: var(--ink); --track: #807c72;
+    --hold: #d0a85a; --ok: #8db592; --err: #dc9585;
+  }
 }
+@media (width <= 640px) { :root { --pad: 16px; } }
 * { box-sizing: border-box; }
-body { margin: 0; padding: 24px 48px 96px; background: var(--ground); color: var(--ink);
-       font: 16px/24px var(--sans); }
-@media (width <= 720px) { body { padding: 16px 16px 64px; } }
-header { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between;
-         gap: 8px 24px; border-bottom: 3px solid var(--ink); padding-bottom: 8px; }
-h1 { margin: 0; font-size: 32px; line-height: 40px; font-weight: 900; letter-spacing: -0.02em; }
-h2 { margin: 0; font-size: 20px; line-height: 24px; font-weight: 800; }
-.label, th, [role=tab], dt { font-size: 13px; line-height: 20px; font-weight: 800;
-                             letter-spacing: 0.08em; text-transform: uppercase; }
-.muted, dt { color: var(--muted); }
-.num { font-variant-numeric: tabular-nums; }
-button, input, select { font: inherit; color: inherit; border-radius: 0; }
+html { scrollbar-color: var(--edge) var(--paper); }
+body { margin: 0; padding: 0 0 96px; background: var(--paper); color: var(--ink);
+       font: 0.9375rem/1.55 var(--ui); caret-color: var(--accent); accent-color: var(--accent); }
+::selection { background: var(--accent); color: var(--on-accent); }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+[role=tabpanel]:focus-visible, [role=tab]:focus-visible { outline-offset: -2px; }
+h1, h2, h3, p { margin: 0; }
+.vh { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%);
+      white-space: nowrap; }
+.num, time { font-variant-numeric: tabular-nums; }
+.quiet { color: var(--ink-2); }
+.small { font-size: 0.8125rem; }
+.mono { font-family: var(--mono); font-size: 0.8125rem; }
+.caps, th { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.hold { color: var(--hold); } .ok { color: var(--ok); } .err { color: var(--err); }
+a { color: var(--accent); text-decoration: none; text-underline-offset: 3px; }
+a:hover, a:focus-visible { text-decoration: underline; }
+
+button, input, select { font: inherit; color: var(--ink); }
 button, select, input[type=datetime-local], input[type=search] {
-  min-height: 40px; padding: 6px 12px; background: transparent; border: 2px solid var(--ink); }
-button { font-weight: 800; cursor: pointer; }
-button:hover:not(:disabled) { background: var(--ink); color: var(--ground); }
-button:disabled { opacity: 0.5; cursor: progress; }
-:focus-visible { outline: 3px solid var(--ink); outline-offset: 2px; }
-a { color: inherit; font-weight: 700; text-underline-offset: 3px; }
+  min-height: 36px; padding: 6px 14px; background: var(--paper); border: 1px solid var(--edge);
+  border-radius: 6px; transition: background-color 150ms ease-out, border-color 150ms ease-out; }
+button { cursor: pointer; }
+button:hover:not(:disabled), select:hover, input:hover { background: var(--wash); }
+button:active:not(:disabled) { background: var(--rule); }
+button:disabled { opacity: 0.55; cursor: progress; }
+button.primary { background: var(--fill); border-color: var(--fill); color: var(--on-fill);
+                 font-weight: 600; }
+button.primary:hover:not(:disabled), button.primary:active:not(:disabled) {
+  background: var(--fill-hi); border-color: var(--fill-hi); }
+input::placeholder { color: var(--ink-2); opacity: 1; }
+input[type=checkbox] { width: 16px; height: 16px; margin: 0; }
+label { display: inline-flex; align-items: center; gap: 8px; }
+@media (width <= 640px) {
+  button, select, input[type=datetime-local], input[type=search] { min-height: 44px; }
+}
 
-.job { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(280px, 3fr);
-       gap: 16px 40px; padding: 24px 0; border-bottom: 1px solid var(--hairline); }
-@media (width <= 900px) { .job { grid-template-columns: 1fr; } }
-.badge { display: inline-block; margin-top: 8px; padding: 8px 16px; color: var(--on-fill);
-         font-size: 20px; line-height: 24px; font-weight: 900; }
-.badge.running { background: var(--green); }
-.badge.paused { background: var(--amber); }
-dl { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 24px;
-     margin: 0 0 16px; }
-dd { margin: 0; overflow-wrap: anywhere; }
-.err { color: var(--rose); }
-.controls, .bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; }
-.bar { margin: 0 0 24px; }
-.bar label { display: inline-flex; align-items: center; gap: 8px; }
-input[type=checkbox] { width: 20px; height: 20px; accent-color: var(--ink); }
-input[type=search] { flex: 1 1 320px; }
-#flash { min-height: 24px; margin: 16px 0 0; font-weight: 700; }
+/* header band: one block per watched job */
+header { background: var(--band); border-bottom: 1px solid var(--rule); }
+.job { padding: 22px var(--pad) 0; }
+.job.plain { padding-bottom: 22px; }
+.job + .job { border-top: 1px solid var(--rule); }
+.head { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: 16px 24px; }
+h2 { font-size: 0.9375rem; font-weight: 600; overflow-wrap: anywhere; }
+h2 span { font-weight: 400; color: var(--ink-2); }
+.sentence { margin-top: 8px; font-size: 1.375rem; line-height: 1.3; font-weight: 600; }
+.meta { margin-top: 4px; color: var(--ink-2); overflow-wrap: anywhere; }
+.actions { display: flex; flex-wrap: wrap; justify-content: flex-end; align-items: center; gap: 10px; }
+/* the track is its own tone (>= 3:1 on the band); a 2x9px tick marks "now", so 0% and 100% read */
+.progress { height: 3px; margin: 22px calc(-1 * var(--pad)) 0; background: var(--track); }
+.progress i { position: relative; display: block; height: 100%; min-width: 2px; background: var(--hold);
+              transition: width 200ms ease-out; }
+.progress i::after { content: ""; position: absolute; right: 0; top: -3px; width: 2px; height: 9px;
+                     background: var(--hold); }
+.progress-l { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0 16px; padding: 6px 0 12px;
+              color: var(--ink-2); font-size: 0.8125rem; }
+.progress-l span:last-child { text-align: right; }
+@media (width <= 900px) {
+  .head { grid-template-columns: minmax(0, 1fr); }
+  .actions { justify-content: flex-start; }
+}
+@media (width <= 640px) {
+  .progress-l { grid-template-columns: auto auto; justify-content: space-between; }
+  .progress-l span:nth-child(2) { grid-row: 2; grid-column: 1 / -1; }
+}
+#flash { padding: 0 var(--pad); font-weight: 600; }
+#flash:not(:empty) { padding-block: 12px; border-bottom: 1px solid var(--rule); }
 
-[role=tablist] { display: flex; flex-wrap: wrap; gap: 0 24px; margin: 24px 0;
-                 border-bottom: 1px solid var(--ink); }
-[role=tab] { min-height: 44px; padding: 8px 0; border: 0; border-bottom: 3px solid transparent;
-             color: var(--muted); }
-[role=tab]:hover:not(:disabled) { background: transparent; color: var(--ink); }
-[role=tab][aria-selected=true] { color: var(--ink); border-bottom-color: var(--ink); }
+.tabs { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between;
+        gap: 0 24px; padding: 0 var(--pad); border-bottom: 1px solid var(--rule); }
+[role=tablist] { display: flex; flex-wrap: wrap; gap: 0 28px; }
+@media (width <= 640px) {  /* four tabs with counts do not fit 390px: the strip scrolls sideways */
+  [role=tablist] { flex-wrap: nowrap; gap: 0; min-width: 0; padding: 2px; overflow-x: auto;
+                   scrollbar-width: thin; }
+  .tabs [role=tab] { flex: none; padding-inline: 10px; }  /* room for the inset focus ring */
+}
+[role=tab] { min-height: 44px; padding: 10px 0; background: none; border: 0; border-radius: 0;
+             color: var(--ink-2); transition: color 150ms ease-out, box-shadow 150ms ease-out; }
+[role=tab]:hover:not(:disabled), [role=tab]:active:not(:disabled) { background: none; color: var(--ink); }
+[role=tab][aria-selected=true] { color: var(--ink); font-weight: 600;
+                                 box-shadow: inset 0 -2px 0 var(--ink); }
+.count { font-weight: 400; color: var(--ink-2); }
 
-.card { padding: 16px 0; border-top: 1px solid var(--hairline); }
-.card:last-child { border-bottom: 1px solid var(--hairline); }
-.card .head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 16px; }
-.card .who { font-weight: 800; }
-.text, pre { margin: 8px 0; white-space: pre-wrap; overflow-wrap: anywhere; }
-pre, .mono { font: 13px/20px var(--mono); }
-pre { padding: 16px; background: var(--tint); border-left: 3px solid var(--ink); }
-.tag { padding: 0 8px; border: 1px solid var(--ink); font-size: 12px; font-weight: 800;
-       letter-spacing: 0.08em; }
+.tools { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; padding: 16px var(--pad); }
+.tools input[type=search] { flex: 1 1 320px; }
+.note { padding: 20px var(--pad); color: var(--ink-2); }
+.note.err { color: var(--err); font-weight: 600; }
+
+/* notifications: fixed columns, one size, hairline between rows */
+.row { display: grid; grid-template-columns: 160px 240px minmax(0, 1fr) 140px; gap: 4px 24px;
+       padding: 14px var(--pad); border-bottom: 1px solid var(--rule);
+       transition: background-color 150ms ease-out; }
+.row:hover, .row:focus-within { background: var(--wash); }
+.group { display: flex; align-items: baseline; gap: 8px; padding: 26px var(--pad) 10px;
+         border-bottom: 1px solid var(--rule); font-size: 0.9375rem; font-weight: 600; }
+.fold { margin: 0; border-bottom: 1px solid var(--rule); }
+.fold > summary { padding: 12px var(--pad); color: var(--ink-2); }
+.fold[open] > summary { border-bottom: 1px solid var(--rule); }
+.fold .row:last-child { border-bottom: 0; }
+.who { font-weight: 600; overflow-wrap: anywhere; }
+.src { color: var(--ink-2); overflow-wrap: anywhere; }
+.txt, .reply { font-family: var(--read); font-size: 1rem; line-height: 1.5; white-space: pre-wrap;
+               overflow-wrap: anywhere; }
+.ask { margin-right: 8px; font-family: var(--ui); color: var(--accent); }
+.extra { margin-top: 4px; color: var(--ink-2); font-size: 0.8125rem; overflow-wrap: anywhere; }
+.at { text-align: right; color: var(--ink-2); }
+.at a { display: block; }
+@media (width <= 1000px) { .row { grid-template-columns: 120px 160px minmax(0, 1fr) 130px; } }
+@media (width <= 640px) {
+  .row { grid-template-columns: minmax(0, 1fr) auto; }
+  .row .src, .row .body { grid-column: 1 / -1; }
+  .row .at { grid-row: 1; grid-column: 2; }
+  .at a { display: inline; margin-left: 10px; }
+}
+
+/* bot replies: pages, not cards */
+.run { padding: 18px var(--pad); border-bottom: 1px solid var(--rule); }
+.run-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 14px; }
+.reply { margin: 8px 0 0; }
+.reply > * { margin: 0; }
+.reply > * + * { margin-top: 0.75em; }
+.reply ul, .reply ol { padding-left: 1.4em; white-space: normal; }
+.reply code { padding: 0 3px; border-radius: 3px; background: var(--band); font: 0.9375rem var(--mono); }
 details { margin-top: 8px; }
-summary { cursor: pointer; font-weight: 700; padding: 8px 0; }
-details .card { padding-left: 24px; }
-.counts { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 16px;
-          margin: 0 0 24px; }
-.counts div { border-top: 3px solid var(--ink); padding-top: 8px; }
-.counts b { display: block; font-size: 40px; line-height: 44px; font-weight: 900; }
-.scroll { overflow-x: auto; }
+summary { display: inline-block; padding: 6px 0; color: var(--accent); cursor: pointer;
+          list-style-position: inside; }
+summary:hover { text-decoration: underline; text-underline-offset: 3px; }
+.run details .row { padding-inline: 0; border-bottom: 0; border-top: 1px solid var(--rule); }
+.run details .row:hover, .run details .row:focus-within { background: none; }
+pre { margin: 0 var(--pad) 8px; padding: 14px 16px; background: var(--band); border-radius: 6px;
+      font: 0.8125rem/1.55 var(--mono); white-space: pre-wrap; overflow-wrap: anywhere; }
+
+/* activity: figures as text, table with hairline rows */
+.counts { display: flex; flex-wrap: wrap; gap: 4px 32px; margin: 0; padding: 18px var(--pad) 0; }
+.counts div { display: flex; align-items: baseline; gap: 6px; }
+.counts dt { order: 2; color: var(--ink-2); }
+.counts dd { margin: 0; font-weight: 600; }
+.scroll { padding: 0 var(--pad); overflow-x: auto; }
 table { width: 100%; border-collapse: collapse; }
-th, td { padding: 8px 16px 8px 0; text-align: left; vertical-align: top;
-         border-bottom: 1px solid var(--hairline); }
-th { border-bottom: 1px solid var(--ink); color: var(--muted); white-space: nowrap; }
-.state { padding: 24px 0; color: var(--muted); }
-.state.err { color: var(--rose); font-weight: 700; }
-.spin::before { content: ""; display: inline-block; width: 12px; height: 12px; margin-right: 8px;
-                border: 2px solid currentColor; border-right-color: transparent;
-                border-radius: 50%; animation: spin 0.8s linear infinite; }
-@keyframes spin { to { transform: rotate(360deg); } }
-@media (prefers-reduced-motion: reduce) { .spin::before { animation: none; } }
+th, td { padding: 9px 20px 9px 0; text-align: left; vertical-align: top;
+         border-bottom: 1px solid var(--rule); }
+th { color: var(--ink-2); white-space: nowrap; border-bottom-color: var(--edge); }
+td:not(:last-child) { white-space: nowrap; }
+th:last-child, td:last-child { width: 100%; overflow-wrap: anywhere; }
+tbody tr { transition: background-color 150ms ease-out; }
+tbody tr:hover { background: var(--wash); }
+
+/* loading: skeleton lines in place of the content they stand for */
+.skel { padding: 20px var(--pad); }
+.skel i { display: block; height: 12px; margin: 0 0 14px; border-radius: 2px; background: var(--rule);
+          animation: wait 1.4s ease-in-out infinite alternate; }
+.skel i:nth-of-type(1) { width: 38%; } .skel i:nth-of-type(2) { width: 72%; }
+.skel i:nth-of-type(3) { width: 55%; margin-bottom: 0; }
+@keyframes wait { from { opacity: 1; } to { opacity: 0.45; } }
+@media (prefers-reduced-motion: reduce) {
+  *, .progress i { transition: none !important; }
+  .skel i { animation: none; }
+}
 [hidden] { display: none !important; }
 </style>
 </head>
 <body>
-<header>
-  <h1>Slack mention watch</h1>
-  <span class="muted num" id="updated" aria-live="off">loading…</span>
+<h1 class="vh">Slack mention watch</h1>
+<header id="jobs" aria-label="Bot status">
+  <div class="skel" role="status"><span class="vh">Loading bot status…</span><i></i><i></i><i></i></div>
 </header>
-<section id="jobs" aria-label="Bot status"><p class="state">Loading bot status…</p></section>
 <p id="flash" role="status" aria-live="polite"></p>
 
-<div role="tablist" aria-label="Views">
-  <button role="tab" id="tab-notifications" aria-controls="panel-notifications">Notifications</button>
-  <button role="tab" id="tab-replies" aria-controls="panel-replies">Bot replies</button>
-  <button role="tab" id="tab-activity" aria-controls="panel-activity">Activity</button>
-  <button role="tab" id="tab-reviews" aria-controls="panel-reviews">Reviews</button>
+<div class="tabs">
+  <div role="tablist" aria-label="Views">
+    <button role="tab" id="tab-notifications" aria-controls="panel-notifications">Notifications <span class="count num" id="count-notifications"></span></button>
+    <button role="tab" id="tab-replies" aria-controls="panel-replies">Bot replies <span class="count num" id="count-replies"></span></button>
+    <button role="tab" id="tab-activity" aria-controls="panel-activity">Activity <span class="count num" id="count-activity"></span></button>
+    <button role="tab" id="tab-reviews" aria-controls="panel-reviews">Reviews <span class="count num" id="count-reviews"></span></button>
+  </div>
+  <span class="quiet small num" id="updated" aria-live="off">loading…</span>
 </div>
 
 <section role="tabpanel" id="panel-notifications" aria-labelledby="tab-notifications" tabindex="0">
-  <div class="bar">
+  <div class="tools">
     <label>Window
       <select id="win">
         <option value="1">Last hour</option><option value="24">Last 24 hours</option>
         <option value="168" selected>Last 7 days</option><option value="720">Last 30 days</option>
       </select>
     </label>
-    <button id="live">Fetch live from Slack</button>
-    <span class="muted">Listed here: mentions the bot was given. A live fetch asks Slack directly.</span>
+    <button type="button" id="live">Fetch live from Slack</button>
+    <span class="quiet">Mentions the bot was given. A live fetch asks Slack directly.</span>
   </div>
   <pre id="live-out" hidden></pre>
-  <div id="mentions"><p class="state">Loading mentions…</p></div>
+  <div id="mentions"><div class="skel" role="status"><span class="vh">Loading mentions…</span><i></i><i></i><i></i></div></div>
 </section>
 
 <section role="tabpanel" id="panel-replies" aria-labelledby="tab-replies" tabindex="0" hidden>
-  <div class="bar">
+  <div class="tools">
     <input type="search" id="q" placeholder="Search replies and mentions" aria-label="Search replies and mentions">
     <label><input type="checkbox" id="silent"> Show silent runs</label>
   </div>
-  <div id="replies"><p class="state">Loading replies…</p></div>
+  <div id="replies"><div class="skel" role="status"><span class="vh">Loading replies…</span><i></i><i></i><i></i></div></div>
 </section>
 
 <section role="tabpanel" id="panel-activity" aria-labelledby="tab-activity" tabindex="0" hidden>
-  <div class="counts" id="counts"></div>
-  <div class="bar"><label><input type="checkbox" id="erronly"> Errors only</label></div>
-  <div id="activity"><p class="state">Loading activity…</p></div>
+  <dl class="counts num" id="counts"></dl>
+  <div class="tools"><label><input type="checkbox" id="erronly"> Errors only</label></div>
+  <div id="activity"><div class="skel" role="status"><span class="vh">Loading activity…</span><i></i><i></i><i></i></div></div>
 </section>
 
 <section role="tabpanel" id="panel-reviews" aria-labelledby="tab-reviews" tabindex="0" hidden>
-  <div id="reviews"><p class="state">Loading review sessions…</p></div>
+  <div id="reviews"><div class="skel" role="status"><span class="vh">Loading review sessions…</span><i></i><i></i><i></i></div></div>
 </section>
 
 <script nonce="__NONCE__">
@@ -710,6 +826,9 @@ const $ = id => document.getElementById(id);
 const csrf = document.querySelector('meta[name=csrf]').content;
 const TABS = ['notifications', 'replies', 'activity', 'reviews'];
 const OUTCOME = {nothing_new: 'Nothing new', sent: 'Sent', error: 'Error', missed: 'Missed'};
+const TONE = {sent: 'ok', error: 'err', missed: 'hold', nothing_new: 'quiet'};
+const DAY = new Intl.DateTimeFormat('en-GB', {weekday: 'short', day: 'numeric', month: 'short'});
+const HM = new Intl.DateTimeFormat('en-GB', {hour: '2-digit', minute: '2-digit', hourCycle: 'h23'});
 const openRuns = new Set();
 const shown = {};
 let tab = 'notifications', replyLimit = 50;
@@ -722,11 +841,14 @@ function el(tag, attrs, ...kids) {
   e.append(...kids.filter(k => k !== null && k !== undefined && k !== ''));
   return e;
 }
-function when(iso) {
-  if (!iso) return '-';
-  const d = new Date(iso);
-  return isNaN(d) ? String(iso) : d.toLocaleString(undefined, {weekday: 'short', year: 'numeric',
-    month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'});
+// "Wed 25 Nov, 08:00" (the year only when it is not this year)
+function when(v, timeOnlyToday) {
+  if (!v) return '-';
+  const d = v instanceof Date ? v : new Date(v), now = new Date();
+  if (isNaN(d)) return String(v);
+  if (timeOnlyToday && d.toDateString() === now.toDateString()) return HM.format(d);
+  return DAY.format(d).replace(',', '') + (d.getFullYear() === now.getFullYear() ? '' : ' ' + d.getFullYear())
+    + ', ' + HM.format(d);
 }
 async function api(path, opts) {
   const r = await fetch(path, opts);
@@ -748,36 +870,65 @@ function paint(id, key, build) {
 }
 function fail(id, what, e) {
   shown[id] = null;
-  $(id).replaceChildren(el('p', {class: 'state err', role: 'alert'},
+  $(id).replaceChildren(el('p', {class: 'note err', role: 'alert'},
     'Could not load ' + what + ': ' + e.message));
 }
-const empty = text => el('p', {class: 'state'}, text);
+const empty = text => el('p', {class: 'note'}, text);
+const count = (name, n) => { $('count-' + name).textContent = Number(n || 0).toLocaleString(); };
 
-// --- status bar and controls
+// --- header band: state sentence, controls, pause-progress rule
+function left(ms) {
+  const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor(m % 1440 / 60);
+  if (m <= 0) return 'Resume is due';
+  return (d ? d + (d === 1 ? ' day ' : ' days ') + h + ' h' : h ? h + ' h ' + m % 60 + ' min' : m + ' min')
+    + ' left';
+}
+function tick() {  // elapsed share between paused-at and the scheduled resume
+  for (const p of document.querySelectorAll('.progress')) {
+    const from = +p.dataset.from, to = +p.dataset.to, now = Date.now();
+    const pct = Math.max(0, Math.min(100, (now - from) / (to - from) * 100));
+    p.firstChild.style.width = pct.toFixed(2) + '%';
+    p.setAttribute('aria-valuenow', Math.round(pct));
+    p.setAttribute('aria-valuetext', left(to - now));
+    p.nextSibling.children[1].textContent = left(to - now);
+  }
+}
 function jobRow(j) {
   const paused = !j.enabled || j.state === 'paused';
   const resume = j.scheduled_resume;
-  const badge = paused ? (resume ? 'Paused until ' + when(resume.run_at) : 'Paused') : 'Running';
-  const fact = (k, v, cls) => el('div', null, el('dt', null, k), el('dd', {class: cls || ''}, v));
-  const facts = el('dl', null,
-    fact('Schedule', j.schedule || '-'),
-    fact('Next run', paused ? 'none while paused' : when(j.next_run_at)),
-    fact('Last run', when(j.last_run_at) + (j.last_status ? ' (' + j.last_status + ')' : '')),
-    j.last_error ? fact('Last error', String(j.last_error), 'err') : null);
-  const btn = (label, action, getUntil) => {
-    const b = el('button', {type: 'button'}, label);
+  const sentence = paused
+    ? el('p', {class: 'sentence'}, el('span', {class: 'hold'}, 'Paused'),
+        resume ? ' until ' + when(resume.run_at) : null)
+    : el('p', {class: 'sentence'}, el('span', {class: 'ok'}, 'Running'),
+        j.next_run_at ? ' \u00b7 next check ' + when(j.next_run_at, true) : null);  // never while paused
+  const from = Date.parse(j.paused_at), to = resume ? Date.parse(resume.run_at) : NaN;
+  const bar = paused && to > from;
+  const meta = el('p', {class: 'meta num'},
+    (paused && !bar && j.paused_at ? 'Paused since ' + when(j.paused_at) + ' \u00b7 ' : '')
+    + (j.last_run_at ? 'Last check ' + when(j.last_run_at) + (j.last_status ? ' \u00b7 ' + j.last_status : '')
+      : 'No check yet'));
+  const btn = (label, action, getUntil, cls) => {
+    const b = el('button', {type: 'button', class: cls || ''}, label);
     b.addEventListener('click', () => control(j, action, getUntil && getUntil(), b));
     return b;
   };
   const until = el('input', {type: 'datetime-local', 'aria-label': 'Pause ' + j.name + ' until'});
-  const controls = el('div', {class: 'controls'},
-    paused ? btn('Resume', 'resume') : btn('Pause', 'pause'),
+  const actions = el('div', {class: 'actions'},
+    paused ? btn('Resume now', 'resume', null, 'primary') : btn('Pause', 'pause', null, 'primary'),
     until, btn('Pause until', 'pause_until', () => until.value),
     resume ? btn('Cancel scheduled resume', 'cancel_resume') : null);
-  return el('div', {class: 'job'},
-    el('div', null, el('h2', null, j.name), el('div', {class: 'mono muted'}, j.id),
-      el('div', {class: 'badge ' + (paused ? 'paused' : 'running')}, badge)),
-    el('div', null, facts, controls));
+  const head = el('div', {class: 'head'},
+    el('div', null,
+      el('h2', null, j.name, el('span', null, (j.schedule ? ' \u00b7 ' + j.schedule : '') + ' \u00b7 ' + j.id)),
+      sentence, meta,
+      j.last_error ? el('p', {class: 'meta err'}, 'Last error: ' + j.last_error) : null),
+    actions);
+  if (!bar) return el('div', {class: 'job plain'}, head);
+  return el('div', {class: 'job'}, head,
+    el('div', {class: 'progress', role: 'progressbar', 'aria-label': 'Pause elapsed', 'aria-valuemin': 0,
+      'aria-valuemax': 100, 'data-from': from, 'data-to': to}, el('i')),
+    el('div', {class: 'progress-l num'}, el('span', null, 'Paused ' + when(j.paused_at)), el('span'),
+      el('span', null, 'Resumes ' + when(resume.run_at))));
 }
 async function control(j, action, until, button) {
   if (action === 'pause' && !confirm('Pause ' + j.name + '? New mentions are not triaged until it is resumed.')) return;
@@ -797,41 +948,81 @@ async function control(j, action, until, button) {
 }
 async function loadStatus(force) {
   // do not rebuild the row while the user is typing a date into it
-  if (!force && document.activeElement && document.activeElement.matches('#jobs input')) return;
+  if (!force && document.activeElement && document.activeElement.matches('#jobs input')) return tick();
   try {
     const s = await api('/api/status');
     paint('jobs', JSON.stringify(s.jobs), () => s.jobs.length ? s.jobs.map(jobRow) : empty(
       'No slack-mention cron job found. Create one (see SKILL.md) or start the dashboard with --job <id>.'));
-    $('updated').textContent = 'updated ' + new Date().toLocaleTimeString([], {hour12: false});
+    $('updated').textContent = 'Updated ' + HM.format(new Date());
   } catch (e) {
     fail('jobs', 'bot status', e);
-    $('updated').textContent = 'update failed ' + new Date().toLocaleTimeString([], {hour12: false});
+    $('updated').textContent = 'Update failed ' + HM.format(new Date());
   }
+  tick();
 }
 
 // --- notifications
-function mentionCard(m) {
-  const link = typeof m.permalink === 'string' && m.permalink.startsWith('https://')
-    ? el('a', {href: m.permalink, target: '_blank', rel: 'noopener noreferrer'}, 'Open in Slack') : null;
-  return el('article', {class: 'card'},
-    el('div', {class: 'head'}, el('span', {class: 'who'}, m.sender), el('span', null, m.channel),
-      el('span', {class: 'muted num'}, m.at), link),
-    el('div', {class: 'text'}, m.text || '(no text)'),
-    m.reacted ? el('div', {class: 'muted'}, 'Reacted: ' + m.reacted) : null,
-    m.review ? el('div', {class: 'muted mono'}, 'review: ' + m.review) : null);
+function at(s) {  // "Fri 2026-11-20 15:11" as written by the digest script
+  const m = /^\w{3} (\d{4})-(\d\d)-(\d\d) (\d\d):(\d\d)$/.exec(s || '');
+  return m ? when(new Date(+m[1], m[2] - 1, +m[3], +m[4], +m[5])) : String(s || '-');
+}
+// Exact repeats (same sender, source, text and minute) become one row; every permalink stays.
+function collapse(items) {
+  const groups = new Map();
+  for (const m of items) {
+    const k = JSON.stringify([m.sender, m.channel, m.text, m.at]);
+    if (groups.has(k)) groups.get(k).push(m); else groups.set(k, [m]);
+  }
+  return [...groups.values()];
+}
+const asksYou = g => g.some(x => /\?/.test(x.text || '') || !!x.review || /eyes/.test(x.reacted || ''));
+function mentionRow(g) {
+  const m = g[0], n = g.length;
+  const reacted = (g.find(x => x.reacted) || m).reacted, review = (g.find(x => x.review) || m).review;
+  const links = g.filter(x => typeof x.permalink === 'string' && x.permalink.startsWith('https://'));
+  return el('article', {class: 'row'},
+    el('span', {class: 'who'}, m.sender), el('span', {class: 'src'}, m.channel),
+    el('div', {class: 'body'},
+      el('p', {class: 'txt'}, asksYou(g) ? el('span', {class: 'ask caps'}, 'Asks you') : null, m.text || '(no text)'),
+      n > 1 ? el('p', {class: 'extra'}, n === 2 ? 'sent twice' : 'sent ' + n + ' times') : null,
+      reacted ? el('p', {class: 'extra'}, 'Reacted: ' + reacted) : null,
+      review ? el('p', {class: 'extra mono'}, 'review: ' + review) : null),
+    el('span', {class: 'at num'}, at(m.at), ...links.map((x, i) => el('a', {href: x.permalink,
+      target: '_blank', rel: 'noopener noreferrer', 'aria-label': 'Open in Slack: ' + m.sender + ', '
+      + at(m.at) + (links.length > 1 ? ' (' + (i + 1) + ' of ' + links.length + ')' : '')},
+      links.length > 1 ? 'Open ' + (i + 1) : 'Open'))));
+}
+// Two groups, newest first: what asks the owner something, then the rest; bare "(no comment)"
+// pings fold into one quiet line at the end.
+function mentionGroups(items) {
+  const sum = gs => gs.reduce((a, g) => a + g.length, 0);
+  const head = (text, gs) => el('h3', {class: 'group'}, text, el('span', {class: 'count num'}, String(sum(gs))));
+  const groups = collapse(items).sort((a, b) => (b[0].at || '').slice(4).localeCompare((a[0].at || '').slice(4)));
+  const ask = groups.filter(asksYou), rest = groups.filter(g => !asksYou(g));
+  const bare = rest.filter(g => g[0].text === '(no comment)'), other = rest.filter(g => g[0].text !== '(no comment)');
+  const out = [head('Asks you', ask)];
+  out.push(...(ask.length ? ask.map(mentionRow) : [empty('Nothing is asking you in this window.')]));
+  if (rest.length) out.push(head('Everything else', rest), ...other.map(mentionRow));
+  if (bare.length) {
+    const n = sum(bare);
+    out.push(el('details', {class: 'fold'}, el('summary', null, n + (n === 1 ? ' notification' : ' notifications')
+      + ' with no comment'), ...bare.map(mentionRow)));
+  }
+  return out;
 }
 async function loadMentions() {
   const sel = $('win');
   try {
     const d = await api('/api/mentions?hours=' + sel.value);
-    paint('mentions', JSON.stringify(d.items), () => d.items.length ? d.items.map(mentionCard)
+    count('notifications', d.items.length);
+    paint('mentions', JSON.stringify(d.items), () => d.items.length ? mentionGroups(d.items)
       : empty('No mentions reached the bot in this window (' + sel.selectedOptions[0].textContent.toLowerCase()
         + '). "Fetch live from Slack" asks Slack directly.'));
   } catch (e) { fail('mentions', 'mentions', e); }
 }
 async function fetchLive() {
   const b = $('live'), out = $('live-out');
-  b.disabled = true; b.classList.add('spin'); b.textContent = 'Fetching from Slack…';
+  b.disabled = true; b.setAttribute('aria-busy', 'true'); b.textContent = 'Fetching from Slack…';
   out.hidden = false; out.textContent = 'Asking Slack. This can take up to two minutes.';
   try {
     const r = await post('/api/live?hours=' + $('win').value);
@@ -839,36 +1030,82 @@ async function fetchLive() {
   } catch (e) {
     out.textContent = 'Live fetch failed: ' + e.message;
   }
-  b.disabled = false; b.classList.remove('spin'); b.textContent = 'Fetch live from Slack';
+  b.disabled = false; b.removeAttribute('aria-busy'); b.textContent = 'Fetch live from Slack';
 }
 
 // --- bot replies
+// ponytail: wording heuristic on the first line only; a real flag needs the run status from the API
+const looksFailed = s => /fail(ed|ure)|error|traceback|exception/i.test((s || '').trim().split('\n', 1)[0]);
+// Light markdown for bot replies, built as DOM nodes (no innerHTML, so reply text can never become
+// markup): blank-line paragraphs, "- "/"* "/"1. " lists, `code`, **bold**, bare https:// links. A
+// leading "[CRON_FAILURE]"-style tag is dropped (looksFailed already flags it). Anything else is text.
+function inline(s) {
+  const out = [], re = /`([^`\n]+)`|\*\*([^*\n]+)\*\*|(https:\/\/[^\s<>()|]*[^\s<>()|.,;:!?'"])/g;
+  let i = 0, m;
+  while ((m = re.exec(s))) {
+    out.push(s.slice(i, m.index), m[1] !== undefined ? el('code', null, m[1])
+      : m[2] !== undefined ? el('strong', null, m[2])
+      : el('a', {href: m[3], target: '_blank', rel: 'noopener noreferrer'}, m[3]));
+    i = re.lastIndex;
+  }
+  out.push(s.slice(i));
+  return out;
+}
+function markdown(text) {
+  const blocks = [];
+  for (const para of text.replace(/^\s*\[[A-Z][A-Z0-9_]*\]\s*/, '').split(/\n[ \t]*\n/)) {
+    let list = null, lines = [];
+    const flush = () => {
+      const t = lines.join('\n').trim();
+      if (t) blocks.push(el('p', null, ...inline(t)));
+      lines = [];
+    };
+    for (const line of para.split('\n')) {
+      const m = /^\s*(?:[-*]|(\d+)\.)\s+(.*)$/.exec(line), kind = m && (m[1] ? 'OL' : 'UL');
+      if (m) {
+        flush();
+        if (!list || list.tagName !== kind) blocks.push(list = el(kind.toLowerCase()));
+        list.append(el('li', null, ...inline(m[2])));
+      } else if (list && /^\s+\S/.test(line)) {
+        list.lastChild.append(' ', ...inline(line.trim()));  // wrapped list item
+      } else {
+        list = null;
+        lines.push(line);
+      }
+    }
+    flush();
+  }
+  return blocks;
+}
 function runCard(r) {
   const n = r.mentions.length;
   const d = el('details', null, el('summary', null, n + (n === 1 ? ' mention' : ' mentions') + ' in this run'),
-    ...r.mentions.map(mentionCard));
+    ...collapse(r.mentions).map(mentionRow));
   d.open = openRuns.has(r.session_id);
   d.addEventListener('toggle', () => d.open ? openRuns.add(r.session_id) : openRuns.delete(r.session_id));
-  return el('article', {class: 'card'},
-    el('div', {class: 'head'}, el('span', {class: 'who num'}, when(r.started_at)),
-      el('span', {class: 'muted mono'}, r.model || 'model unknown'),
-      r.silent ? el('span', {class: 'tag'}, 'SILENT') : null),
-    r.silent ? null : el('div', {class: 'text'}, r.reply || '(no reply recorded for this run)'),
-    n ? d : el('div', {class: 'muted'}, 'No mention blocks in this run.'));
+  return el('article', {class: 'run'},
+    el('div', {class: 'run-head'}, el('span', {class: 'who num'}, when(r.started_at)),
+      el('span', {class: 'quiet'}, r.model || 'model unknown'),
+      r.silent ? el('span', {class: 'caps quiet'}, 'Silent') : null,
+      looksFailed(r.reply) ? el('span', {class: 'caps err'}, 'Error') : null),
+    r.silent ? null : el('div', {class: 'reply'}, ...(r.reply ? markdown(r.reply) : [el('p', null,
+      '(no reply recorded for this run)')])),
+    n ? d : el('p', {class: 'extra'}, 'No mention blocks in this run.'));
 }
 async function loadReplies() {
   const q = $('q').value.trim(), silent = $('silent').checked;
   try {
     const d = await api('/api/replies?limit=' + replyLimit + '&q=' + encodeURIComponent(q));
+    if (!q) count('replies', d.total);
     const items = silent ? d.items : d.items.filter(r => !r.silent);
     paint('replies', JSON.stringify([d, silent]), () => {
       if (!d.total) return empty(q ? 'No run matches "' + q + '".' : 'The bot has not replied yet: no cron run has woken the model.');
       const hiddenRuns = d.items.length - items.length;
-      const note = el('p', {class: 'muted'}, 'Showing ' + items.length + ' of ' + d.total + ' runs'
+      const note = el('p', {class: 'note num'}, 'Showing ' + items.length + ' of ' + d.total + ' runs'
         + (hiddenRuns ? ' (' + hiddenRuns + ' silent hidden)' : '') + '.');
       const more = el('button', {type: 'button'}, 'Show older runs');
       more.addEventListener('click', () => { replyLimit += 50; loadReplies(); });
-      return [note, ...items.map(runCard), d.total > d.items.length ? el('p', null, more) : null]
+      return [note, ...items.map(runCard), d.total > d.items.length ? el('p', {class: 'note'}, more) : null]
         .filter(Boolean);
     });
   } catch (e) { fail('replies', 'bot replies', e); }
@@ -879,15 +1116,16 @@ async function loadActivity() {
   const errOnly = $('erronly').checked;
   try {
     const d = await api('/api/activity');
+    count('activity', Object.values(d.counts).reduce((a, b) => a + b, 0));
     paint('counts', JSON.stringify(d.counts), () => Object.keys(OUTCOME).map(k =>
-      el('div', null, el('b', {class: 'num'}, String(d.counts[k] || 0)), el('span', {class: 'label'}, OUTCOME[k]))));
+      el('div', null, el('dt', null, OUTCOME[k]), el('dd', null, Number(d.counts[k] || 0).toLocaleString()))));
     const items = errOnly ? d.items.filter(i => i.outcome === 'error') : d.items;
     paint('activity', JSON.stringify([items, errOnly]), () => {
       if (!items.length) return empty(errOnly ? 'No errors in the last ' + d.items.length + ' runs.' : 'No runs recorded yet.');
       const row = i => el('tr', null, el('td', {class: 'num'}, when(i.claimed_at)),
         el('td', {class: 'num'}, when(i.finished_at)),
-        el('td', {class: i.outcome === 'error' ? 'err' : ''}, OUTCOME[i.outcome] || String(i.outcome)),
-        el('td', null, String(i.status || '-')), el('td', {class: 'err'}, i.error ? String(i.error) : ''));
+        el('td', {class: TONE[i.outcome] || ''}, OUTCOME[i.outcome] || String(i.outcome)),
+        el('td', {class: 'quiet'}, String(i.status || '-')), el('td', {class: 'err'}, i.error ? String(i.error) : ''));
       return el('div', {class: 'scroll'}, el('table', null,
         el('thead', null, el('tr', null, ...['Claimed', 'Finished', 'Outcome', 'Status', 'Error'].map(
           h => el('th', {scope: 'col'}, h)))),
@@ -900,6 +1138,7 @@ async function loadActivity() {
 async function loadReviews() {
   try {
     const d = await api('/api/reviews');
+    count('reviews', d.rows.length);
     paint('reviews', JSON.stringify(d), () => {
       if (!d.rows.length) return empty(d.note || 'No review sessions.');
       const cols = Object.keys(d.rows[0]);
@@ -944,6 +1183,7 @@ $('q').addEventListener('input', () => { clearTimeout(typing); typing = setTimeo
 
 loadStatus();
 show(location.hash.slice(1));
+for (const t of TABS) if (t !== tab) LOAD[t]();  // once, for the tab counts
 setInterval(() => { loadStatus(); LOAD[tab](); }, 30000);  // never the live fetch
 </script>
 </body>
