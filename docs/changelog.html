@@ -183,7 +183,7 @@
   <div class="page-head">
     <h1>Changelog</h1>
     <p class="lede">
-      24 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
+      25 entries across 17 skills, newest first, from each skill's <code>CHANGELOG.md</code>.
       Every push that bumps a version is also published as a
       <a href="https://github.com/LaansDole/my-hermes-skills/releases" target="_blank" rel="noopener">GitHub release</a>.
     </p>
@@ -193,6 +193,11 @@
     <section class="month" aria-labelledby="m-november-2026">
       <h2 id="m-november-2026">November 2026</h2>
       <ol class="rows">
+        <li class="cl-row" id="slack-mention-watch-2.8.1">
+          <time class="r-date sc" datetime="2026-11-22">22 Nov</time>
+          <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.8.1</span></p>
+          <div class="cl-changes"><p class="cl-kind">Changed</p><ul><li>Dashboard redesigned as a low-glare "matte e-ink" page: warm grey paper (graphite in dark mode), soft ink with no pure black or white, hairlines instead of boxes, and a serif only for message and reply text. Every text colour passes WCAG AA in both themes. The visual system is documented in <code>DESIGN.md</code>.</li><li>Notifications put pings that ask you something first; "(no comment)" notifications fold into one expandable line, and identical messages sent in the same minute show as one row ("sent twice").</li><li>Bot replies render their markdown (paragraphs, lists, inline code, links) instead of raw text.</li><li>A pause-progress line under the status shows how much of a "Pause until" window is left.</li><li>While a job is paused, the page no longer shows its stale "next run" time.</li></ul><p class="cl-kind">Fixed</p><ul><li>The Activity tab failed with <code>unable to open database file</code> under older SQLite builds (e.g. the macOS system Python) when the WAL database had no <code>-wal</code>/<code>-shm</code> files beside it. The read-only open now retries with <code>immutable=1</code>.</li></ul></div>
+        </li>
         <li class="cl-row" id="slack-mention-watch-2.8.0">
           <time class="r-date sc" datetime="2026-11-22">22 Nov</time>
           <p class="cl-skill"><a href="index.html#entry-slack-mention-watch">slack-mention-watch</a><span class="sc">v2.8.0</span></p>
