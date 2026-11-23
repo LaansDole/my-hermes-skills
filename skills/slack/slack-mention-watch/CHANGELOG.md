@@ -2,6 +2,25 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:` in SKILL.md and add a matching section; the release workflow publishes it.
 
+## [2.8.1] - 2026-11-22
+
+### Changed
+- Dashboard redesigned as a low-glare "matte e-ink" page: warm grey paper (graphite in dark
+  mode), soft ink with no pure black or white, hairlines instead of boxes, and a serif only for
+  message and reply text. Every text colour passes WCAG AA in both themes. The visual system is
+  documented in `DESIGN.md`.
+- Notifications put pings that ask you something first; "(no comment)" notifications fold into
+  one expandable line, and identical messages sent in the same minute show as one row
+  ("sent twice").
+- Bot replies render their markdown (paragraphs, lists, inline code, links) instead of raw text.
+- A pause-progress line under the status shows how much of a "Pause until" window is left.
+- While a job is paused, the page no longer shows its stale "next run" time.
+
+### Fixed
+- The Activity tab failed with `unable to open database file` under older SQLite builds (e.g.
+  the macOS system Python) when the WAL database had no `-wal`/`-shm` files beside it. The
+  read-only open now retries with `immutable=1`.
+
 ## [2.8.0] - 2026-11-22
 
 ### Added
