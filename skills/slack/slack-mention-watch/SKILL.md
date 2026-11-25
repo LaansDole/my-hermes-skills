@@ -1,7 +1,7 @@
 ---
 name: slack-mention-watch
-description: Use when the user asks about Slack pings, mentions or what they missed, or wants @mention alerts or a triaged digest while away; can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
-version: 2.8.1
+description: Use when the user asks about Slack pings, mentions or what they missed, wants @mention alerts or a triaged digest while away, or asks to start/stop/open the mention dashboard (local UI server); can opt-in auto-react (:eyes: to questions, :raised_hands: to thanks) and opt-in start a background read-only review agent for PRs it is asked to review.
+version: 2.9.0
 author: LaansDole
 license: MIT
 metadata:
@@ -46,6 +46,30 @@ unchanged; switch to `execute_code`.
   never touches the background job's state. With none it prints `No @<name> mentions in the last N h.`
 - **Never claim you can't see Slack** -- this script is how you see it.
 
+## On demand: start the dashboard (local UI server)
+
+When the user asks to run / start / open / launch the dashboard, UI, web UI or local server (from
+the CLI or from Slack), run `scripts/dashboard_ctl.py start` -- never `dashboard.py` directly: that
+one blocks forever and dies with the calling tool/gateway process. `dashboard_ctl.py` starts the
+server detached (own session, survives the caller), waits until it listens, prints the URL and
+returns. It is idempotent: a running dashboard is reused, not started twice.
+
+```python
+import os, subprocess
+r = subprocess.run(["python3", os.path.expanduser(
+    "~/.hermes/skills/slack/slack-mention-watch/scripts/dashboard_ctl.py"), "start"],
+    capture_output=True, text=True, timeout=30)
+print(r.stdout or r.stderr)
+```
+
+- `status` / `stop` work the same way ("is the dashboard up?", "stop the dashboard").
+- `--port N` if 8090 is taken by something else (the script says so); `--open` also opens the
+  browser -- only add it when the user asks from the CLI on the Mac, not from Slack.
+- Relay the printed URL. It is loopback only (`127.0.0.1`), so tell a Slack user it opens on the
+  Mac running Hermes, not on a phone.
+- Log: `~/.hermes/logs/slack-dashboard.log`; pid/port: `~/.hermes/scripts/.slack-dashboard.json`.
+  `stop` only stops an instance `dashboard_ctl.py` started (it has the pid).
+
 ## Quick command `/pings`
 
 Most reliable option: a quick command runs the script directly and bypasses the LLM. Add to
@@ -56,6 +80,17 @@ quick_commands:
   pings:
     type: exec
     command: python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/watch_mentions.py --recent 24
+```
+
+Same for the dashboard (`/hermes /dashboard` on Slack, no LLM involved):
+
+```yaml
+  dashboard:
+    type: exec
+    command: python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/dashboard_ctl.py start
+  dashboard-stop:
+    type: exec
+    command: python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/dashboard_ctl.py stop
 ```
 
 On Slack, quick commands are NOT in the app manifest, so typing `/pings` makes Slack itself reply
@@ -501,6 +536,9 @@ and Pause / Resume buttons for the job. Python stdlib only, no external assets.
 python3 ~/.hermes/skills/slack/slack-mention-watch/scripts/dashboard.py --open
 # slack-mention dashboard: http://127.0.0.1:8090
 ```
+
+That runs in the foreground. To run it in the background (and from Slack / an agent), use
+`scripts/dashboard_ctl.py start|status|stop` -- see "On demand: start the dashboard".
 
 `--port N` (default 8090). It binds `127.0.0.1` only; `--host` accepts `127.0.0.1` or
 `localhost` and refuses anything else. `--check` prints the detected jobs and each data source

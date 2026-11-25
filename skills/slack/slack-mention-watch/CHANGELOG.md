@@ -2,6 +2,16 @@
 
 Format: [Keep a Changelog](https://keepachangelog.com/en/1.1.0/). Bump `version:` in SKILL.md and add a matching section; the release workflow publishes it.
 
+## [2.9.0] - 2026-11-25
+
+### Added
+- `scripts/dashboard_ctl.py start|status|stop`: runs the dashboard as a detached background
+  server that outlives its caller, so the agent (CLI or Slack) and quick commands can start it
+  and get the URL back at once. Idempotent; refuses a port held by something else.
+- Skill trigger + section "On demand: start the dashboard": asking the bot to run/open the
+  dashboard now starts it via `dashboard_ctl.py`; optional `/dashboard` and `/dashboard-stop`
+  quick commands (`/hermes /dashboard` on Slack).
+
 ## [2.8.1] - 2026-11-22
 
 ### Changed
