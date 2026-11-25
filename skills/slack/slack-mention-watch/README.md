@@ -44,6 +44,10 @@ for each new mention while you're away. Python stdlib only.
   serves a local page (`http://127.0.0.1:8090`) with the mentions the bot received, its replies,
   run activity and review sessions, plus Pause / Resume / "Pause until" for the cron job
   (controls and guarantees in `SKILL.md`).
+- Dashboard in the background: ask Hermes "start the Slack dashboard" (CLI or Slack) and it runs
+  `scripts/dashboard_ctl.py start`, which starts the page detached, waits until it is up and
+  replies with the URL; `status` / `stop` likewise. Optional `/dashboard` and `/dashboard-stop`
+  quick commands (`/hermes /dashboard` on Slack) skip the LLM (snippet in `SKILL.md`).
 
 ## System design
 
@@ -54,6 +58,7 @@ for each new mention while you're away. Python stdlib only.
 | `watch_mentions.py` | this skill, `scripts/` | Stdlib-only Slack client. Finds new mentions, dedupes, renders output; GET to an allowlisted read method, plus `reactions.add` when auto-react is on. |
 | `review_spawn.py` | this skill, `scripts/` | Opt-in digest wrapper: runs `watch_mentions.py --digest --react`, starts a read-only review agent per new PR mention, annotates the digest. No Slack calls. |
 | `dashboard.py` | this skill, `scripts/` | Local page on `127.0.0.1:8090`: mentions, bot replies, run activity, review sessions; pauses and resumes the cron job through `hermes cron`. Reads the Hermes databases read-only. No Slack calls. |
+| `dashboard_ctl.py` | this skill, `scripts/` | `start` / `status` / `stop` for `dashboard.py` as a detached background server that outlives its caller (agent, quick command). Idempotent; pid/port in `~/.hermes/scripts/.slack-dashboard.json`, log in `~/.hermes/logs/slack-dashboard.log`. |
 | Cron wrapper(s) | `~/.hermes/scripts/slack_mention_{watch,digest}_cron.py` | Real files (cron rejects symlinks) that `runpy` the skill script; the digest wrapper injects `--digest` because cron passes no args. |
 | Hermes cron job | `~/.hermes/cron/jobs.json` | Runs the wrapper on a schedule (`every 5m`), optionally wakes an LLM, delivers to Slack. |
 | State file | `~/.hermes/scripts/.slack-mention-watch.json` (600) | `last_ts` high-water mark + last 500 `channel:ts` keys. No message text. |
