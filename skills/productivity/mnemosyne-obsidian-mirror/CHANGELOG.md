@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.1.0] - 2026-11-28
+
+### Added
+- Theming hooks: every generated note lists `cssclasses` (`hermes-memory` plus
+  `hermes-memory-index|topic|type`), and each memory's meta line carries an
+  `#importance/high|medium|low` tag after its importance score.
+
 ## [1.0.0] - 2026-11-28
 
 ### Added

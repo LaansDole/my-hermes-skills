@@ -136,6 +136,27 @@ class MirrorTests(unittest.TestCase):
         self.run_main()
         self.assertEqual(before, self.db.read_bytes())
 
+    def test_theming_cssclasses_and_importance_tags(self):
+        self.assertEqual(self.run_main(), 0)
+        for rel, kind in [("Hermes Memory Index.md", "index"), ("Topics/Alpha.md", "topic"),
+                          ("Types/Preferences.md", "type")]:
+            text = (self.out / rel).read_text()
+            self.assertTrue(text.startswith("---\ngenerated_by: mnemosyne-obsidian-mirror\n"), rel)
+            self.assertIn(f"cssclasses:\n  - hermes-memory\n  - hermes-memory-{kind}\n---\n", text, rel)
+            self.assertTrue(mirror.is_generated(self.out / rel), rel)
+        prefs = (self.out / "Types/Preferences.md").read_text()
+        self.assertIn("*2026-01-02 · importance 0.90 #importance/high · id w1*", prefs)
+        alpha = (self.out / "Topics/Alpha.md").read_text()
+        self.assertIn("importance 0.70 #importance/medium · id w2*", alpha)
+
+    def test_importance_tag_thresholds(self):
+        def item(imp):
+            return mirror.render_item({"content": "x", "date": "2026-01-01", "importance": imp, "id": "i"}, None)
+        self.assertIn("importance 0.80 #importance/high ·", item(0.8))
+        self.assertIn("importance 0.50 #importance/medium ·", item(0.5))
+        self.assertIn("importance 0.49 #importance/low ·", item(0.49))
+        self.assertEqual(item(None), "- x\n  *2026-01-01 · id i*\n")
+
 
 if __name__ == "__main__":
     unittest.main()

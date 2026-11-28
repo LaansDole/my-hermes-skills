@@ -214,15 +214,18 @@ def topic_for(memory: dict, rules: list[dict]) -> str:
 
 def frontmatter(kind: str, tags: list[str]) -> str:
     tag_lines = "".join(f"  - {t}\n" for t in tags)
-    return f"---\ngenerated_by: {MARKER}\nkind: {kind}\ntags:\n{tag_lines}---\n"
+    return (f"---\ngenerated_by: {MARKER}\nkind: {kind}\ntags:\n{tag_lines}"
+            f"cssclasses:\n  - hermes-memory\n  - hermes-memory-{kind}\n---\n")
 
 
 def render_item(m: dict, link: str | None) -> str:
     lines = m["content"].splitlines() or [""]
     body = lines[0] + "".join(f"\n  {ln}" for ln in lines[1:])
     meta = [m["date"] or "undated"]
-    if isinstance(m["importance"], (int, float)):
-        meta.append(f"importance {m['importance']:.2f}")
+    imp = m["importance"]
+    if isinstance(imp, (int, float)):
+        level = "high" if imp >= 0.8 else "medium" if imp >= 0.5 else "low"
+        meta.append(f"importance {imp:.2f} #importance/{level}")
     if link:
         meta.append(link)
     meta.append(f"id {m['id']}")

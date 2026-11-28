@@ -1,7 +1,7 @@
 ---
 name: mnemosyne-obsidian-mirror
 description: "Use when mirroring Mnemosyne into Obsidian. Categorised."
-version: 1.0.0
+version: 1.1.0
 author: LaansDole
 license: MIT
 metadata:
@@ -35,6 +35,12 @@ Each entry shows the text, date, importance and Mnemosyne id. Every generated no
 `generated_by: mnemosyne-obsidian-mirror` in its frontmatter. The script only rewrites or
 deletes files with that marker, and it refuses to run if a hand-written note sits at a path it
 needs. Unchanged notes are not rewritten, so Obsidian sync and backups see no churn.
+
+For theming, each note's frontmatter also lists `cssclasses`: `hermes-memory` plus
+`hermes-memory-index`, `hermes-memory-topic` or `hermes-memory-type`. Each entry's meta line
+carries an importance tag right after the score: `#importance/high` (0.8 and up),
+`#importance/medium` (0.5 to 0.8) or `#importance/low` (below 0.5). A CSS snippet or theme can
+target these; the mirror ships no styling itself.
 
 Included: current curated memories (working memory except raw chat turns, consolidated copies
 not already mirrored, canonical facts, triples), with superseded and expired rows dropped and
