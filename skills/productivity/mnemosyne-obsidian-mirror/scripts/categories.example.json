@@ -1,0 +1,9 @@
+{
+  "_comment": "Topic rules for mnemosyne-obsidian-mirror. Copy to ~/.hermes/mnemosyne-obsidian/categories.json and edit. First match wins: a memory goes to the first topic whose `sources` include its Mnemosyne source, or whose `keywords` (case-insensitive substrings) appear in its text. Unmatched memories go to General. Topic names must not equal a type name (Preferences, Facts, ...).",
+  "topics": [
+    {"name": "Work project", "keywords": ["acme", "acme-api", "sprint"]},
+    {"name": "Research", "sources": ["paper_review"], "keywords": ["paper", "literature", "arxiv"]},
+    {"name": "Coding agents", "keywords": ["hermes", "claude code", "codex"]},
+    {"name": "Dev environment", "keywords": ["macos", "docker", "brew", "xcode"]}
+  ]
+}
