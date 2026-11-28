@@ -90,6 +90,14 @@
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
     },
     {
+      "name": "mnemosyne-obsidian-mirror",
+      "version": "1.0.0",
+      "description": "Use when mirroring Mnemosyne into Obsidian. Categorised.",
+      "category": "productivity",
+      "path": "skills/productivity/mnemosyne-obsidian-mirror",
+      "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror"
+    },
+    {
       "name": "multi-repo-pr-review-merge-round",
       "version": "1.0.0",
       "description": "Use when burning a metered omp model budget on PR/worktree review across repos. Coordinator queues omp -p review lanes, verifies, merges, re-spawns each usage window until month end.",
@@ -350,6 +358,19 @@
           "category": "Design",
           "path": "skills/creative/impeccable",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable"
+        }
+      ]
+    },
+    {
+      "title": "productivity",
+      "skills": [
+        {
+          "name": "mnemosyne-obsidian-mirror",
+          "version": "1.0.0",
+          "description": "Use when mirroring Mnemosyne into Obsidian. Categorised.",
+          "category": "productivity",
+          "path": "skills/productivity/mnemosyne-obsidian-mirror",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror"
         }
       ]
     }

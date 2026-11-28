@@ -252,7 +252,8 @@
     .atlas:has(.key-fam[data-fam="agent-machine-setup"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="agent-machine-setup"]),
     .atlas:has(.key-fam[data-fam="browser-automation"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="browser-automation"]),
     .atlas:has(.key-fam[data-fam="communication"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="communication"]),
-    .atlas:has(.key-fam[data-fam="design"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="design"]) {
+    .atlas:has(.key-fam[data-fam="design"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="design"]),
+    .atlas:has(.key-fam[data-fam="unfiled"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="unfiled"]) {
       opacity: 0.18; filter: grayscale(1);
     }
   </style>
@@ -291,7 +292,7 @@
 
 <section class="atlas" id="chart" aria-labelledby="chart-h">
   <h2 class="vh" id="chart-h">Chart of skills</h2>
-  <div class="chart-wrap" style="--row-c: 5; --row-g: 3; --row-b: 1">
+  <div class="chart-wrap" style="--row-c: 6; --row-g: 3; --row-b: 2">
     <p class="chart-key"><a href="#key-h">Jump to the key</a></p>
     <ol class="chart">
     <li class="fam-block" data-fam="research-writing" style="--cols: 5; --cols-s: 4">
@@ -425,12 +426,22 @@
         </a></li>
       </ul>
     </li>
+    <li class="fam-block" data-fam="unfiled" style="--cols: 1; --cols-s: 1">
+      <p class="fb-h"><span>Unfiled</span><span class="fb-n">1<span class="vh"> skill</span></span></p>
+      <ul class="fb-cells">
+        <li><a class="cell f-unfiled" href="#entry-mnemosyne-obsidian-mirror" aria-label="21 mnemosyne-obsidian-mirror, Unfiled, version 1.0.0">
+          <span class="c-top"><span>21</span><span class="c-mark">UNF</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Mo</span>
+          <span class="c-name">mnemosyne-<wbr>obsidian-<wbr>mirror</span>
+        </a></li>
+      </ul>
+    </li>
     </ol>
   </div>
     <aside class="key" aria-labelledby="key-h">
       <div>
       <h2 id="key-h">Key</h2>
-      <p class="key-sum">20 skills in 6 families.</p>
+      <p class="key-sum">21 skills in 7 families.</p>
       <ul class="key-fams">
         <li><a class="key-fam" href="#family-research-writing" data-fam="research-writing"><span class="sw f-research-writing" aria-hidden="true">RES</span><span class="kf-name">Research &amp; Writing</span><span class="kf-n">5</span></a></li>
         <li><a class="key-fam" href="#family-coding-workflow" data-fam="coding-workflow"><span class="sw f-coding-workflow" aria-hidden="true">COD</span><span class="kf-name">Coding Workflow</span><span class="kf-n">5</span></a></li>
@@ -438,6 +449,7 @@
         <li><a class="key-fam" href="#family-browser-automation" data-fam="browser-automation"><span class="sw f-browser-automation" aria-hidden="true">BRW</span><span class="kf-name">Browser Automation</span><span class="kf-n">2</span></a></li>
         <li><a class="key-fam" href="#family-communication" data-fam="communication"><span class="sw f-communication" aria-hidden="true">COM</span><span class="kf-name">Communication</span><span class="kf-n">4</span></a></li>
         <li><a class="key-fam" href="#family-design" data-fam="design"><span class="sw f-design" aria-hidden="true">DES</span><span class="kf-name">Design</span><span class="kf-n">1</span></a></li>
+        <li><a class="key-fam" href="#family-unfiled" data-fam="unfiled"><span class="sw f-unfiled" aria-hidden="true">UNF</span><span class="kf-name">Unfiled</span><span class="kf-n">1</span></a></li>
       </ul>
       </div>
       <div>
@@ -757,6 +769,23 @@
     </div>
   </article>
 </section>
+<section aria-labelledby="family-unfiled">
+  <h3 class="fam-h f-unfiled" id="family-unfiled">Unfiled <span>1 skill</span></h3>
+  <article class="entry" id="entry-mnemosyne-obsidian-mirror" aria-labelledby="entry-mnemosyne-obsidian-mirror-h">
+    <div class="e-head">
+      <span class="e-cell f-unfiled" aria-hidden="true"><span class="e-n">21</span><span class="e-s">Mo</span></span>
+      <div>
+        <h4 class="e-name" id="entry-mnemosyne-obsidian-mirror-h">mnemosyne-obsidian-mirror</h4>
+        <p class="e-meta"><span>Unfiled</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when mirroring Mnemosyne into Obsidian. Categorised.</p>
+      <p class="e-tags"><span class="sc">Tags</span> mnemosyne / obsidian / memory / cron / markdown / categorisation</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/mnemosyne-obsidian-mirror/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror" target="_blank" rel="noopener">Source</a><code>skills/productivity/mnemosyne-obsidian-mirror</code></p>
+    </div>
+  </article>
+</section>
 </section>
 
 <section class="sect" id="a-z" aria-labelledby="a-z-h">
@@ -773,6 +802,7 @@
     <li><a href="#entry-ilearning-autoadvance"><span class="az-n">15</span><span>ilearning-autoadvance</span></a></li>
     <li><a href="#entry-impeccable"><span class="az-n">20</span><span>impeccable</span></a></li>
     <li><a href="#entry-memory-ui"><span class="az-n">12</span><span>memory-ui</span></a></li>
+    <li><a href="#entry-mnemosyne-obsidian-mirror"><span class="az-n">21</span><span>mnemosyne-obsidian-mirror</span></a></li>
     <li><a href="#entry-multi-repo-pr-review-merge-round"><span class="az-n">08</span><span>multi-repo-pr-review-merge-round</span></a></li>
     <li><a href="#entry-oh-my-ghostty"><span class="az-n">13</span><span>oh-my-ghostty</span></a></li>
     <li><a href="#entry-oh-my-pi"><span class="az-n">09</span><span>oh-my-pi</span></a></li>
