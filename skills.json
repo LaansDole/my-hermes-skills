@@ -93,7 +93,7 @@
       "name": "mnemosyne-obsidian-mirror",
       "version": "1.0.0",
       "description": "Use when mirroring Mnemosyne into Obsidian. Categorised.",
-      "category": "productivity",
+      "category": "Agent & Machine Setup",
       "path": "skills/productivity/mnemosyne-obsidian-mirror",
       "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror"
     },
@@ -281,6 +281,14 @@
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui"
         },
         {
+          "name": "mnemosyne-obsidian-mirror",
+          "version": "1.0.0",
+          "description": "Use when mirroring Mnemosyne into Obsidian. Categorised.",
+          "category": "Agent & Machine Setup",
+          "path": "skills/productivity/mnemosyne-obsidian-mirror",
+          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror"
+        },
+        {
           "name": "oh-my-ghostty",
           "version": "1.0.0",
           "description": "Use when setting up or refreshing the oh-my-ghostty terminal stack on macOS - Ghostty config, fastfetch on new-terminal startup, and bat/eza/zoxide aliases for zsh.",
@@ -358,19 +366,6 @@
           "category": "Design",
           "path": "skills/creative/impeccable",
           "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/creative/impeccable"
-        }
-      ]
-    },
-    {
-      "title": "productivity",
-      "skills": [
-        {
-          "name": "mnemosyne-obsidian-mirror",
-          "version": "1.0.0",
-          "description": "Use when mirroring Mnemosyne into Obsidian. Categorised.",
-          "category": "productivity",
-          "path": "skills/productivity/mnemosyne-obsidian-mirror",
-          "url": "https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror"
         }
       ]
     }

@@ -252,8 +252,7 @@
     .atlas:has(.key-fam[data-fam="agent-machine-setup"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="agent-machine-setup"]),
     .atlas:has(.key-fam[data-fam="browser-automation"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="browser-automation"]),
     .atlas:has(.key-fam[data-fam="communication"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="communication"]),
-    .atlas:has(.key-fam[data-fam="design"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="design"]),
-    .atlas:has(.key-fam[data-fam="unfiled"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="unfiled"]) {
+    .atlas:has(.key-fam[data-fam="design"]:is(:hover, :focus-visible)) .fam-block:not([data-fam="design"]) {
       opacity: 0.18; filter: grayscale(1);
     }
   </style>
@@ -292,7 +291,7 @@
 
 <section class="atlas" id="chart" aria-labelledby="chart-h">
   <h2 class="vh" id="chart-h">Chart of skills</h2>
-  <div class="chart-wrap" style="--row-c: 6; --row-g: 3; --row-b: 2">
+  <div class="chart-wrap" style="--row-c: 6; --row-g: 4; --row-b: 1">
     <p class="chart-key"><a href="#key-h">Jump to the key</a></p>
     <ol class="chart">
     <li class="fam-block" data-fam="research-writing" style="--cols: 5; --cols-s: 4">
@@ -356,8 +355,8 @@
         </a></li>
       </ul>
     </li>
-    <li class="fam-block" data-fam="agent-machine-setup" style="--cols: 3; --cols-s: 3">
-      <p class="fb-h"><span>Agent &amp; Machine Setup</span><span class="fb-n">3<span class="vh"> skills</span></span></p>
+    <li class="fam-block" data-fam="agent-machine-setup" style="--cols: 4; --cols-s: 4">
+      <p class="fb-h"><span>Agent &amp; Machine Setup</span><span class="fb-n">4<span class="vh"> skills</span></span></p>
       <ul class="fb-cells">
         <li><a class="cell f-agent-machine-setup" href="#entry-hermes-deepseek-cache" aria-label="11 hermes-deepseek-cache, Agent &amp; Machine Setup, version 1.1.0">
           <span class="c-top"><span>11</span><span class="c-mark">SET</span><span class="c-v">1.1.0</span></span>
@@ -369,8 +368,13 @@
           <span class="c-sym">Mu</span>
           <span class="c-name">memory-<wbr>ui</span>
         </a></li>
-        <li><a class="cell f-agent-machine-setup" href="#entry-oh-my-ghostty" aria-label="13 oh-my-ghostty, Agent &amp; Machine Setup, version 1.0.0">
+        <li><a class="cell f-agent-machine-setup" href="#entry-mnemosyne-obsidian-mirror" aria-label="13 mnemosyne-obsidian-mirror, Agent &amp; Machine Setup, version 1.0.0">
           <span class="c-top"><span>13</span><span class="c-mark">SET</span><span class="c-v">1.0.0</span></span>
+          <span class="c-sym">Mo</span>
+          <span class="c-name">mnemosyne-<wbr>obsidian-<wbr>mirror</span>
+        </a></li>
+        <li><a class="cell f-agent-machine-setup" href="#entry-oh-my-ghostty" aria-label="14 oh-my-ghostty, Agent &amp; Machine Setup, version 1.0.0">
+          <span class="c-top"><span>14</span><span class="c-mark">SET</span><span class="c-v">1.0.0</span></span>
           <span class="c-sym">Og</span>
           <span class="c-name">oh-<wbr>my-<wbr>ghostty</span>
         </a></li>
@@ -379,13 +383,13 @@
     <li class="fam-block" data-fam="browser-automation" style="--cols: 2; --cols-s: 2">
       <p class="fb-h"><span>Browser Automation</span><span class="fb-n">2<span class="vh"> skills</span></span></p>
       <ul class="fb-cells">
-        <li><a class="cell f-browser-automation" href="#entry-camofox-browser" aria-label="14 camofox-browser, Browser Automation, version 1.0.0">
-          <span class="c-top"><span>14</span><span class="c-mark">BRW</span><span class="c-v">1.0.0</span></span>
+        <li><a class="cell f-browser-automation" href="#entry-camofox-browser" aria-label="15 camofox-browser, Browser Automation, version 1.0.0">
+          <span class="c-top"><span>15</span><span class="c-mark">BRW</span><span class="c-v">1.0.0</span></span>
           <span class="c-sym">Cb</span>
           <span class="c-name">camofox-<wbr>browser</span>
         </a></li>
-        <li><a class="cell f-browser-automation" href="#entry-ilearning-autoadvance" aria-label="15 ilearning-autoadvance, Browser Automation, version 5.0.0">
-          <span class="c-top"><span>15</span><span class="c-mark">BRW</span><span class="c-v">5.0.0</span></span>
+        <li><a class="cell f-browser-automation" href="#entry-ilearning-autoadvance" aria-label="16 ilearning-autoadvance, Browser Automation, version 5.0.0">
+          <span class="c-top"><span>16</span><span class="c-mark">BRW</span><span class="c-v">5.0.0</span></span>
           <span class="c-sym">Ia</span>
           <span class="c-name">ilearning-<wbr>autoadvance</span>
         </a></li>
@@ -394,23 +398,23 @@
     <li class="fam-block" data-fam="communication" style="--cols: 4; --cols-s: 4">
       <p class="fb-h"><span>Communication</span><span class="fb-n">4<span class="vh"> skills</span></span></p>
       <ul class="fb-cells">
-        <li><a class="cell f-communication" href="#entry-i-have-adhd" aria-label="16 i-have-adhd, Communication, unversioned">
-          <span class="c-top"><span>16</span><span class="c-mark">COM</span><span class="c-v"></span></span>
+        <li><a class="cell f-communication" href="#entry-i-have-adhd" aria-label="17 i-have-adhd, Communication, unversioned">
+          <span class="c-top"><span>17</span><span class="c-mark">COM</span><span class="c-v"></span></span>
           <span class="c-sym">Ih</span>
           <span class="c-name">i-<wbr>have-<wbr>adhd</span>
         </a></li>
-        <li><a class="cell f-communication" href="#entry-slack-mention-watch" aria-label="17 slack-mention-watch, Communication, version 2.9.0">
-          <span class="c-top"><span>17</span><span class="c-mark">COM</span><span class="c-v">2.9.0</span></span>
+        <li><a class="cell f-communication" href="#entry-slack-mention-watch" aria-label="18 slack-mention-watch, Communication, version 2.9.0">
+          <span class="c-top"><span>18</span><span class="c-mark">COM</span><span class="c-v">2.9.0</span></span>
           <span class="c-sym">Sm</span>
           <span class="c-name">slack-<wbr>mention-<wbr>watch</span>
         </a></li>
-        <li><a class="cell f-communication" href="#entry-slack-scan" aria-label="18 slack-scan, Communication, version 1.0.0">
-          <span class="c-top"><span>18</span><span class="c-mark">COM</span><span class="c-v">1.0.0</span></span>
+        <li><a class="cell f-communication" href="#entry-slack-scan" aria-label="19 slack-scan, Communication, version 1.0.0">
+          <span class="c-top"><span>19</span><span class="c-mark">COM</span><span class="c-v">1.0.0</span></span>
           <span class="c-sym">Ss</span>
           <span class="c-name">slack-<wbr>scan</span>
         </a></li>
-        <li><a class="cell f-communication" href="#entry-tldr" aria-label="19 tldr, Communication, version 1.1.0">
-          <span class="c-top"><span>19</span><span class="c-mark">COM</span><span class="c-v">1.1.0</span></span>
+        <li><a class="cell f-communication" href="#entry-tldr" aria-label="20 tldr, Communication, version 1.1.0">
+          <span class="c-top"><span>20</span><span class="c-mark">COM</span><span class="c-v">1.1.0</span></span>
           <span class="c-sym">Tl</span>
           <span class="c-name">tldr</span>
         </a></li>
@@ -419,20 +423,10 @@
     <li class="fam-block" data-fam="design" style="--cols: 1; --cols-s: 1">
       <p class="fb-h"><span>Design</span><span class="fb-n">1<span class="vh"> skill</span></span></p>
       <ul class="fb-cells">
-        <li><a class="cell f-design" href="#entry-impeccable" aria-label="20 impeccable, Design, version 4.9.0">
-          <span class="c-top"><span>20</span><span class="c-mark">DES</span><span class="c-v">4.9.0</span></span>
+        <li><a class="cell f-design" href="#entry-impeccable" aria-label="21 impeccable, Design, version 4.9.0">
+          <span class="c-top"><span>21</span><span class="c-mark">DES</span><span class="c-v">4.9.0</span></span>
           <span class="c-sym">Im</span>
           <span class="c-name">impeccable</span>
-        </a></li>
-      </ul>
-    </li>
-    <li class="fam-block" data-fam="unfiled" style="--cols: 1; --cols-s: 1">
-      <p class="fb-h"><span>Unfiled</span><span class="fb-n">1<span class="vh"> skill</span></span></p>
-      <ul class="fb-cells">
-        <li><a class="cell f-unfiled" href="#entry-mnemosyne-obsidian-mirror" aria-label="21 mnemosyne-obsidian-mirror, Unfiled, version 1.0.0">
-          <span class="c-top"><span>21</span><span class="c-mark">UNF</span><span class="c-v">1.0.0</span></span>
-          <span class="c-sym">Mo</span>
-          <span class="c-name">mnemosyne-<wbr>obsidian-<wbr>mirror</span>
         </a></li>
       </ul>
     </li>
@@ -441,15 +435,14 @@
     <aside class="key" aria-labelledby="key-h">
       <div>
       <h2 id="key-h">Key</h2>
-      <p class="key-sum">21 skills in 7 families.</p>
+      <p class="key-sum">21 skills in 6 families.</p>
       <ul class="key-fams">
         <li><a class="key-fam" href="#family-research-writing" data-fam="research-writing"><span class="sw f-research-writing" aria-hidden="true">RES</span><span class="kf-name">Research &amp; Writing</span><span class="kf-n">5</span></a></li>
         <li><a class="key-fam" href="#family-coding-workflow" data-fam="coding-workflow"><span class="sw f-coding-workflow" aria-hidden="true">COD</span><span class="kf-name">Coding Workflow</span><span class="kf-n">5</span></a></li>
-        <li><a class="key-fam" href="#family-agent-machine-setup" data-fam="agent-machine-setup"><span class="sw f-agent-machine-setup" aria-hidden="true">SET</span><span class="kf-name">Agent &amp; Machine Setup</span><span class="kf-n">3</span></a></li>
+        <li><a class="key-fam" href="#family-agent-machine-setup" data-fam="agent-machine-setup"><span class="sw f-agent-machine-setup" aria-hidden="true">SET</span><span class="kf-name">Agent &amp; Machine Setup</span><span class="kf-n">4</span></a></li>
         <li><a class="key-fam" href="#family-browser-automation" data-fam="browser-automation"><span class="sw f-browser-automation" aria-hidden="true">BRW</span><span class="kf-name">Browser Automation</span><span class="kf-n">2</span></a></li>
         <li><a class="key-fam" href="#family-communication" data-fam="communication"><span class="sw f-communication" aria-hidden="true">COM</span><span class="kf-name">Communication</span><span class="kf-n">4</span></a></li>
         <li><a class="key-fam" href="#family-design" data-fam="design"><span class="sw f-design" aria-hidden="true">DES</span><span class="kf-name">Design</span><span class="kf-n">1</span></a></li>
-        <li><a class="key-fam" href="#family-unfiled" data-fam="unfiled"><span class="sw f-unfiled" aria-hidden="true">UNF</span><span class="kf-name">Unfiled</span><span class="kf-n">1</span></a></li>
       </ul>
       </div>
       <div>
@@ -622,7 +615,7 @@
   </article>
 </section>
 <section aria-labelledby="family-agent-machine-setup">
-  <h3 class="fam-h f-agent-machine-setup" id="family-agent-machine-setup">Agent &amp; Machine Setup <span>3 skills</span></h3>
+  <h3 class="fam-h f-agent-machine-setup" id="family-agent-machine-setup">Agent &amp; Machine Setup <span>4 skills</span></h3>
   <article class="entry" id="entry-hermes-deepseek-cache" aria-labelledby="entry-hermes-deepseek-cache-h">
     <div class="e-head">
       <span class="e-cell f-agent-machine-setup" aria-hidden="true"><span class="e-n">11</span><span class="e-s">Hd</span></span>
@@ -650,9 +643,23 @@
       <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/memory-ui/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/memory-ui" target="_blank" rel="noopener">Source</a><code>skills/productivity/memory-ui</code></p>
     </div>
   </article>
+  <article class="entry" id="entry-mnemosyne-obsidian-mirror" aria-labelledby="entry-mnemosyne-obsidian-mirror-h">
+    <div class="e-head">
+      <span class="e-cell f-agent-machine-setup" aria-hidden="true"><span class="e-n">13</span><span class="e-s">Mo</span></span>
+      <div>
+        <h4 class="e-name" id="entry-mnemosyne-obsidian-mirror-h">mnemosyne-obsidian-mirror</h4>
+        <p class="e-meta"><span>Agent &amp; Machine Setup</span><span><span class="sc">v1.0.0</span></span></p>
+      </div>
+    </div>
+    <div class="e-body">
+      <p class="e-desc">Use when mirroring Mnemosyne into Obsidian. Categorised.</p>
+      <p class="e-tags"><span class="sc">Tags</span> mnemosyne / obsidian / memory / cron / markdown / categorisation</p>
+      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/mnemosyne-obsidian-mirror/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror" target="_blank" rel="noopener">Source</a><code>skills/productivity/mnemosyne-obsidian-mirror</code></p>
+    </div>
+  </article>
   <article class="entry" id="entry-oh-my-ghostty" aria-labelledby="entry-oh-my-ghostty-h">
     <div class="e-head">
-      <span class="e-cell f-agent-machine-setup" aria-hidden="true"><span class="e-n">13</span><span class="e-s">Og</span></span>
+      <span class="e-cell f-agent-machine-setup" aria-hidden="true"><span class="e-n">14</span><span class="e-s">Og</span></span>
       <div>
         <h4 class="e-name" id="entry-oh-my-ghostty-h">oh-my-ghostty</h4>
         <p class="e-meta"><span>Agent &amp; Machine Setup</span><span><span class="sc">v1.0.0</span></span></p>
@@ -669,7 +676,7 @@
   <h3 class="fam-h f-browser-automation" id="family-browser-automation">Browser Automation <span>2 skills</span></h3>
   <article class="entry" id="entry-camofox-browser" aria-labelledby="entry-camofox-browser-h">
     <div class="e-head">
-      <span class="e-cell f-browser-automation" aria-hidden="true"><span class="e-n">14</span><span class="e-s">Cb</span></span>
+      <span class="e-cell f-browser-automation" aria-hidden="true"><span class="e-n">15</span><span class="e-s">Cb</span></span>
       <div>
         <h4 class="e-name" id="entry-camofox-browser-h">camofox-browser</h4>
         <p class="e-meta"><span>Browser Automation</span><span><span class="sc">v1.0.0</span></span></p>
@@ -683,7 +690,7 @@
   </article>
   <article class="entry" id="entry-ilearning-autoadvance" aria-labelledby="entry-ilearning-autoadvance-h">
     <div class="e-head">
-      <span class="e-cell f-browser-automation" aria-hidden="true"><span class="e-n">15</span><span class="e-s">Ia</span></span>
+      <span class="e-cell f-browser-automation" aria-hidden="true"><span class="e-n">16</span><span class="e-s">Ia</span></span>
       <div>
         <h4 class="e-name" id="entry-ilearning-autoadvance-h">ilearning-autoadvance</h4>
         <p class="e-meta"><span>Browser Automation</span><span><span class="sc">v5.0.0</span></span></p>
@@ -699,7 +706,7 @@
   <h3 class="fam-h f-communication" id="family-communication">Communication <span>4 skills</span></h3>
   <article class="entry" id="entry-i-have-adhd" aria-labelledby="entry-i-have-adhd-h">
     <div class="e-head">
-      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">16</span><span class="e-s">Ih</span></span>
+      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">17</span><span class="e-s">Ih</span></span>
       <div>
         <h4 class="e-name" id="entry-i-have-adhd-h">i-have-adhd</h4>
         <p class="e-meta"><span>Communication</span><span><span class="sc">unversioned</span></span></p>
@@ -712,7 +719,7 @@
   </article>
   <article class="entry" id="entry-slack-mention-watch" aria-labelledby="entry-slack-mention-watch-h">
     <div class="e-head">
-      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">17</span><span class="e-s">Sm</span></span>
+      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">18</span><span class="e-s">Sm</span></span>
       <div>
         <h4 class="e-name" id="entry-slack-mention-watch-h">slack-mention-watch</h4>
         <p class="e-meta"><span>Communication</span><span><span class="sc">v2.9.0</span></span></p>
@@ -726,7 +733,7 @@
   </article>
   <article class="entry" id="entry-slack-scan" aria-labelledby="entry-slack-scan-h">
     <div class="e-head">
-      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">18</span><span class="e-s">Ss</span></span>
+      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">19</span><span class="e-s">Ss</span></span>
       <div>
         <h4 class="e-name" id="entry-slack-scan-h">slack-scan</h4>
         <p class="e-meta"><span>Communication</span><span><span class="sc">v1.0.0</span></span></p>
@@ -740,7 +747,7 @@
   </article>
   <article class="entry" id="entry-tldr" aria-labelledby="entry-tldr-h">
     <div class="e-head">
-      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">19</span><span class="e-s">Tl</span></span>
+      <span class="e-cell f-communication" aria-hidden="true"><span class="e-n">20</span><span class="e-s">Tl</span></span>
       <div>
         <h4 class="e-name" id="entry-tldr-h">tldr</h4>
         <p class="e-meta"><span>Communication</span><span><span class="sc">v1.1.0</span></span></p>
@@ -757,7 +764,7 @@
   <h3 class="fam-h f-design" id="family-design">Design <span>1 skill</span></h3>
   <article class="entry" id="entry-impeccable" aria-labelledby="entry-impeccable-h">
     <div class="e-head">
-      <span class="e-cell f-design" aria-hidden="true"><span class="e-n">20</span><span class="e-s">Im</span></span>
+      <span class="e-cell f-design" aria-hidden="true"><span class="e-n">21</span><span class="e-s">Im</span></span>
       <div>
         <h4 class="e-name" id="entry-impeccable-h">impeccable</h4>
         <p class="e-meta"><span>Design</span><span><span class="sc">v4.9.0</span></span></p>
@@ -769,48 +776,31 @@
     </div>
   </article>
 </section>
-<section aria-labelledby="family-unfiled">
-  <h3 class="fam-h f-unfiled" id="family-unfiled">Unfiled <span>1 skill</span></h3>
-  <article class="entry" id="entry-mnemosyne-obsidian-mirror" aria-labelledby="entry-mnemosyne-obsidian-mirror-h">
-    <div class="e-head">
-      <span class="e-cell f-unfiled" aria-hidden="true"><span class="e-n">21</span><span class="e-s">Mo</span></span>
-      <div>
-        <h4 class="e-name" id="entry-mnemosyne-obsidian-mirror-h">mnemosyne-obsidian-mirror</h4>
-        <p class="e-meta"><span>Unfiled</span><span><span class="sc">v1.0.0</span></span></p>
-      </div>
-    </div>
-    <div class="e-body">
-      <p class="e-desc">Use when mirroring Mnemosyne into Obsidian. Categorised.</p>
-      <p class="e-tags"><span class="sc">Tags</span> mnemosyne / obsidian / memory / cron / markdown / categorisation</p>
-      <p class="e-links"><a href="https://github.com/LaansDole/my-hermes-skills/blob/main/skills/productivity/mnemosyne-obsidian-mirror/SKILL.md" target="_blank" rel="noopener">SKILL.md</a><a href="https://github.com/LaansDole/my-hermes-skills/tree/main/skills/productivity/mnemosyne-obsidian-mirror" target="_blank" rel="noopener">Source</a><code>skills/productivity/mnemosyne-obsidian-mirror</code></p>
-    </div>
-  </article>
-</section>
 </section>
 
 <section class="sect" id="a-z" aria-labelledby="a-z-h">
   <h2 id="a-z-h">Index A–Z</h2>
   <ul class="az">
     <li><a href="#entry-auditing-worktrees"><span class="az-n">06</span><span>auditing-worktrees</span></a></li>
-    <li><a href="#entry-camofox-browser"><span class="az-n">14</span><span>camofox-browser</span></a></li>
+    <li><a href="#entry-camofox-browser"><span class="az-n">15</span><span>camofox-browser</span></a></li>
     <li><a href="#entry-covidence-full-text-retrieval"><span class="az-n">01</span><span>covidence-full-text-retrieval</span></a></li>
     <li><a href="#entry-covidence-full-text-review"><span class="az-n">02</span><span>covidence-full-text-review</span></a></li>
     <li><a href="#entry-covidence-screening"><span class="az-n">03</span><span>covidence-screening</span></a></li>
     <li><a href="#entry-demo-runbook"><span class="az-n">07</span><span>demo-runbook</span></a></li>
     <li><a href="#entry-hermes-deepseek-cache"><span class="az-n">11</span><span>hermes-deepseek-cache</span></a></li>
-    <li><a href="#entry-i-have-adhd"><span class="az-n">16</span><span>i-have-adhd</span></a></li>
-    <li><a href="#entry-ilearning-autoadvance"><span class="az-n">15</span><span>ilearning-autoadvance</span></a></li>
-    <li><a href="#entry-impeccable"><span class="az-n">20</span><span>impeccable</span></a></li>
+    <li><a href="#entry-i-have-adhd"><span class="az-n">17</span><span>i-have-adhd</span></a></li>
+    <li><a href="#entry-ilearning-autoadvance"><span class="az-n">16</span><span>ilearning-autoadvance</span></a></li>
+    <li><a href="#entry-impeccable"><span class="az-n">21</span><span>impeccable</span></a></li>
     <li><a href="#entry-memory-ui"><span class="az-n">12</span><span>memory-ui</span></a></li>
-    <li><a href="#entry-mnemosyne-obsidian-mirror"><span class="az-n">21</span><span>mnemosyne-obsidian-mirror</span></a></li>
+    <li><a href="#entry-mnemosyne-obsidian-mirror"><span class="az-n">13</span><span>mnemosyne-obsidian-mirror</span></a></li>
     <li><a href="#entry-multi-repo-pr-review-merge-round"><span class="az-n">08</span><span>multi-repo-pr-review-merge-round</span></a></li>
-    <li><a href="#entry-oh-my-ghostty"><span class="az-n">13</span><span>oh-my-ghostty</span></a></li>
+    <li><a href="#entry-oh-my-ghostty"><span class="az-n">14</span><span>oh-my-ghostty</span></a></li>
     <li><a href="#entry-oh-my-pi"><span class="az-n">09</span><span>oh-my-pi</span></a></li>
     <li><a href="#entry-sci-hub-access"><span class="az-n">04</span><span>sci-hub-access</span></a></li>
-    <li><a href="#entry-slack-mention-watch"><span class="az-n">17</span><span>slack-mention-watch</span></a></li>
-    <li><a href="#entry-slack-scan"><span class="az-n">18</span><span>slack-scan</span></a></li>
+    <li><a href="#entry-slack-mention-watch"><span class="az-n">18</span><span>slack-mention-watch</span></a></li>
+    <li><a href="#entry-slack-scan"><span class="az-n">19</span><span>slack-scan</span></a></li>
     <li><a href="#entry-superpowers-using-superpowers"><span class="az-n">10</span><span>superpowers-using-superpowers</span></a></li>
-    <li><a href="#entry-tldr"><span class="az-n">19</span><span>tldr</span></a></li>
+    <li><a href="#entry-tldr"><span class="az-n">20</span><span>tldr</span></a></li>
     <li><a href="#entry-writing-reports"><span class="az-n">05</span><span>writing-reports</span></a></li>
   </ul>
 </section>

@@ -636,7 +636,7 @@ class SectionTests(unittest.TestCase):
                                "covidence-screening", "sci-hub-access", "writing-reports"],
         "Coding Workflow": ["auditing-worktrees", "demo-runbook", "multi-repo-pr-review-merge-round",
                             "oh-my-pi", "superpowers-using-superpowers"],
-        "Agent & Machine Setup": ["hermes-deepseek-cache", "memory-ui", "oh-my-ghostty"],
+        "Agent & Machine Setup": ["hermes-deepseek-cache", "memory-ui", "mnemosyne-obsidian-mirror", "oh-my-ghostty"],
         "Browser Automation": ["camofox-browser", "ilearning-autoadvance"],
         "Communication": ["i-have-adhd", "slack-mention-watch", "slack-scan", "tldr"],
         "Design": ["impeccable"],

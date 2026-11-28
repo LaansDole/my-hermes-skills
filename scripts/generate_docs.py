@@ -49,6 +49,7 @@ SKILL_SECTIONS = {
     "superpowers-using-superpowers":    "Coding Workflow",
     "hermes-deepseek-cache":            "Agent & Machine Setup",
     "memory-ui":                        "Agent & Machine Setup",
+    "mnemosyne-obsidian-mirror":        "Agent & Machine Setup",
     "oh-my-ghostty":                    "Agent & Machine Setup",
     "camofox-browser":                  "Browser Automation",
     "ilearning-autoadvance":            "Browser Automation",
